@@ -1,3 +1,5 @@
+using UltimatePoKeSync.Contracts;
+
 namespace UltimatePoKeSync.GameData;
 
 /// <summary>
@@ -25,6 +27,8 @@ public sealed class ShowdownGen3PresetCatalog : IReferencePresetCatalog
 
     public static ShowdownGen3PresetCatalog Instance => LazyInstance.Value;
 
+    public PokemonGeneration Generation => PokemonGeneration.Gen3;
+
     public string SourceName => "Pokémon Showdown Gen 3 Random Battle";
 
     public string SourceRevision => Revision;
@@ -35,7 +39,9 @@ public sealed class ShowdownGen3PresetCatalog : IReferencePresetCatalog
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(speciesName);
 
-        if (!_species.TryGetValue(Normalize(speciesName), out ShowdownSpeciesData? species))
+        if (!_species.TryGetValue(
+            ShowdownIdentifier.Normalize(speciesName),
+            out ShowdownSpeciesData? species))
         {
             return [];
         }
@@ -45,28 +51,6 @@ public sealed class ShowdownGen3PresetCatalog : IReferencePresetCatalog
             set.MovePool,
             set.Abilities,
             set.PreferredTypes ?? []))];
-    }
-
-    private static string Normalize(string speciesName)
-    {
-        var characters = new List<char>(speciesName.Length);
-        foreach (char character in speciesName.Trim().ToLowerInvariant())
-        {
-            if (char.IsAsciiLetterOrDigit(character))
-            {
-                characters.Add(character);
-            }
-            else if (character == '♀')
-            {
-                characters.Add('f');
-            }
-            else if (character == '♂')
-            {
-                characters.Add('m');
-            }
-        }
-
-        return new string([.. characters]);
     }
 
     private static void Validate(IReadOnlyDictionary<string, ShowdownSpeciesData> species)
@@ -82,7 +66,7 @@ public sealed class ShowdownGen3PresetCatalog : IReferencePresetCatalog
 
         foreach ((string key, ShowdownSpeciesData entry) in species)
         {
-            if (key != Normalize(key) || entry.Sets.Length == 0 ||
+            if (key != ShowdownIdentifier.Normalize(key) || entry.Sets.Length == 0 ||
                 entry.Sets.Any(set => string.IsNullOrWhiteSpace(set.Role) ||
                     set.MovePool.Length == 0 || set.Abilities.Length == 0))
             {

@@ -7,10 +7,6 @@
   -->
 
   <ItemGroup>
-    <PackageReference Include="PKHeX.Core" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.GameData\UltimatePoKeSync.GameData.csproj" />
   </ItemGroup>

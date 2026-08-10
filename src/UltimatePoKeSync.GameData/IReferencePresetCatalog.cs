@@ -1,8 +1,12 @@
+using UltimatePoKeSync.Contracts;
+
 namespace UltimatePoKeSync.GameData;
 
 /// <summary>Versioned, offline reference sets that recommendation profiles may use as priors.</summary>
 public interface IReferencePresetCatalog
 {
+    PokemonGeneration Generation { get; }
+
     string SourceName { get; }
 
     string SourceRevision { get; }

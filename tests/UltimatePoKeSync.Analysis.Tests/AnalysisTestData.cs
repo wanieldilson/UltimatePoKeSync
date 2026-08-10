@@ -15,13 +15,15 @@ internal static class AnalysisTestData
         PokemonType primaryType = PokemonType.Normal,
         PokemonType secondaryType = PokemonType.None,
         int abilityId = 0,
+        string? speciesName = null,
+        int level = 50,
         StatBlock? baseStats = null,
         params MoveSlot[] moves) => new()
         {
             SlotIndex = slot,
             SpeciesId = (ushort)(slot + 1),
-            SpeciesName = $"Member {slot}",
-            Level = 50,
+            SpeciesName = speciesName ?? $"Member {slot}",
+            Level = level,
             PrimaryType = primaryType,
             SecondaryType = secondaryType,
             BaseStats = baseStats ?? new StatBlock(50, 50, 50, 50, 50, 50),

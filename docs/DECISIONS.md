@@ -575,3 +575,35 @@ deterministic but unnecessarily reinvents expert movepool knowledge), reproduce 
 verbatim (rejected: ignores the live team and confuses Random Battle with standard play),
 query an online service at runtime (rejected: harms determinism and offline operation), and
 bundle Smogon Dex sets without permission (rejected: their reuse terms require permission).
+
+---
+
+## D-025 — Recommendations expose candidates and availability, not false certainty
+
+**Status:** Accepted · 2026-08-10
+
+The M6 engine returns a ranked, explainable candidate pool rather than pretending that a
+single four-move build is universally best. It computes team and role facts once, then
+delegates nature, EV, move and item policy to one of two injectable profiles. Reference
+catalogs declare their generation, so Gen 3 data cannot silently serve a later generation.
+
+The competitive profile marks preset-derived moves and items as competitive references.
+The playthrough profile distinguishes three facts:
+
+- a currently known move or held item is known to be available;
+- a level-up move at or below the current level, a type-boosting item, or a berry still
+  requires an availability check;
+- competitive reference candidates make no claim about story progression.
+
+That distinction is necessary because party RAM contains no bag, badges, map progress,
+Move Reminder access, or cross-game transfer history. The pinned Showdown learnset is also
+generation-wide rather than Emerald-specific. Until a later data source supplies those
+facts, the playthrough profile may surface these candidates but must not label them as
+currently obtainable. Exact competitive EV targets and softer playthrough training
+priorities are separate result shapes rather than a magic spread applied to both modes.
+
+**Alternatives considered:** emit an opaque final build (rejected: hides trade-offs and
+team context), assume every legal level-up move and common item is immediately obtainable
+(rejected: false for many save states), suppress every candidate not present in the party
+(rejected: safe but not useful), and parse the entire save game's progression state inside
+M6 (deferred: a meaningful scope expansion that should be designed as its own input).

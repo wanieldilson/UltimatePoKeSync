@@ -1,4 +1,5 @@
 using UltimatePoKeSync.GameData;
+using UltimatePoKeSync.Contracts;
 using Xunit;
 
 namespace UltimatePoKeSync.Analysis.Tests;
@@ -11,6 +12,7 @@ public sealed class ShowdownGen3PresetCatalogTests
         ShowdownGen3PresetCatalog catalog = ShowdownGen3PresetCatalog.Instance;
 
         Assert.Equal(220, catalog.SpeciesCount);
+        Assert.Equal(PokemonGeneration.Gen3, catalog.Generation);
         Assert.Equal("Pokémon Showdown Gen 3 Random Battle", catalog.SourceName);
         Assert.Equal(ShowdownGen3PresetCatalog.Revision, catalog.SourceRevision);
     }

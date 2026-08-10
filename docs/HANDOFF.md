@@ -1,6 +1,6 @@
 # Handoff — state of the project
 
-Last updated: 2026-08-10, after milestone M5.
+Last updated: 2026-08-10, during milestone M6.
 
 Read this first, then [`DECISIONS.md`](DECISIONS.md) for the reasoning behind every choice.
 `DECISIONS.md` is the authority; this file is orientation.
@@ -30,13 +30,28 @@ It reports all 17 defensive matchups (including ability modifiers), all offensiv
 from currently known damaging moves, and the unanswered gaps. Results keep the contributing
 Pokémon and moves so the UI can explain them rather than displaying an opaque score.
 
-**75 tests green** — 34 analysis, 24 parsing, 12 session, 5 provider.
+The first M6 recommendation slice is operational:
+
+```
+PartySnapshot --> team + role facts --> PokemonRecommendationEngine --> selected profile
+                                                                    |-> playthrough
+                                                                    `-> competitive
+```
+
+It infers broad roles, calculates exact Gen 3 projected stats, proposes nature and EV
+plans, and combines those facts with pinned offline Pokémon Showdown role/movepool
+references. The two profiles share the fact engine but return different policy.
+
+**101 tests green** — 60 analysis, 24 parsing, 12 session, 5 provider.
 
 ## What does not exist yet
 
-- Per-Pokémon role inference and suggestions (EVs, nature, moves, item) — M6.
-- Playthrough and competitive profile heuristics — M6; the M5 engine deliberately produces
-  profile-independent facts only.
+- Save-specific playthrough availability. Party RAM does not expose the bag, badges, map
+  progress, Move Reminder access or transfer history, so uncertain candidates are labelled
+  as requiring an availability check (D-025).
+- Game-specific level-up catalogs and competitive usage/speed-benchmark weighting. The
+  current pinned learnset is generation-wide and the presets are Random Battle references,
+  not standard OU statistics.
 - `UltimatePoKeSync.App` — Avalonia placeholder window only. Real dashboard is M7.
 
 ## Milestones
@@ -49,7 +64,7 @@ Pokémon and moves so the UI can explain them rather than displaying an opaque s
 | M3 | Gen 3 parsing via PKHeX, CLI output | done, verified on real RAM |
 | M4 | Party tracking, change suppression, real-RAM fixtures | done |
 | M5 | Gen 3 type chart + team analysis | done |
-| **M6** | **Per-Pokémon suggestions (EVs, nature, moves, item)** | **next** |
+| **M6** | **Per-Pokémon suggestions (EVs, nature, moves, item)** | **in progress** |
 | M7 | Avalonia dashboard | not started |
 | M8 | Second provider or generation, to prove the abstraction | not started |
 
@@ -135,6 +150,9 @@ Each of these cost real time to discover. They are all recorded in `DECISIONS.md
    for fixed-damage, one-hit knockout and variable-power moves. Seismic Toss and Fissure do
    not gain super-effective damage; Low Kick and Hidden Power do. `Gen3Rules` distinguishes
    them explicitly (D-022).
+10. **A legal candidate is not necessarily available in the current save.** Do not remove
+    or reinterpret `RecommendationAvailability`: it is the honesty boundary while bag and
+    progression facts are absent (D-025).
 
 ---
 
@@ -155,43 +173,35 @@ The Gen 3 chart and all 355 move base-power values are embedded JSON under
 Ability adjustments implemented: Levitate, Wonder Guard, Flash Fire, Volt Absorb, Water
 Absorb and Thick Fat.
 
-## M6 — what comes next
+## M6 — implementation notes and next work
 
-Goal: infer each Pokémon's role and suggest EVs, nature, moves and held item.
+The public entry point is
+`PokemonRecommendationEngine.Recommend(PartySnapshot, RecommendationProfileKind)`.
+It computes `TeamAnalysis` and `PokemonRoleAnalysis` once, resolves generation rules,
+then delegates policy to `IRecommendationProfile`.
 
-Two Gen 3 rules that **change the answers**, not just the numbers. Build them in from the
-start; M5 already exposes them through `IGenerationRules` (D-009).
+Implemented:
 
-**1. Seventeen types, no Fairy.** The type chart must be selected per generation. Also
-relevant for Gen 3: Ghost is not resisted the same way as in Gen 1, and `PokemonType.Fairy`
-must simply never appear.
+- all 25 Gen 3 natures and exact integer stat projection, including EV limits and Shedinja;
+- explainable broad roles based on base stats, current moves and the Gen 3 type-based
+  physical/special split;
+- playthrough priorities and competitive exact EV/nature/item candidates;
+- pinned Pokémon Showdown Random Battle references: 220 species, 393 role/movepool sets,
+  354 moves and generation-wide level-up data for all 386 Gen 3 species;
+- deterministic fallback to the current moveset when no external preset exists;
+- candidate availability labels rather than unsupported claims about the current save.
 
-**2. The physical/special split is by TYPE, not by move.** Every move of a given type uses
-the same attack stat, whatever the move is. In Gen 3:
+The checked-in datasets are generated by `tools/import-showdown-gen3-data.mjs`, pinned to
+revision `db93869dcc216c0be39e7f86e9a64edcc7496d89`, and covered by
+`THIRD_PARTY_NOTICES.md`. Smogon Dex editorial sets are not bundled; their application
+reuse requires permission (D-024).
 
-| Category | Types |
-| -------- | ----- |
-| Physical | Normal, Fighting, Flying, Poison, Ground, Rock, Bug, Ghost, Steel |
-| Special  | Fire, Water, Grass, Electric, Psychic, Ice, Dragon, Dark |
-
-So a Gyarados (base Atk 125, base SpA 60) gets nothing from a Water move in Gen 3, because
-Water is special. Role inference and therefore recommended nature and EVs follow completely
-different logic from Gen 4 onwards.
-
-Existing placement:
-
-- `UltimatePoKeSync.GameData` — embedded Gen 3 chart and move powers, `ITypeChart`,
-  `IGenerationRules`, the physical/special split and ability modifiers.
-- `UltimatePoKeSync.Analysis` — pure functions over `PartySnapshot`, no I/O.
-- `UltimatePoKeSync.Analysis.Tests` — rules and team-coverage tests.
-
-M6 still needs nature data and the recommendation heuristics. Prefer adding facts to the
-core analysis before profile policy consumes them; do not make the core analyzer accept a
-profile.
-
-Remember D-010: two profiles, **playthrough** and **competitive**, sharing one engine. The
-engine computes facts (role, coverage, projected stats); the profile decides what to
-recommend from those facts. Keep the separation from the first line of code.
+Next, decide how much of the remaining availability gap belongs in M6. The smallest useful
+slice is an Emerald-specific level-up source plus explicit caller-supplied available items.
+Parsing badges, bag contents and world progress is a larger input contract and should not
+be smuggled into the pure analyzer. Competitive refinements can later add pinned,
+MIT-licensed ladder usage weights and real speed benchmarks without changing the profile
+boundary.
 
 ## Useful references
 
