@@ -59,7 +59,7 @@ both the script and the app configuration.
 
 ## D-004 — Starting generation: Gen 3, reference game Pokémon Emerald
 
-**Status:** Accepted · 2026-08-10 · amended 2026-08-10, see D-016
+**Status:** Accepted · 2026-08-10 · amended 2026-08-10, see D-017
 
 A direct consequence of D-001 (mGBA = GBA). Among the Gen 3 games, Emerald has the most
 public reference material (Ironmon Tracker, pokebot-bizhawk, Archipelago), which makes
@@ -76,7 +76,7 @@ from 40Cakes/pokebot-bizhawk, a tool in active use):
 
 Layout: 6 contiguous 100-byte slots (80 stored + 20 battle stats).
 
-Non-USA revisions have different addresses. See D-005 and D-016.
+Non-USA revisions may have different addresses. See D-005 and D-017.
 
 ---
 
@@ -333,3 +333,36 @@ Roberto's decision, 2026-08-10, after the first six commits had been written in 
 It is a GPLv3 open-source project intended to be readable by contributors who do not speak
 Italian. The working tree was translated in one pass; the earlier commit *messages* were
 left as they were, since rewriting unpushed history is not worth the churn.
+
+---
+
+## D-017 — Western Emerald localisations share the USA addresses
+
+**Status:** Accepted · 2026-08-10 · **empirical verification pending**
+
+The development ROM turned out to be Italian Emerald: game code `BPEI`, not `BPEE`.
+Under D-005 the script correctly refused to read it, since it was not in the table.
+
+Evidence that the addresses are shared, from `GameSettings.lua` in
+40Cakes/pokebot-bizhawk:
+
+- Emerald **France** (`BPEF`) and **Germany** (`BPED`) map to the *same table index* as
+  the USA release, i.e. the very same `pstats` / `pcount` entries.
+- Emerald **Spain** (`BPES`) has its own index whose values are identical:
+  `0x020244EC` / `0x020244E9`.
+
+Every Western localisation therefore shares the EWRAM layout; only the text differs.
+`BPEI` was added on that basis, together with `BPEF`, `BPED` and `BPES`.
+
+**This is inference, not measurement.** It must be confirmed against the real ROM: with a
+Pokémon in the party, every slot has to pass `ChecksumValid`. If the map were wrong, the
+checksum would fail and the slot would be rejected rather than shown — which is exactly
+the behaviour D-008 was built for. Update this entry once confirmed.
+
+Japanese releases genuinely do have different addresses (`0x02024190` / `0x0202418D` for
+Emerald) and are deliberately left out until someone can test them.
+
+**Side note:** the parser resolves species, item and ability names through PKHeX's English
+string tables regardless of the ROM's language. On an Italian ROM the nicknames the player
+typed come through correctly — the Gen 3 character map is shared across Western languages
+— but species names display in English. Worth revisiting when the UI gets localised.

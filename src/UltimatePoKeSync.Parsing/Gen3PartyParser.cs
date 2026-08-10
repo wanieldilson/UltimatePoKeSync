@@ -179,7 +179,8 @@ public sealed class Gen3PartyParser : IPartyParser
     /// </summary>
     private static PersonalTable3? ResolvePersonalTable(string gameCode) => gameCode switch
     {
-        "BPEE" => PersonalTable.E,
+        // All Western Emerald localisations share one table; only the text differs.
+        "BPEE" or "BPEF" or "BPED" or "BPES" or "BPEI" => PersonalTable.E,
         "BPRE" => PersonalTable.FR,
         "BPGE" => PersonalTable.LG,
         "AXVE" or "AXPE" => PersonalTable.RS,

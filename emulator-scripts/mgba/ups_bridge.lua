@@ -47,11 +47,19 @@ local UPS_PROTOCOL_VERSION = 1
 --------------------------------------------------------------------------------
 
 local GAMES = {
-	["AXVE"] = { name = "Ruby (USA)",      gen = 3, party = 0x03004360, count = 0x03004350 },
-	["AXPE"] = { name = "Sapphire (USA)",  gen = 3, party = 0x03004360, count = 0x03004350 },
-	["BPEE"] = { name = "Emerald (USA)",   gen = 3, party = 0x020244EC, count = 0x020244E9 },
-	["BPRE"] = { name = "FireRed (USA)",   gen = 3, party = 0x02024284, count = 0x02024029 },
-	["BPGE"] = { name = "LeafGreen (USA)", gen = 3, party = 0x02024284, count = 0x02024029 },
+	["AXVE"] = { name = "Ruby (USA)",       gen = 3, party = 0x03004360, count = 0x03004350 },
+	["AXPE"] = { name = "Sapphire (USA)",   gen = 3, party = 0x03004360, count = 0x03004350 },
+	["BPRE"] = { name = "FireRed (USA)",    gen = 3, party = 0x02024284, count = 0x02024029 },
+	["BPGE"] = { name = "LeafGreen (USA)",  gen = 3, party = 0x02024284, count = 0x02024029 },
+
+	-- Every Western Emerald localisation shares the same EWRAM layout. In
+	-- GameSettings.lua the French and German codes map to the same table index as USA,
+	-- and the Spanish entry repeats the identical addresses. See D-017.
+	["BPEE"] = { name = "Emerald (USA)",    gen = 3, party = 0x020244EC, count = 0x020244E9 },
+	["BPEF"] = { name = "Emerald (France)", gen = 3, party = 0x020244EC, count = 0x020244E9 },
+	["BPED"] = { name = "Emerald (Germany)",gen = 3, party = 0x020244EC, count = 0x020244E9 },
+	["BPES"] = { name = "Emerald (Spain)",  gen = 3, party = 0x020244EC, count = 0x020244E9 },
+	["BPEI"] = { name = "Emerald (Italy)",  gen = 3, party = 0x020244EC, count = 0x020244E9 },
 }
 
 local GEN3_SLOT_SIZE = 100 -- 80 "stored" bytes + 20 bytes of battle stats

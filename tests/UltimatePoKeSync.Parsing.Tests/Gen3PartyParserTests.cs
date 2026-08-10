@@ -133,6 +133,10 @@ public sealed class Gen3PartyParserTests
 
     [Theory]
     [InlineData("BPEE", true)]  // Emerald USA
+    [InlineData("BPEI", true)]  // Emerald Italy — same EWRAM layout, see D-017
+    [InlineData("BPEF", true)]  // Emerald France
+    [InlineData("BPED", true)]  // Emerald Germany
+    [InlineData("BPES", true)]  // Emerald Spain
     [InlineData("BPRE", true)]  // FireRed
     [InlineData("BPGE", true)]  // LeafGreen
     [InlineData("AXVE", true)]  // Ruby

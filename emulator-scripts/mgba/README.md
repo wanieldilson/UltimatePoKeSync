@@ -30,15 +30,20 @@ app can start before mGBA — it waits and connects on its own.
 
 ## Supported games
 
-| Game code | Game                |
-| --------- | ------------------- |
-| `BPEE`    | Emerald (USA)       |
-| `BPRE`    | FireRed (USA)       |
-| `BPGE`    | LeafGreen (USA)     |
-| `AXVE`    | Ruby (USA)          |
-| `AXPE`    | Sapphire (USA)      |
+| Game code | Game                        |
+| --------- | --------------------------- |
+| `BPEE`    | Emerald (USA)               |
+| `BPEI`    | Emerald (Italy)             |
+| `BPEF`    | Emerald (France)            |
+| `BPED`    | Emerald (Germany)           |
+| `BPES`    | Emerald (Spain)             |
+| `BPRE`    | FireRed (USA)               |
+| `BPGE`    | LeafGreen (USA)             |
+| `AXVE`    | Ruby (USA)                  |
+| `AXPE`    | Sapphire (USA)              |
 
-Other regional releases have not been mapped yet. On an unrecognised ROM the script
+Every Western Emerald localisation shares the same RAM layout (D-017). Japanese releases
+and the European FireRed/LeafGreen versions have not been mapped yet. On an unrecognised ROM the script
 **refuses to read** and says so in the console, instead of guessing: reading with the
 wrong map would produce plausible but invented Pokémon.
 
