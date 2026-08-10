@@ -55,8 +55,10 @@ Detailed instructions and troubleshooting:
 
 ## Documentation
 
+- [`docs/HANDOFF.md`](docs/HANDOFF.md) — current state, environment quirks, what works and
+  what is next. Read this first if you are picking the project up.
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — a record of every design choice, with the
-  alternatives considered and the reasoning. Start here to understand the code.
+  alternatives considered and the reasoning. The authority on why anything is the way it is.
 - [`docs/protocol.md`](docs/protocol.md) — the emulator-to-app protocol.
 
 ## Licence
