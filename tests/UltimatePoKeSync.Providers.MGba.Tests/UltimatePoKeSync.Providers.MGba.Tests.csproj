@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UltimatePoKeSync.Providers.MGba\UltimatePoKeSync.Providers.MGba.csproj" />
+    <!-- Serve per il test end-to-end: byte grezzi sul filo -> Pokemon decodificato. -->
+    <ProjectReference Include="..\..\src\UltimatePoKeSync.Parsing\UltimatePoKeSync.Parsing.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -11,5 +11,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/UltimatePoKeSync.Analysis.Tests/UltimatePoKeSync.Analysis.Tests.csproj" />
     <Project Path="tests/UltimatePoKeSync.Parsing.Tests/UltimatePoKeSync.Parsing.Tests.csproj" />
+    <Project Path="tests/UltimatePoKeSync.Providers.MGba.Tests/UltimatePoKeSync.Providers.MGba.Tests.csproj" />
   </Folder>
 </Solution>

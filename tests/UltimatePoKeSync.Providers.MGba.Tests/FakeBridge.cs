@@ -1,0 +1,97 @@
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+
+namespace UltimatePoKeSync.Providers.MGba.Tests;
+
+/// <summary>
+/// Sta al posto dello script Lua: ascolta su una porta effimera e spedisce righe.
+/// Permette di testare provider e protocollo senza mGBA e senza una ROM.
+/// </summary>
+internal sealed class FakeBridge : IAsyncDisposable
+{
+    private readonly TcpListener _listener;
+    private readonly List<TcpClient> _clients = [];
+    private readonly CancellationTokenSource _cancellation = new();
+    private readonly TaskCompletionSource _firstClient =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private FakeBridge(TcpListener listener)
+    {
+        _listener = listener;
+        Port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        _ = AcceptLoopAsync();
+    }
+
+    public int Port { get; }
+
+    /// <summary>Si completa quando il primo client si e' connesso.</summary>
+    public Task FirstClientConnected => _firstClient.Task;
+
+    public static FakeBridge Start(int port = 0)
+    {
+        var listener = new TcpListener(IPAddress.Loopback, port);
+        listener.Start();
+        return new FakeBridge(listener);
+    }
+
+    private async Task AcceptLoopAsync()
+    {
+        try
+        {
+            while (!_cancellation.IsCancellationRequested)
+            {
+                TcpClient client = await _listener.AcceptTcpClientAsync(_cancellation.Token);
+                lock (_clients)
+                {
+                    _clients.Add(client);
+                }
+
+                _firstClient.TrySetResult();
+            }
+        }
+        catch (Exception)
+        {
+            // Listener fermato: fine del test.
+        }
+    }
+
+    public async Task SendLineAsync(string line)
+    {
+        byte[] payload = Encoding.UTF8.GetBytes(line + "\n");
+
+        TcpClient[] snapshot;
+        lock (_clients)
+        {
+            snapshot = [.. _clients];
+        }
+
+        foreach (TcpClient client in snapshot)
+        {
+            await client.GetStream().WriteAsync(payload);
+            await client.GetStream().FlushAsync();
+        }
+    }
+
+    /// <summary>Simula mGBA chiuso di colpo, per verificare la riconnessione.</summary>
+    public void DropAllClients()
+    {
+        lock (_clients)
+        {
+            foreach (TcpClient client in _clients)
+            {
+                client.Dispose();
+            }
+
+            _clients.Clear();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _cancellation.CancelAsync();
+        DropAllClients();
+        _listener.Stop();
+        _cancellation.Dispose();
+    }
+}

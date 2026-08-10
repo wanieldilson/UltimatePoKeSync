@@ -152,14 +152,36 @@ metagame). Quelli restano dataset nostri. Vedi D-009.
 Leggendo a ogni frame si può catturare uno snapshot **mentre il gioco sta scrivendo** in
 quella regione (torn read), ottenendo un Pokémon che non è mai esistito.
 
-Tre difese, tutte lato C#:
+Due difese, su due livelli diversi.
 
-1. **Checksum**: la struttura Gen 3 ha un checksum a offset `0x1C`; PKHeX lo espone come
-   `ChecksumValid`. Snapshot non valido → scartato, non mostrato.
-2. **Stabilità su due letture**: uno snapshot è accettato solo se l'hash dei byte grezzi
-   è identico in due letture consecutive.
-3. **Deduplica**: si emette un evento solo quando l'hash del party cambia davvero,
-   evitando di ricalcolare l'analisi 60 volte al secondo.
+**Nello script Lua — conferma su due letture.** Un cambiamento visto una volta non viene
+spedito: viene messo "in sospeso" e inviato solo se la lettura successiva produce lo
+stesso hash. Costa un intervallo di polling di latenza (~66 ms), impercettibile su una
+squadra.
+
+Questa difesa **deve** stare nello script, non nell'app: lo script trasmette solo sui
+cambiamenti, quindi una seconda lettura identica non arriverebbe mai al lato C# e il
+confronto lì sarebbe impossibile per costruzione. Errore individuato durante
+l'implementazione, quando la versione originale di questa decisione collocava il
+controllo in C#.
+
+**Nel parser C# — validazione per slot.** Ogni slot deve superare, in quest'ordine:
+`Species != 0`, `FlagHasSpecies`, `ChecksumValid`, `!FlagIsBadEgg`, specie ≤ 411.
+
+Verifiche empiriche che hanno determinato questa lista:
+
+| Input                    | `ChecksumValid` | `FlagHasSpecies` | `Valid` |
+| ------------------------ | --------------- | ---------------- | ------- |
+| Pokémon reale cifrato    | `true`          | `true`           | `true`  |
+| 100 byte casuali         | **`false`**     | `false`          | `true`  |
+| Slot vuoto (tutti zeri)  | **`true`**      | `false`          | —       |
+
+Due conseguenze non ovvie: `ChecksumValid` **da solo non basta**, perché uno slot di soli
+zeri lo supera; e la proprietà `Valid` di PKHeX è inutilizzabile come filtro, perché
+resta `true` anche su byte casuali.
+
+Uno slot vuoto *oltre* il conteggio dichiarato non è un errore e non viene segnalato; uno
+slot vuoto *entro* il conteggio sì, perché indica un'incoerenza reale.
 
 ---
 
@@ -256,3 +278,47 @@ Rev 1, Ruby Rev 1/2 ereditano quelli della revisione base). Il game code basta q
 scegliere la mappa, senza bisogno del CRC32 della ROM. Non è detto che valga per le
 generazioni successive, per questo la chiave resta il game code completo e non il solo
 titolo.
+
+---
+
+## D-014 — PKHeX normalizza i tipi agli indici moderni: verificato, non assunto
+
+**Stato:** Accettata · 2026-08-10
+
+Trappola classica della Gen 3: gli ID interni dei tipi **non** coincidono con quelli
+moderni, perché in Gen 3 l'indice 9 è il tipo `???` (Mystery). Internamente Fuoco è 10 e
+Acqua 11; nello schema moderno sono 9 e 10.
+
+Sbagliare qui produrrebbe un'analisi di tipo interamente falsa **senza alcun errore
+visibile**: ogni Pokémon avrebbe il tipo del vicino.
+
+Verificato empiricamente contro PKHeX 26.7.7:
+
+| Pokémon   | `PersonalTable.E[id].Type1` | Interpretazione |
+| --------- | --------------------------- | --------------- |
+| Charizard | 9                           | Fire moderno ✓ (interno Gen 3 sarebbe 10) |
+| Gyarados  | 10                          | Water moderno ✓ |
+| Magnemite | 12                          | Electric moderno ✓ |
+
+Lo stesso vale per `MoveInfo.GetType(id, EntityContext.Gen3)`. **PKHeX normalizza**:
+nessuna conversione da scrivere, e `PokemonType` può essere castato direttamente.
+
+L'assunzione è inchiodata dal test `Parse_LeggeTipiConIndiciModerniNonQuelliInterniGen3`,
+perché è il tipo di cosa che un aggiornamento di PKHeX potrebbe cambiare in silenzio.
+
+**Altro dettaglio Gen 3 confermato:** la natura **non è memorizzata**, è derivata dal PID
+(`PID % 25`). PKHeX la calcola. Impostare `Nature` su un `PK3` con PID fisso non ha
+effetto — cosa che va ricordata quando si costruiranno fixture di test.
+
+---
+
+## D-015 — I mono-tipo vengono normalizzati a `SecondaryType = None`
+
+**Stato:** Accettata · 2026-08-10
+
+Nei dati di gioco un Pokémon mono-tipo ha lo stesso tipo ripetuto nei due campi (Pikachu:
+`Type1 = Type2 = 12`). Propagarlo così **raddoppierebbe il peso di quel tipo** in ogni
+calcolo difensivo aggregato del team.
+
+Il parser normalizza il secondo tipo a `None` quando coincide con il primo. Coperto dal
+test `Parse_MonoTipoNormalizzaIlSecondoTipoANone`.

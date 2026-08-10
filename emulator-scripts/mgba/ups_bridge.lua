@@ -72,9 +72,13 @@ local gameRevision = 0
 
 local frameCounter = 0
 local sequence = 0
-local lastHash = nil
-local lastCount = -1
 local lastPayload = nil -- ultimo messaggio inviato, per i client che si connettono dopo
+
+-- Conferma su due letture consecutive, vedi D-008.
+-- "confirmed" e' l'ultimo stato gia' spedito; "pending" e' un cambiamento visto una
+-- volta sola e non ancora confermato.
+local confirmedHash, confirmedCount = nil, -1
+local pendingHash, pendingCount = nil, -1
 
 --------------------------------------------------------------------------------
 -- Utility
@@ -238,7 +242,9 @@ end
 
 local function detectGame()
 	game, gameCode, gameTitle, gameRevision = nil, nil, "", 0
-	lastHash, lastCount, lastPayload = nil, -1, nil
+	lastPayload = nil
+	confirmedHash, confirmedCount = nil, -1
+	pendingHash, pendingCount = nil, -1
 
 	if not emu then return end
 
@@ -307,11 +313,26 @@ local function pollParty()
 	end
 
 	local hash = hash32(data)
-	if hash == lastHash and count == lastCount then return end
-	lastHash, lastCount = hash, count
 
-	lastPayload = buildPayload(count, data)
-	broadcast(lastPayload)
+	-- Niente di nuovo rispetto a quello che abbiamo gia' spedito.
+	if hash == confirmedHash and count == confirmedCount then
+		pendingHash, pendingCount = nil, -1
+		return
+	end
+
+	if hash == pendingHash and count == pendingCount then
+		-- Stesso contenuto per due letture consecutive: il gioco non stava scrivendo
+		-- a meta' della struttura. Ora possiamo spedirlo. Vedi D-008.
+		confirmedHash, confirmedCount = hash, count
+		pendingHash, pendingCount = nil, -1
+
+		lastPayload = buildPayload(count, data)
+		broadcast(lastPayload)
+	else
+		-- Primo avvistamento: aspettiamo la prossima lettura per confermarlo. Costa
+		-- un intervallo di polling di latenza (~66 ms), che su una squadra e' nulla.
+		pendingHash, pendingCount = hash, count
+	end
 end
 
 --------------------------------------------------------------------------------
