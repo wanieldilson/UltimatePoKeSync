@@ -11,6 +11,10 @@ public interface IGenerationRules
 
     ITypeChart TypeChart { get; }
 
+    IReadOnlyList<NatureInfo> Natures { get; }
+
+    NatureInfo GetNature(int natureId);
+
     /// <summary>
     /// Classifies a move using the generation's damage rules. In Gen 3 a damaging
     /// move's category is determined by its type, not by the individual move.
@@ -22,6 +26,16 @@ public interface IGenerationRules
     /// one-hit knockout moves can be damaging without providing type coverage.
     /// </summary>
     bool CanProvideSuperEffectiveCoverage(int moveId);
+
+    /// <summary>
+    /// Projects the six stats using this generation's integer formula and limits.
+    /// </summary>
+    StatBlock CalculateStats(
+        int level,
+        StatBlock baseStats,
+        StatBlock individualValues,
+        StatBlock effortValues,
+        int natureId);
 
     /// <summary>
     /// Combines the type chart with generation-specific defensive ability effects.

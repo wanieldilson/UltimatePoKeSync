@@ -524,3 +524,25 @@ caused the result), declaring a gap at an arbitrary weakness-count threshold (re
 profile policy masquerading as a fact), STAB-only offensive coverage (rejected: ignores the
 purpose of coverage moves), and passing an analysis profile into the core analyzer (rejected:
 would mix facts and recommendations in violation of D-010).
+
+---
+
+## D-023 — Nature and projected-stat calculations are generation facts
+
+**Status:** Accepted · 2026-08-10
+
+Nature definitions and projected stat calculations belong to `IGenerationRules`, not to a
+recommendation profile. Both playthrough and competitive advice need the same answer to
+"what would this Pokémon's stats be at this level with this spread and nature?". Profiles
+may choose different inputs, but must not reimplement the formula.
+
+The 25 Gen 3 natures are embedded, ordered by the same ID derived from `PID % 25`, and
+validated at load time. The calculator uses the game's integer operations, enforces IV
+`0..31`, Gen 3 EV `0..255` and total EV `<= 510`, and preserves Shedinja's one-HP special
+case. It accepts a proposed level, nature and EV spread so profiles can compare alternatives
+without mutating the live `PokemonSnapshot`.
+
+**Alternatives considered:** calculate stats inside each profile (rejected: duplicated game
+rules would drift), use floating-point formulae and round at the end (rejected: the games
+truncate at specific intermediate steps), and return only percentage deltas (rejected: EV
+and speed recommendations need exact projected values).
