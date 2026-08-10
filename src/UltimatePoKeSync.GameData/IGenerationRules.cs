@@ -18,6 +18,12 @@ public interface IGenerationRules
     MoveCategory GetMoveCategory(int moveId, PokemonType moveType);
 
     /// <summary>
+    /// Whether the move can gain a super-effective damage multiplier. Fixed-damage and
+    /// one-hit knockout moves can be damaging without providing type coverage.
+    /// </summary>
+    bool CanProvideSuperEffectiveCoverage(int moveId);
+
+    /// <summary>
     /// Combines the type chart with generation-specific defensive ability effects.
     /// </summary>
     double GetDefensiveMultiplier(

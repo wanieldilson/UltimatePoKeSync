@@ -491,3 +491,36 @@ complete chart), a current-generation web API (rejected: not generation-stable a
 make an offline app network-dependent), treating every known move as damaging (rejected:
 produces false offensive coverage), and putting ability switches directly in the analysis
 engine (rejected: they are generation rules, not analysis heuristics).
+
+---
+
+## D-022 — Coverage is a complete fact matrix; gaps mean no available answer
+
+**Status:** Accepted · 2026-08-10
+
+The M5 analyzer returns one defensive and one offensive entry for every type available in
+the snapshot's generation, in stable chart order. It keeps the per-Pokémon and per-move
+matchups rather than collapsing them into a single score, so the UI and both recommendation
+profiles can explain every result.
+
+A **defensive gap** is an attacking type that is super effective against at least one party
+member and for which no other member has an ability-adjusted resistance or immunity. A
+neutral member is not considered a safe defensive answer. An empty party has no weaknesses,
+not seventeen defensive gaps.
+
+An **offensive gap** is a single defending type that none of the party's currently known,
+damaging moves can hit super effectively. Coverage is not limited to STAB: a coverage move
+exists precisely to answer types outside its user's own typing. Status moves are excluded
+using the generation's move-power data. Fixed-damage and one-hit knockout moves are also
+excluded: their battle scripts may observe immunities but do not apply a super-effective
+damage multiplier. Variable-power attacks such as Low Kick and Hidden Power remain valid.
+The result records the Gen 3 physical/special category as a fact for later role inference.
+
+The analyzer itself has no playthrough/competitive switch. It computes only facts; the two
+profiles from D-010 will decide how to turn those facts into recommendations in M6.
+
+**Alternatives considered:** a weighted team score (rejected: hides which member or move
+caused the result), declaring a gap at an arbitrary weakness-count threshold (rejected:
+profile policy masquerading as a fact), STAB-only offensive coverage (rejected: ignores the
+purpose of coverage moves), and passing an analysis profile into the core analyzer (rejected:
+would mix facts and recommendations in violation of D-010).

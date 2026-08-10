@@ -59,6 +59,20 @@ public sealed class Gen3RulesTests
     }
 
     [Theory]
+    [InlineData(67, true)] // Low Kick: variable power, ordinary type effectiveness
+    [InlineData(237, true)] // Hidden Power: variable power, ordinary type effectiveness
+    [InlineData(69, false)] // Seismic Toss: level-based fixed damage
+    [InlineData(90, false)] // Fissure: one-hit knockout
+    [InlineData(329, false)] // Sheer Cold: one-hit knockout
+    [InlineData(43, false)] // Leer: status move
+    public void OffensiveCoverageExcludesMovesWithoutSuperEffectiveDamage(
+        int moveId,
+        bool expected)
+    {
+        Assert.Equal(expected, _rules.CanProvideSuperEffectiveCoverage(moveId));
+    }
+
+    [Theory]
     [InlineData(Gen3AbilityIds.Levitate, PokemonType.Ground)]
     [InlineData(Gen3AbilityIds.FlashFire, PokemonType.Fire)]
     [InlineData(Gen3AbilityIds.VoltAbsorb, PokemonType.Electric)]

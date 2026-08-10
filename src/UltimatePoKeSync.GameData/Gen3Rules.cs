@@ -18,6 +18,27 @@ public sealed class Gen3Rules : IGenerationRules
         PokemonType.Steel,
     ];
 
+    // These moves are damaging, but their battle scripts do not apply ordinary
+    // super-effective damage. Variable-power moves whose data also uses power 1 (Low
+    // Kick, Flail, Hidden Power, and others) are deliberately not in this set.
+    private static readonly HashSet<int> NonCoverageMoveIds =
+    [
+        12,  // Guillotine
+        32,  // Horn Drill
+        49,  // Sonic Boom
+        68,  // Counter
+        69,  // Seismic Toss
+        82,  // Dragon Rage
+        90,  // Fissure
+        101, // Night Shade
+        117, // Bide
+        149, // Psywave
+        162, // Super Fang
+        243, // Mirror Coat
+        283, // Endeavor
+        329, // Sheer Cold
+    ];
+
     private readonly int[] _moveBasePowers;
 
     private Gen3Rules()
@@ -56,6 +77,10 @@ public sealed class Gen3Rules : IGenerationRules
 
         return PhysicalTypes.Contains(moveType) ? MoveCategory.Physical : MoveCategory.Special;
     }
+
+    public bool CanProvideSuperEffectiveCoverage(int moveId) =>
+        moveId > 0 && moveId < _moveBasePowers.Length &&
+        _moveBasePowers[moveId] > 0 && !NonCoverageMoveIds.Contains(moveId);
 
     public double GetDefensiveMultiplier(
         PokemonType attackingType,
