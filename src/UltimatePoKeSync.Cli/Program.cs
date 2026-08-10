@@ -1,3 +1,4 @@
+using UltimatePoKeSync.Analysis;
 using UltimatePoKeSync.Contracts;
 using UltimatePoKeSync.Parsing;
 using UltimatePoKeSync.Providers.MGba;
@@ -7,7 +8,7 @@ namespace UltimatePoKeSync.Cli;
 
 /// <summary>
 /// Diagnostic console: validates the mGBA -> TCP -> parsing -> tracking chain without
-/// the UI.
+/// the UI, and optionally the analysis and recommendation layers on top of it.
 /// </summary>
 internal static class Program
 {
@@ -26,6 +27,28 @@ internal static class Program
         };
 
         string? dumpDirectory = GetOption(args, "--dump");
+        bool analyze = args.Contains("--analyze");
+
+        string? profileName = GetOption(args, "--recommend");
+        RecommendationProfileKind? profileKind = null;
+        if (args.Contains("--recommend"))
+        {
+            if (!Enum.TryParse(profileName, ignoreCase: true, out RecommendationProfileKind parsed))
+            {
+                Console.Error.WriteLine(
+                    $"Unknown recommendation profile: {profileName ?? "(missing)"}. "
+                    + $"Expected one of {string.Join(", ", Enum.GetNames<RecommendationProfileKind>())}.");
+                return 1;
+            }
+
+            profileKind = parsed;
+        }
+
+        string? replayPath = GetOption(args, "--replay");
+        if (replayPath is not null)
+        {
+            return Replay(replayPath, analyze, profileKind);
+        }
 
         using var cancellation = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
@@ -53,13 +76,24 @@ internal static class Program
                 Console.WriteLine($"Dumping raw snapshots to {dumpDirectory}");
             }
 
+            if (analyze || profileKind is not null)
+            {
+                Console.WriteLine("Analysis enabled"
+                    + (profileKind is null ? string.Empty : $", {profileKind} recommendations"));
+            }
+
             Console.WriteLine("Ctrl+C to quit.\n");
+
+            var teamAnalyzer = new TeamAnalyzer();
+            var recommendationEngine = new PokemonRecommendationEngine();
 
             try
             {
                 await foreach (PartySnapshot party in tracker.TrackAsync(cancellation.Token))
                 {
                     PrintParty(party);
+                    PrintAnalysis(party, analyze, profileKind, teamAnalyzer, recommendationEngine);
+                    Console.WriteLine("└─");
                 }
             }
             catch (OperationCanceledException)
@@ -71,6 +105,36 @@ internal static class Program
         }
 
         Console.WriteLine("Shutting down.");
+        return 0;
+    }
+
+    /// <summary>
+    /// Renders one dumped snapshot without touching the emulator. Keeps the analysis
+    /// layers checkable against captured real RAM, and reproducible in a bug report.
+    /// </summary>
+    private static int Replay(
+        string path,
+        bool analyze,
+        RecommendationProfileKind? profileKind)
+    {
+        if (!File.Exists(path))
+        {
+            Console.Error.WriteLine($"Snapshot fixture not found: {path}");
+            return 1;
+        }
+
+        RawPartySnapshot raw = RawSnapshotDump.Read(path);
+        IPartyParser? parser = PartyParserResolver.CreateDefault().Resolve(raw.Game);
+        if (parser is null)
+        {
+            Console.Error.WriteLine($"No parser covers {raw.Game}.");
+            return 1;
+        }
+
+        PartySnapshot party = parser.Parse(raw);
+        PrintParty(party);
+        PrintAnalysis(party, analyze, profileKind, new TeamAnalyzer(), new PokemonRecommendationEngine());
+        Console.WriteLine("└─");
         return 0;
     }
 
@@ -110,11 +174,53 @@ internal static class Program
         {
             Console.WriteLine($"│  [!] slot {rejected.SlotIndex} rejected: {rejected.Reason}");
         }
-
-        Console.WriteLine("└─");
     }
 
-    private static string Format(StatBlock stats) =>
+    /// <summary>
+    /// Renders the requested analysis layers. A generation without analysis rules must
+    /// report itself and keep the stream alive, not end the session.
+    /// </summary>
+    private static void PrintAnalysis(
+        PartySnapshot party,
+        bool analyze,
+        RecommendationProfileKind? profileKind,
+        TeamAnalyzer teamAnalyzer,
+        PokemonRecommendationEngine recommendationEngine)
+    {
+        if (party.IsEmpty || (!analyze && profileKind is null))
+        {
+            return;
+        }
+
+        try
+        {
+            if (profileKind is null)
+            {
+                AnalysisReport.PrintTeamAnalysis(teamAnalyzer.Analyze(party));
+                return;
+            }
+
+            // The engine already computes the team analysis, so reuse it rather than
+            // running the same work twice.
+            TeamRecommendation recommendation = recommendationEngine.Recommend(
+                party,
+                profileKind.Value);
+
+            if (analyze)
+            {
+                AnalysisReport.PrintTeamAnalysis(recommendation.TeamAnalysis);
+            }
+
+            AnalysisReport.PrintRecommendations(recommendation);
+        }
+        catch (NotSupportedException ex)
+        {
+            Console.WriteLine("│");
+            Console.WriteLine($"├─ Analysis unavailable: {ex.Message}");
+        }
+    }
+
+    internal static string Format(StatBlock stats) =>
         $"HP {stats.Hp,3}  Atk {stats.Attack,3}  Def {stats.Defense,3}  "
         + $"SpA {stats.SpecialAttack,3}  SpD {stats.SpecialDefense,3}  Spe {stats.Speed,3}";
 
@@ -147,6 +253,10 @@ internal static class Program
               --host <address>   Host of the Lua script (default 127.0.0.1)
               --port <port>      Port, must match UPS_PORT (default 8888)
               --dump <dir>       Write every raw snapshot to <dir> as a test fixture
+              --replay <file>    Render one dumped snapshot and exit, without mGBA
+              --analyze        Print team type coverage and unanswered gaps
+              --recommend <p>    Print per-Pokemon suggestions with profile <p>:
+                                 playthrough or competitive
               --help             This message
             """);
     }

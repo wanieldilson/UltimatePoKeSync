@@ -607,3 +607,36 @@ team context), assume every legal level-up move and common item is immediately o
 (rejected: false for many save states), suppress every candidate not present in the party
 (rejected: safe but not useful), and parse the entire save game's progression state inside
 M6 (deferred: a meaningful scope expansion that should be designed as its own input).
+
+---
+
+## D-026 — The diagnostic CLI is the verification surface for every analysis layer
+
+**Status:** Accepted · 2026-08-11
+
+M5 and M6 shipped fully tested but unreachable: nothing outside the test projects referenced
+`TeamAnalyzer` or `PokemonRecommendationEngine`, and the CLI did not even reference
+`UltimatePoKeSync.Analysis`. Every earlier milestone was closed by watching it work against
+the real Italian Emerald; the analysis layers had never been through that check.
+
+The CLI therefore renders every layer, behind opt-in flags so the M3 party diagnostic stays
+readable: `--analyze` prints type coverage and unanswered gaps, and `--recommend
+<playthrough|competitive>` prints per-Pokémon role, nature, EV, move and item candidates
+with their availability labels. When a profile is selected the CLI reuses the
+`TeamAnalysis` the engine already computed rather than analysing twice. Rendering lives in
+`AnalysisReport` and formats only: it never re-ranks, re-filters or reinterprets a result,
+so what appears on screen is exactly what a future UI will receive.
+
+`--replay <fixture>` renders one dumped snapshot and exits. A capture from real RAM is
+already the project's fixture format, so replaying one exercises the whole parse → analyse →
+recommend chain with no emulator, and makes any output problem reproducible in a bug report
+rather than only reproducible with a specific save.
+
+`NotSupportedException` from an unsupported generation is caught per snapshot and printed as
+a line: a 15 Hz stream must not die because one layer cannot serve the current game.
+
+**Alternatives considered:** wait for the M7 Avalonia dashboard (rejected: leaves two
+milestones unverified against real hardware and puts the first real look at the output
+behind UI work), print analysis unconditionally (rejected: buries the parsing diagnostic
+the CLI exists for), and let the CLI re-rank or trim candidates for readability (rejected:
+the console would then verify the console's policy instead of the engine's).

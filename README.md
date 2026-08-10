@@ -10,10 +10,11 @@ moves and held item for each Pokémon, with two analysis profiles — **playthro
 
 ## Status
 
-Early development. **M5 is complete:** the app can parse a live Gen 3 party and compute its
-17-type defensive and offensive coverage, including ability modifiers and unanswered gaps.
-Current target: **Gen 3 / Pokémon Emerald** via **mGBA**. The architecture is multi-emulator
-and multi-generation from the first commit.
+Early development. **M6 is complete:** the app parses a live Gen 3 party, computes its
+17-type defensive and offensive coverage including ability modifiers, and suggests role,
+nature, EVs, moves and held item per Pokémon under either profile. All of it is visible
+from the CLI. Current target: **Gen 3 / Pokémon Emerald** via **mGBA**. The architecture is
+multi-emulator and multi-generation from the first commit.
 
 ## How it works
 
@@ -38,6 +39,16 @@ touching the app's logic.
    [`emulator-scripts/mgba/ups_bridge.lua`](emulator-scripts/mgba/ups_bridge.lua)
 2. Load the ROM (before or after, it does not matter).
 3. `dotnet run --project src/UltimatePoKeSync.Cli`
+
+Add `--analyze` for team coverage and `--recommend playthrough` (or `competitive`) for
+per-Pokémon suggestions. `--replay <fixture.json>` renders a snapshot dumped with `--dump`
+and exits, so the whole chain can be checked without the emulator:
+
+```bash
+dotnet run --project src/UltimatePoKeSync.Cli -- \
+  --replay tests/UltimatePoKeSync.Parsing.Tests/Fixtures/emerald-it-treecko.json \
+  --analyze --recommend playthrough
+```
 
 Detailed instructions and troubleshooting:
 [`emulator-scripts/mgba/README.md`](emulator-scripts/mgba/README.md).

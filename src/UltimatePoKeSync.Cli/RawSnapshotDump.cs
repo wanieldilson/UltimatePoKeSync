@@ -20,6 +20,26 @@ internal static class RawSnapshotDump
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
     };
 
+    /// <summary>Reads a dumped fixture back, so a capture can be replayed without mGBA.</summary>
+    public static RawPartySnapshot Read(string path)
+    {
+        SnapshotFixture fixture =
+            JsonSerializer.Deserialize<SnapshotFixture>(File.ReadAllText(path), Options)
+            ?? throw new InvalidDataException($"{path} does not contain a snapshot fixture.");
+
+        return new RawPartySnapshot(
+            new GameIdentity(
+                fixture.GameCode,
+                fixture.Title,
+                fixture.Revision,
+                (PokemonGeneration)fixture.Generation),
+            fixture.PartyCount,
+            Convert.FromBase64String(fixture.Data),
+            fixture.SlotSize,
+            DateTimeOffset.UtcNow,
+            Sequence: 1);
+    }
+
     public static string Write(RawPartySnapshot raw, string directory)
     {
         Directory.CreateDirectory(directory);
