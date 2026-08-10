@@ -4,9 +4,9 @@ using UltimatePoKeSync.Contracts;
 namespace UltimatePoKeSync.Parsing.Tests;
 
 /// <summary>
-/// Costruisce snapshot grezzi identici a quelli che arrivano dall'emulatore: byte
-/// cifrati, non decifrati. Se i test partissero da dati gia' in chiaro non
-/// verificherebbero la parte che conta.
+/// Builds raw snapshots identical to what arrives from the emulator: encrypted bytes, not
+/// decrypted ones. Tests starting from plaintext data would not exercise the part that
+/// matters.
 /// </summary>
 internal static class Gen3TestData
 {
@@ -16,7 +16,7 @@ internal static class Gen3TestData
     public static GameIdentity Emerald { get; } =
         new("BPEE", "POKEMON EMER", 0, PokemonGeneration.Gen3);
 
-    /// <summary>Un Gyarados coerente, con checksum valido.</summary>
+    /// <summary>A coherent Gyarados with a valid checksum.</summary>
     public static PK3 CreateGyarados() => Finalize(new PK3
     {
         Species = 130,
@@ -35,7 +35,7 @@ internal static class Gen3TestData
         Stat_HPMax = 180, Stat_ATK = 190,
     });
 
-    /// <summary>Pikachu: mono-tipo, serve a verificare la normalizzazione del secondo tipo.</summary>
+    /// <summary>Pikachu: mono-type, used to check second-type normalisation.</summary>
     public static PK3 CreatePikachu() => Finalize(new PK3
     {
         Species = 25,
@@ -56,8 +56,8 @@ internal static class Gen3TestData
     }
 
     /// <summary>
-    /// Impacchetta i Pokemon in un blob grezzo da 6 slot, cifrando ciascuno come fa il
-    /// gioco in memoria. Gli slot non forniti restano a zero, come in RAM.
+    /// Packs the Pokémon into a raw six-slot blob, encrypting each one the way the game
+    /// holds it in memory. Slots not provided stay zeroed, as they are in RAM.
     /// </summary>
     public static RawPartySnapshot ToRawSnapshot(
         params PK3[] party) => ToRawSnapshot(Emerald, party.Length, party);
@@ -80,7 +80,7 @@ internal static class Gen3TestData
             game, declaredCount, blob, SlotSize, DateTimeOffset.UtcNow, 1);
     }
 
-    /// <summary>Slot pieno di byte casuali: simula una lettura a meta' scrittura.</summary>
+    /// <summary>A slot full of random bytes: simulates a read captured mid-write.</summary>
     public static RawPartySnapshot WithJunkInFirstSlot(int declaredCount = 1)
     {
         var blob = new byte[SlotSize * SlotCount];

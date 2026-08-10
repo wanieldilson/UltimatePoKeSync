@@ -1,67 +1,68 @@
 # UltimatePoKeSync
 
-App desktop cross-platform (Windows, Linux, macOS incluso Apple Silicon) che analizza in
-tempo reale la squadra Pokémon del giocatore leggendo direttamente la RAM di un
-emulatore. Nessun inserimento manuale: colleghi lo script, giochi, e il team compare.
+A cross-platform desktop app (Windows, Linux, macOS including Apple Silicon) that analyses
+your Pokémon party in real time by reading an emulator's RAM directly. No manual entry:
+load the script, play, and the team shows up.
 
-Calcola debolezze e resistenze aggregate della squadra e suggerisce EV, natura, mosse e
-oggetto per ogni Pokémon, con due profili di analisi — **playthrough** e **competitivo**.
+It computes the team's aggregate weaknesses and resistances and suggests EVs, nature,
+moves and held item for each Pokémon, with two analysis profiles — **playthrough** and
+**competitive**.
 
-## Stato
+## Status
 
-In sviluppo iniziale. Target corrente: **Gen 3 / Pokémon Emerald (U)** tramite **mGBA**.
-L'architettura è multi-emulatore e multi-generazione fin dal primo commit.
+Early development. Current target: **Gen 3 / Pokémon Emerald** via **mGBA**. The
+architecture is multi-emulator and multi-generation from the first commit.
 
-## Come funziona
+## How it works
 
 ```
-mGBA + script Lua  --TCP 127.0.0.1:8888-->  app .NET  -->  PKHeX.Core  -->  analisi  -->  UI Avalonia
-   (byte grezzi)                             (client)      (parsing)
+mGBA + Lua script  --TCP 127.0.0.1:8888-->  .NET app  -->  PKHeX.Core  -->  analysis  -->  Avalonia UI
+   (raw bytes)                               (client)      (parsing)
 ```
 
-Lo script Lua non interpreta nulla: spedisce i byte grezzi del party e l'identità del
-gioco. Tutta la decodifica avviene lato C#. Aggiungere un altro emulatore significa
-scrivere un nuovo script, non toccare la logica dell'app.
+The Lua script interprets nothing: it ships the raw party bytes and the game identity. All
+decoding happens on the C# side. Adding another emulator means writing a new script, not
+touching the app's logic.
 
-## Requisiti
+## Requirements
 
 - .NET 10 SDK
-- mGBA 0.10.5 o successivo (lo scripting Lua esiste dalla 0.10.0)
-- Una ROM Gen 3 di tua proprietà — non è inclusa e non lo sarà mai
+- mGBA 0.10.5 or later (Lua scripting exists from 0.10.0)
+- A Gen 3 ROM you own — none is included, and none ever will be
 
-## Avvio rapido
+## Quick start
 
 1. In mGBA: `Tools` → `Scripting…` → `File` → `Load script…` →
    [`emulator-scripts/mgba/ups_bridge.lua`](emulator-scripts/mgba/ups_bridge.lua)
-2. Carica la ROM (prima o dopo, indifferente).
+2. Load the ROM (before or after, it does not matter).
 3. `dotnet run --project src/UltimatePoKeSync.Cli`
 
-Istruzioni dettagliate e diagnostica dei problemi:
+Detailed instructions and troubleshooting:
 [`emulator-scripts/mgba/README.md`](emulator-scripts/mgba/README.md).
 
-## Struttura
+## Layout
 
-| Percorso                  | Contenuto |
-| ------------------------- | --------- |
-| `emulator-scripts/mgba/`  | Script Lua che legge la RAM e la spedisce via TCP |
-| `src/…Contracts/`         | Il confine dell'architettura: byte grezzi, non Pokémon. Zero dipendenze |
-| `src/…Providers.MGba/`    | Client TCP con reconnect. Non conosce PKHeX né le regole di gioco |
-| `src/…Parsing/`           | Byte → Pokémon via PKHeX. L'unico progetto che dipende da PKHeX |
-| `src/…GameData/`          | Type chart per generazione, nature, euristiche |
-| `src/…Analysis/`          | Coverage del team, ruoli, suggerimenti |
-| `src/…Cli/`               | Console di diagnostica headless |
-| `src/…App/`               | UI Avalonia |
+| Path                      | Contents |
+| ------------------------- | -------- |
+| `emulator-scripts/mgba/`  | Lua script that reads RAM and ships it over TCP |
+| `src/…Contracts/`         | The architectural boundary: raw bytes, not Pokémon. Zero dependencies |
+| `src/…Providers.MGba/`    | TCP client with reconnect. Knows nothing of PKHeX or game rules |
+| `src/…Parsing/`           | Bytes → Pokémon via PKHeX. The only project that depends on PKHeX |
+| `src/…GameData/`          | Per-generation type chart, natures, heuristics |
+| `src/…Analysis/`          | Team coverage, roles, suggestions |
+| `src/…Cli/`               | Headless diagnostic console |
+| `src/…App/`               | Avalonia UI |
 
-## Documentazione
+## Documentation
 
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — registro di ogni scelta di progetto, con le
-  alternative valutate e il perché. È il punto di partenza per capire il codice.
-- [`docs/protocol.md`](docs/protocol.md) — protocollo fra emulatore e app.
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — a record of every design choice, with the
+  alternatives considered and the reasoning. Start here to understand the code.
+- [`docs/protocol.md`](docs/protocol.md) — the emulator-to-app protocol.
 
-## Licenza
+## Licence
 
-GPLv3. Vedi [`LICENSE`](LICENSE).
+GPLv3. See [`LICENSE`](LICENSE).
 
-Il progetto usa [PKHeX.Core](https://github.com/kwsch/PKHeX) (GPL-3.0-or-later) per il
-parsing delle strutture dati Pokémon; il copyleft si estende per linking, quindi l'intera
-app è GPLv3. Vedi D-007 nel decision log.
+The project uses [PKHeX.Core](https://github.com/kwsch/PKHeX) (GPL-3.0-or-later) to parse
+Pokémon data structures; its copyleft extends through linking, so the whole app is GPLv3.
+See D-007 in the decision log.

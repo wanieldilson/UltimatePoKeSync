@@ -1,7 +1,7 @@
 namespace UltimatePoKeSync.Contracts;
 
 /// <summary>
-/// Sestina di valori indicizzata per statistica. Usata per stat base, IV, EV e stat calcolate.
+/// Six values indexed by stat. Used for base stats, IVs, EVs and computed stats.
 /// </summary>
 public readonly record struct StatBlock(int Hp, int Attack, int Defense, int SpecialAttack, int SpecialDefense, int Speed)
 {

@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\UltimatePoKeSync.Providers.MGba\UltimatePoKeSync.Providers.MGba.csproj" />
-    <!-- Serve per il test end-to-end: byte grezzi sul filo -> Pokemon decodificato. -->
+    <!-- Needed for the end-to-end test: raw bytes on the wire -> decoded Pokemon. -->
     <ProjectReference Include="..\..\src\UltimatePoKeSync.Parsing\UltimatePoKeSync.Parsing.csproj" />
   </ItemGroup>
 

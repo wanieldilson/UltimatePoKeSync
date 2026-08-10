@@ -1,28 +1,28 @@
-# Protocollo bridge emulatore → app
+# Emulator → app bridge protocol
 
-Versione corrente: **1**
+Current version: **1**
 
-Ogni provider parla questo protocollo, indipendentemente dall'emulatore. È il motivo per
-cui aggiungere BizHawk o DeSmuME costa uno script e non un refactoring (D-006).
+Every provider speaks this protocol, whatever the emulator. It is the reason adding
+BizHawk or DeSmuME costs a script rather than a refactor (D-006).
 
-## Trasporto
+## Transport
 
-TCP su loopback. **Lo script dell'emulatore è il server**, l'app è il client (D-003).
+TCP over loopback. **The emulator script is the server**, the app is the client (D-003).
 
-- Indirizzo di default: `127.0.0.1:8888`
-- Un messaggio per riga, terminato da `\n`
-- Codifica UTF-8, JSON su una sola riga (nessun newline interno)
-- L'app non invia comandi. Lo script svuota comunque il buffer di ricezione: se non lo
-  facesse, il buffer del socket si riempirebbe e la connessione si bloccherebbe.
+- Default address: `127.0.0.1:8888`
+- One message per line, terminated by `\n`
+- UTF-8, single-line JSON (no embedded newlines)
+- The app sends no commands. The script drains its receive buffer anyway: if it did not,
+  the socket buffer would fill up and the connection would stall.
 
-Alla connessione, lo script invia **subito** l'ultimo stato noto, se ne ha uno. Senza
-questo, un'app avviata a partita ferma resterebbe vuota finché il giocatore non cambia
-qualcosa nella squadra.
+On connect, the script **immediately** sends the last known state, if it has one. Without
+this, an app started while the game is idle would stay empty until the player changed
+something in the party.
 
-## Messaggio `party`
+## The `party` message
 
-Emesso solo quando i byte della squadra o il conteggio **cambiano davvero** — non a ogni
-frame. Lo script confronta un FNV-1a a 32 bit dei byte grezzi.
+Emitted only when the party bytes or the count **actually change** — not every frame. The
+script compares a 32-bit FNV-1a of the raw bytes.
 
 ```json
 {
@@ -38,50 +38,48 @@ frame. Lo script confronta un FNV-1a a 32 bit dei byte grezzi.
 }
 ```
 
-| Campo        | Tipo   | Significato |
-| ------------ | ------ | ----------- |
-| `v`          | int    | Versione del protocollo. L'app rifiuta le versioni che non conosce. |
-| `type`       | string | Discriminatore del messaggio. |
-| `seq`        | int    | Contatore monotono. Permette di rilevare messaggi persi o fuori ordine. |
-| `frame`      | int    | Frame dell'emulatore alla cattura, per la diagnostica. |
-| `game.code`  | string | Game code a 4 caratteri dall'header (`BPEE`, `BPRE`, …). Vedi D-005. |
-| `game.title` | string | Titolo interno della ROM. |
-| `game.rev`   | int    | Byte di revisione dell'header, offset `0xBC`. |
-| `game.gen`   | int    | Generazione. |
-| `count`      | int    | Pokémon in squadra secondo l'emulatore, 0-6. **Da trattare come indicativo.** |
-| `slotSize`   | int    | Byte per slot. Gen 3: 100. |
-| `slots`      | int    | Numero di slot nel blob. Sempre 6 in Gen 3. |
-| `data`       | string | Base64 di `slotSize * slots` byte, così come stanno in RAM. |
+| Field        | Type   | Meaning |
+| ------------ | ------ | ------- |
+| `v`          | int    | Protocol version. The app rejects versions it does not know. |
+| `type`       | string | Message discriminator. |
+| `seq`        | int    | Monotonic counter. Lets the app detect dropped or out-of-order messages. |
+| `frame`      | int    | Emulator frame at capture time, for diagnostics. |
+| `game.code`  | string | Four-character game code from the header (`BPEE`, `BPRE`, …). See D-005. |
+| `game.title` | string | Internal ROM title. |
+| `game.rev`   | int    | Header revision byte, offset `0xBC`. |
+| `game.gen`   | int    | Generation. |
+| `count`      | int    | Party size according to the emulator, 0-6. **Treat as advisory.** |
+| `slotSize`   | int    | Bytes per slot. Gen 3: 100. |
+| `slots`      | int    | Number of slots in the blob. Always 6 for Gen 3. |
+| `data`       | string | Base64 of `slotSize * slots` bytes, exactly as they sit in RAM. |
 
-### Perché `count` non è affidabile
+### Why `count` is not trustworthy
 
-È letto da un singolo byte che può essere campionato mentre il gioco lo sta aggiornando.
-L'app lo usa come limite superiore e valida comunque ogni slot per conto proprio
-(checksum + stabilità su due letture). Vedi D-008.
+It is read from a single byte that can be sampled while the game is updating it. The app
+uses it as an upper bound and validates every slot independently anyway (checksum +
+stability across two reads). See D-008.
 
-### Perché i byte sono grezzi
+### Why the bytes are raw
 
-In Gen 3 i dati in RAM sono cifrati con `PID xor OTID` e hanno le quattro sottostrutture
-permutate in base al PID. Lo script **non** li tocca: il campo `data` contiene esattamente
-ciò che c'è in memoria. La decodifica è compito di `UltimatePoKeSync.Parsing` (D-007).
+In Gen 3 the data in RAM is encrypted with `PID xor OTID` and has its four substructures
+permuted according to the PID. The script **does not touch it**: the `data` field contains
+exactly what is in memory. Decoding is `UltimatePoKeSync.Parsing`'s job (D-007).
 
-## Gestione degli errori
+## Error handling
 
-Lo script non invia messaggi di errore sul socket: registra su console mGBA e smette di
-produrre `party`. Casi:
+The script sends no error messages over the socket: it logs to the mGBA console and stops
+producing `party` messages. Cases:
 
-- **ROM non riconosciuta** → nessun messaggio. Lo script rifiuta di leggere invece di
-  indovinare una mappa di memoria, perché indovinare produce Pokémon plausibili ma
-  inventati (D-005).
-- **Porta occupata** → il server non parte, con un messaggio che spiega come cambiare
-  `UPS_PORT`. Non c'è auto-incremento: il client deve sapere dove connettersi.
-- **Client caduto** → rimosso dalla lista, l'emulazione continua.
+- **Unrecognised ROM** → no messages. The script refuses to read rather than guess a
+  memory map, because guessing produces plausible but invented Pokémon (D-005).
+- **Port in use** → the server does not start, with a message explaining how to change
+  `UPS_PORT`. There is no auto-increment: the client has to know where to connect.
+- **Client dropped** → removed from the list, emulation continues.
 
-## Compatibilità futura
+## Forward compatibility
 
-Il campo `v` è il punto di rottura esplicito. Aggiungere campi è retrocompatibile e non
-incrementa `v`; cambiare il significato di un campo esistente lo incrementa.
+The `v` field is the explicit break point. Adding fields is backwards compatible and does
+not bump `v`; changing the meaning of an existing field does.
 
-Per generazioni in cui la squadra non è una regione contigua, il messaggio `party`
-guadagnerà un campo opzionale `regions` con blocchi denominati, mantenendo `data` per il
-caso contiguo.
+For generations where the party is not one contiguous region, the `party` message will
+gain an optional `regions` field with named blocks, keeping `data` for the contiguous case.

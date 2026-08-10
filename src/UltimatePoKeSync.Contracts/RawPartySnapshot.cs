@@ -1,36 +1,36 @@
 namespace UltimatePoKeSync.Contracts;
 
 /// <summary>
-/// Quello che un emulatore consegna: byte grezzi, non Pokemon.
+/// What an emulator delivers: raw bytes, not Pokémon.
 /// </summary>
 /// <remarks>
 /// <para>
-/// E' la scelta portante dell'architettura (D-006). Lo script dell'emulatore non
-/// interpreta nulla: non decifra, non applica checksum, non mappa ID di specie. Si
-/// limita a copiare una regione di memoria e a dire di che gioco si tratta.
+/// This is the load-bearing architectural choice (D-006). The emulator script interprets
+/// nothing: it does not decrypt, does not checksum, does not map species IDs. It copies a
+/// region of memory and states which game it came from.
 /// </para>
 /// <para>
-/// Il motivo e' che la decodifica e' la parte difficile e va scritta una volta sola. Se
-/// ogni script parsasse i propri Pokemon, aggiungere un emulatore significherebbe
-/// duplicare quella logica in Lua, in un linguaggio senza test, e vederla divergere.
-/// Cosi invece un nuovo emulatore costa un nuovo script e zero righe di dominio.
+/// The reason is that decoding is the hard part and should be written once. If every
+/// script parsed its own Pokémon, adding an emulator would mean duplicating that logic in
+/// Lua, in a language with no tests, and watching the copies diverge. This way a new
+/// emulator costs a new script and zero lines of domain logic.
 /// </para>
 /// </remarks>
-/// <param name="Game">La ROM da cui provengono i byte.</param>
+/// <param name="Game">The ROM the bytes came from.</param>
 /// <param name="PartyCount">
-/// Numero di Pokemon in squadra secondo l'emulatore, 0-6. Non fidarsi ciecamente: e'
-/// letto da un byte che puo' essere catturato a meta' di una scrittura. Il parser lo
-/// tratta come limite superiore e valida comunque ogni slot.
+/// Party size according to the emulator, 0-6. Do not trust it blindly: it is read from a
+/// byte that can be sampled mid-write. The parser treats it as an upper bound and
+/// validates every slot regardless.
 /// </param>
 /// <param name="PartyData">
-/// Byte contigui di tutti gli slot: <c>SlotSize * 6</c>. Sono i byte cosi' come stanno
-/// in RAM, quindi per la Gen 3 sono cifrati e con le sottostrutture permutate.
+/// Contiguous bytes for all slots: <c>SlotSize * 6</c>. These are the bytes exactly as
+/// they sit in RAM, so for Gen 3 they are encrypted with permuted substructures.
 /// </param>
-/// <param name="SlotSize">Dimensione di uno slot in byte. Gen 3: 100.</param>
-/// <param name="CapturedAt">Momento della cattura, per la diagnostica di latenza.</param>
+/// <param name="SlotSize">Size of one slot in bytes. Gen 3: 100.</param>
+/// <param name="CapturedAt">Capture time, for latency diagnostics.</param>
 /// <param name="Sequence">
-/// Contatore monotono assegnato dallo script. Permette di accorgersi di snapshot persi
-/// e di scartare quelli arrivati fuori ordine.
+/// Monotonic counter assigned by the script. Lets us notice dropped snapshots and discard
+/// out-of-order ones.
 /// </param>
 public sealed record RawPartySnapshot(
     GameIdentity Game,
@@ -40,11 +40,12 @@ public sealed record RawPartySnapshot(
     DateTimeOffset CapturedAt,
     ulong Sequence)
 {
-    /// <summary>Numero massimo di slot presenti nel blob, indipendentemente da PartyCount.</summary>
+    /// <summary>Number of slots present in the blob, regardless of PartyCount.</summary>
     public int SlotCapacity => SlotSize > 0 ? PartyData.Length / SlotSize : 0;
 
     /// <summary>
-    /// Byte del singolo slot. Non fa alcuna validazione: interpretarli e' compito del parser.
+    /// Bytes of a single slot. Performs no validation: interpreting them is the parser's
+    /// job.
     /// </summary>
     public ReadOnlyMemory<byte> GetSlot(int index)
     {

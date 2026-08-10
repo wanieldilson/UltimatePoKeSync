@@ -5,8 +5,8 @@ using System.Text;
 namespace UltimatePoKeSync.Providers.MGba.Tests;
 
 /// <summary>
-/// Sta al posto dello script Lua: ascolta su una porta effimera e spedisce righe.
-/// Permette di testare provider e protocollo senza mGBA e senza una ROM.
+/// Stands in for the Lua script: listens on an ephemeral port and sends lines. Lets us
+/// test the provider and the protocol without mGBA and without a ROM.
 /// </summary>
 internal sealed class FakeBridge : IAsyncDisposable
 {
@@ -25,7 +25,7 @@ internal sealed class FakeBridge : IAsyncDisposable
 
     public int Port { get; }
 
-    /// <summary>Si completa quando il primo client si e' connesso.</summary>
+    /// <summary>Completes when the first client has connected.</summary>
     public Task FirstClientConnected => _firstClient.Task;
 
     public static FakeBridge Start(int port = 0)
@@ -52,7 +52,7 @@ internal sealed class FakeBridge : IAsyncDisposable
         }
         catch (Exception)
         {
-            // Listener fermato: fine del test.
+            // Listener stopped: end of test.
         }
     }
 
@@ -73,7 +73,7 @@ internal sealed class FakeBridge : IAsyncDisposable
         }
     }
 
-    /// <summary>Simula mGBA chiuso di colpo, per verificare la riconnessione.</summary>
+    /// <summary>Simulates mGBA being closed abruptly, to exercise reconnection.</summary>
     public void DropAllClients()
     {
         lock (_clients)

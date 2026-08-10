@@ -8,7 +8,7 @@ internal static class Program
     public static void Main(string[] args) => BuildAvaloniaApp()
         .StartWithClassicDesktopLifetime(args);
 
-    // Usata anche dai design-time tooling di Avalonia: non rinominare.
+    // Also used by Avalonia's design-time tooling: do not rename.
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>()
         .UsePlatformDetect()
         .WithInterFont()

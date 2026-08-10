@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    UI Avalonia. Gira nativamente su Windows, Linux e macOS incluso Apple Silicon,
-    a differenza di WPF. Vedi D-011.
-    Contenuto reale della dashboard: milestone M7.
+    Avalonia UI. Runs natively on Windows, Linux and macOS including Apple Silicon,
+    unlike WPF. See D-011.
+    The real dashboard lands with milestone M7.
   -->
 
   <PropertyGroup>

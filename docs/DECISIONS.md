@@ -1,324 +1,335 @@
 # Decision log — UltimatePoKeSync
 
-Registro di **ogni scelta di progetto**, con alternative valutate e motivazione.
-Va aggiornato nello stesso commit del cambiamento che descrive.
+A record of **every design choice**, with the alternatives considered and the reasoning.
+Update it in the same commit as the change it describes.
 
-Formato: `D-nnn` progressivo. Stato: `Accettata` · `Superata da D-xxx` · `Aperta`.
-
----
-
-## D-001 — Emulatore di riferimento: mGBA (non BizHawk)
-
-**Stato:** Accettata · 2026-08-10
-
-BizHawk dipende da WinForms 64-bit e non ha supporto ufficiale macOS, men che meno
-Apple Silicon. Dato che macOS è un target di prima classe, non può essere l'emulatore
-di partenza.
-
-mGBA 0.10.5 ha build macOS universale (Intel + ARM), Windows e Linux (AppImage anche
-arm64), e ha lo scripting Lua stabile dalla 0.10.0.
-
-**Alternative valutate:** BizHawk (scartato: no macOS), DeSmuME (no scripting Lua su
-tutte le piattaforme), RetroArch + network command interface (protocollo troppo povero,
-non legge range arbitrari in modo efficiente).
-
-**Conseguenza:** il primo target è GBA, quindi Gen 3. Vedi D-004.
+Format: sequential `D-nnn`. Status: `Accepted` · `Superseded by D-xxx` · `Open`.
 
 ---
 
-## D-002 — Trasporto Lua → app: socket TCP, non file JSON
+## D-001 — Reference emulator: mGBA, not BizHawk
 
-**Stato:** Accettata · 2026-08-10
+**Status:** Accepted · 2026-08-10
 
-L'idea iniziale prevedeva "socket TCP **oppure** file JSON aggiornato". L'opzione file
-**non è realizzabile**: l'API di scripting di mGBA non espone alcun I/O su filesystem.
-Non esiste `io.open`; le sole operazioni su file sono `loadFile`, `loadSaveFile` e la
-gestione degli stati. Quindi TCP è l'unica strada.
+BizHawk depends on 64-bit WinForms and has no official macOS support, let alone Apple
+Silicon. Since macOS is a first-class target, it cannot be the starting emulator.
 
-Fonte: <https://mgba.io/docs/scripting.html>
+mGBA 0.10.5 ships a universal macOS build (Intel + ARM), plus Windows and Linux
+(AppImage, including arm64), and has had stable Lua scripting since 0.10.0.
 
-**Conseguenza:** vedi D-003 per la direzione della connessione.
+**Alternatives considered:** BizHawk (rejected: no macOS), DeSmuME (no Lua scripting
+across all platforms), RetroArch network command interface (protocol too poor, cannot
+read arbitrary ranges efficiently).
 
----
-
-## D-003 — Lo script Lua fa da server, l'app C# da client
-
-**Stato:** Accettata · 2026-08-10
-
-L'API socket di mGBA espone `socket.bind()` / `listen()` / `accept()` / `poll()` /
-`hasdata()`, tutte non bloccanti, più gli eventi `"received"` e `"error"`.
-`socket.connect()` è invece documentato come **bloccante**: usarlo dentro il callback di
-frame bloccherebbe l'emulazione a ogni tentativo di riconnessione fallito.
-
-Quindi: Lua ascolta su `127.0.0.1:8888` (porta configurabile), l'app C# si connette come
-client e gestisce il reconnect con backoff. Il retry sta nel processo che può
-permetterselo.
-
-**Conseguenza:** più istanze di mGBA richiedono porte diverse. La porta è un parametro
-dello script e della configurazione dell'app.
+**Consequence:** the first target is GBA, therefore Gen 3. See D-004.
 
 ---
 
-## D-004 — Generazione di partenza: Gen 3, gioco di riferimento Pokémon Emerald (U)
+## D-002 — Lua → app transport: TCP socket, not a JSON file
 
-**Stato:** Accettata · 2026-08-10
+**Status:** Accepted · 2026-08-10
 
-Conseguenza diretta di D-001 (mGBA = GBA). Fra i giochi Gen 3, Emerald (U) è quello con
-più materiale di riferimento pubblico (Ironmon Tracker, pokebot-bizhawk, Archipelago),
-il che rende molto più veloce diagnosticare una lettura sbagliata.
+The original idea allowed "TCP socket **or** a JSON file kept up to date". The file
+option **is not possible**: mGBA's scripting API exposes no filesystem I/O whatsoever.
+There is no `io.open`; the only file operations are `loadFile`, `loadSaveFile` and
+savestate handling. TCP is therefore the only route.
 
-**Indirizzi RAM verificati** (incrocio fra Data Crystal e `GameSettings.lua` di
-40Cakes/pokebot-bizhawk, tool in produzione):
+Source: <https://mgba.io/docs/scripting.html>
 
-| Gioco (U)           | Party data   | Party count  | Dominio |
-| ------------------- | ------------ | ------------ | ------- |
-| Emerald             | `0x020244EC` | `0x020244E9` | EWRAM   |
-| FireRed / LeafGreen | `0x02024284` | `0x02024029` | EWRAM   |
-| Ruby / Sapphire     | `0x03004360` | `0x03004350` | IWRAM   |
-
-Struttura: 6 slot contigui da 100 byte (80 stored + 20 stat di battaglia).
-
-Le revisioni JP hanno indirizzi diversi. Vedi D-005.
+**Consequence:** see D-003 for the direction of the connection.
 
 ---
 
-## D-005 — Nessun indirizzo hardcoded: identificazione del gioco a runtime
+## D-003 — The Lua script is the server, the C# app is the client
 
-**Stato:** Accettata · 2026-08-10
+**Status:** Accepted · 2026-08-10
 
-Gli indirizzi cambiano per gioco **e per regione**. Hardcodare quelli di Emerald (U)
-significherebbe leggere spazzatura silenziosamente su qualunque altra ROM.
+mGBA's socket API exposes `socket.bind()` / `listen()` / `accept()` / `poll()` /
+`hasdata()`, all non-blocking, plus `"received"` and `"error"` events. `socket.connect()`,
+by contrast, is documented as **blocking**: calling it from the frame callback would stall
+emulation on every failed reconnect attempt.
 
-Lo script Lua legge il game code dall'header della cartuccia a `0x080000AC`
-(`BPEE` Emerald, `BPRE` FireRed, `BPGE` LeafGreen, `AXVE` Ruby, `AXPE` Sapphire) e
-seleziona la tabella indirizzi corrispondente. Se il game code è sconosciuto, lo script
-**rifiuta di leggere** e lo segnala, invece di indovinare.
+So: Lua listens on `127.0.0.1:8888` (configurable), and the C# app connects as a client
+with backoff. Retry logic belongs in the process that can afford it.
 
-Il game code viaggia in ogni messaggio verso l'app, così anche il lato C# sa sempre che
-gioco sta interpretando.
-
----
-
-## D-006 — Il layer provider trasporta byte grezzi, non Pokémon
-
-**Stato:** Accettata · 2026-08-10
-
-È la scelta che rende l'astrazione multi-emulatore reale invece che nominale.
-
-Lo script Lua **non parsa niente**: spedisce i byte grezzi del party, il conteggio e
-l'identità del gioco. Tutta la decodifica (decrypt, unshuffle, checksum, mapping degli
-ID) avviene in C#, una volta sola, condivisa da tutti i provider.
-
-Aggiungere BizHawk o DeSmuME domani costa ~150 righe di Lua e zero righe di logica di
-dominio. Se invece ogni script parsasse i suoi Pokémon, ogni nuovo emulatore
-duplicherebbe — e sfaserebbe — la stessa logica.
-
-Il contratto vive in `UltimatePoKeSync.Contracts` ed è l'unico progetto condiviso fra
-provider e parsing.
+**Consequence:** multiple mGBA instances need different ports. The port is a parameter of
+both the script and the app configuration.
 
 ---
 
-## D-007 — Parsing tramite PKHeX.Core; l'app è licenziata GPLv3
+## D-004 — Starting generation: Gen 3, reference game Pokémon Emerald
 
-**Stato:** Accettata · 2026-08-10
+**Status:** Accepted · 2026-08-10 · amended 2026-08-10, see D-016
 
-PKHeX.Core (NuGet, ultima 26.7.7) ha target `net10.0`, **zero dipendenze** e nessun
-riferimento a WinForms: la GUI di PKHeX è un progetto separato. È cross-platform senza
-riserve.
+A direct consequence of D-001 (mGBA = GBA). Among the Gen 3 games, Emerald has the most
+public reference material (Ironmon Tracker, pokebot-bizhawk, Archipelago), which makes
+diagnosing a bad read far faster.
 
-Il costruttore `PK3(Memory<byte>)` **decripta automaticamente** i dati (`DecryptParty()`),
-quindi i 100 byte letti dalla RAM diventano direttamente un oggetto con `Species`,
-`IV_*`, `EV_*`, `Nature`, `Ability`, `Move1..4`, `HeldItem`, `Stat_Level`. In più
-`PersonalTable3` fornisce stat base, tipi e abilità, e i `Learnset` le mosse imparabili.
+**Verified RAM addresses** (cross-checked between Data Crystal and `GameSettings.lua`
+from 40Cakes/pokebot-bizhawk, a tool in active use):
 
-Evita di reimplementare a mano decifratura XOR, permutazione delle sottostrutture e
-checksum — e soprattutto evita di rifarlo per ogni generazione futura, dove il formato è
-molto più complesso.
+| Game (USA)          | Party data   | Party count  | Domain |
+| ------------------- | ------------ | ------------ | ------ |
+| Emerald             | `0x020244EC` | `0x020244E9` | EWRAM  |
+| FireRed / LeafGreen | `0x02024284` | `0x02024029` | EWRAM  |
+| Ruby / Sapphire     | `0x03004360` | `0x03004350` | IWRAM  |
 
-**Costo accettato:** PKHeX.Core è **GPL-3.0-or-later** e il copyleft si estende per
-linking. UltimatePoKeSync è quindi licenziata **GPLv3**. Scelta confermata da Roberto il
-2026-08-10, valutata l'alternativa di un parser Gen 3 proprietario (~250 righe) con
-licenza permissiva, scartata perché non scala alle generazioni successive.
+Layout: 6 contiguous 100-byte slots (80 stored + 20 battle stats).
 
-**Limite noto:** PKHeX.Core non contiene dati *competitivi* (tier, spread comuni, item da
-metagame). Quelli restano dataset nostri. Vedi D-009.
+Non-USA revisions have different addresses. See D-005 and D-016.
 
 ---
 
-## D-008 — Difese contro le letture inconsistenti della RAM
+## D-005 — No hardcoded addresses: identify the game at runtime
 
-**Stato:** Accettata · 2026-08-10
+**Status:** Accepted · 2026-08-10
 
-Leggendo a ogni frame si può catturare uno snapshot **mentre il gioco sta scrivendo** in
-quella regione (torn read), ottenendo un Pokémon che non è mai esistito.
+Addresses vary per game **and per region**. Hardcoding the USA Emerald ones would mean
+silently reading garbage from any other ROM.
 
-Due difese, su due livelli diversi.
+The Lua script reads the game code from the cartridge header at `0x080000AC` (`BPEE`
+Emerald USA, `BPRE` FireRed, `BPGE` LeafGreen, `AXVE` Ruby, `AXPE` Sapphire) and selects
+the matching address table. If the game code is unknown, the script **refuses to read**
+and says so, instead of guessing.
 
-**Nello script Lua — conferma su due letture.** Un cambiamento visto una volta non viene
-spedito: viene messo "in sospeso" e inviato solo se la lettura successiva produce lo
-stesso hash. Costa un intervallo di polling di latenza (~66 ms), impercettibile su una
-squadra.
-
-Questa difesa **deve** stare nello script, non nell'app: lo script trasmette solo sui
-cambiamenti, quindi una seconda lettura identica non arriverebbe mai al lato C# e il
-confronto lì sarebbe impossibile per costruzione. Errore individuato durante
-l'implementazione, quando la versione originale di questa decisione collocava il
-controllo in C#.
-
-**Nel parser C# — validazione per slot.** Ogni slot deve superare, in quest'ordine:
-`Species != 0`, `FlagHasSpecies`, `ChecksumValid`, `!FlagIsBadEgg`, specie ≤ 411.
-
-Verifiche empiriche che hanno determinato questa lista:
-
-| Input                    | `ChecksumValid` | `FlagHasSpecies` | `Valid` |
-| ------------------------ | --------------- | ---------------- | ------- |
-| Pokémon reale cifrato    | `true`          | `true`           | `true`  |
-| 100 byte casuali         | **`false`**     | `false`          | `true`  |
-| Slot vuoto (tutti zeri)  | **`true`**      | `false`          | —       |
-
-Due conseguenze non ovvie: `ChecksumValid` **da solo non basta**, perché uno slot di soli
-zeri lo supera; e la proprietà `Valid` di PKHeX è inutilizzabile come filtro, perché
-resta `true` anche su byte casuali.
-
-Uno slot vuoto *oltre* il conteggio dichiarato non è un errore e non viene segnalato; uno
-slot vuoto *entro* il conteggio sì, perché indica un'incoerenza reale.
+The game code travels in every message to the app, so the C# side always knows which game
+it is interpreting.
 
 ---
 
-## D-009 — L'analisi è generation-aware fin dal primo giorno
+## D-006 — The provider layer carries raw bytes, not Pokémon
 
-**Stato:** Accettata · 2026-08-10
+**Status:** Accepted · 2026-08-10
 
-Le regole Gen 3 differiscono da quelle moderne in modi che **cambiano il risultato dei
-suggerimenti**, non solo i numeri:
+This is the choice that makes the multi-emulator abstraction real rather than nominal.
 
-- **17 tipi, niente Fairy.** La type chart deve essere per generazione.
-- **Lo split fisico/speciale è per TIPO, non per mossa.** In Gen 3 qualunque mossa Acqua
-  è speciale e qualunque mossa Lotta è fisica, a prescindere dalla mossa. La deduzione
-  del ruolo (attaccante fisico vs speciale) e di conseguenza natura ed EV consigliati
-  seguono regole diverse da Gen 4+.
-- **Nessuna abilità nascosta**; l'abilità è un singolo bit.
-- **EV**: 510 totali, cap 255 per stat (252 è solo la soglia di efficienza).
+The Lua script **parses nothing**: it ships the raw party bytes, the count and the game
+identity. All decoding (decrypt, unshuffle, checksum, ID mapping) happens in C#, once,
+shared by every provider.
 
-Trattare queste come "dettagli da sistemare dopo" costringerebbe a riscrivere il motore
-di suggerimenti quando si aggiunge Gen 4. Le regole stanno quindi dietro un'astrazione
-per generazione fin dall'inizio.
+Adding BizHawk or DeSmuME tomorrow costs ~150 lines of Lua and zero lines of domain logic.
+If each script parsed its own Pokémon instead, every new emulator would duplicate — and
+eventually diverge from — the same logic.
+
+The contract lives in `UltimatePoKeSync.Contracts` and is the only project shared between
+providers and parsing.
 
 ---
 
-## D-010 — Due profili di analisi: playthrough e competitivo
+## D-007 — Parsing via PKHeX.Core; the app is licensed GPLv3
 
-**Stato:** Accettata · 2026-08-10
+**Status:** Accepted · 2026-08-10
 
-Scelta di Roberto, 2026-08-10.
+PKHeX.Core (NuGet, latest 26.7.7) targets `net10.0`, has **zero dependencies** and no
+WinForms references: PKHeX's GUI is a separate project. It is cross-platform without
+reservation.
 
-- **Playthrough**: mosse già disponibili *ora* nel learnset, item ottenibili nel gioco,
-  EV realistici, copertura contro Capipalestra e Lega.
-- **Competitivo**: spread 252/252/4, benchmark di velocità, natura/item/EV da metagame.
+The part that matters, from [PK3.cs](https://github.com/kwsch/PKHeX/blob/master/PKHeX.Core/PKM/PK3.cs):
+the `PK3(Memory<byte>)` constructor **decrypts automatically** when needed
+(`DecryptParty()`), so the 100 bytes read from RAM become an object exposing `Species`,
+`IV_*`, `EV_*`, `Nature`, `Ability`, `Move1..4`, `HeldItem`, `Stat_Level` directly. On top
+of that, `PersonalTable3` provides base stats, types and abilities, and `Learnset` gives
+learnable moves.
 
-Sono due set di euristiche sopra lo **stesso** motore di analisi, selezionabili nella UI.
-Il motore calcola i fatti (ruolo, coverage, stat proiettate); il profilo decide *cosa
-consigliare* a partire da quei fatti. La separazione è vincolante fin dall'inizio,
-altrimenti le due modalità si intrecciano e diventano impossibili da mantenere.
+This avoids hand-writing XOR decryption, substructure permutation and checksums — and,
+more importantly, avoids redoing all of it for every future generation, where the format
+is considerably more complex.
 
----
+**Accepted cost:** PKHeX.Core is **GPL-3.0-or-later** and its copyleft extends through
+linking. UltimatePoKeSync is therefore licensed **GPLv3**. Confirmed by Roberto on
+2026-08-10, having considered the alternative of a hand-written Gen 3 parser (~250 lines)
+under a permissive licence, rejected because it does not scale to later generations.
 
-## D-011 — Stack applicativo: .NET 10 + Avalonia
-
-**Stato:** Accettata · 2026-08-10
-
-.NET 10 è imposto da PKHeX.Core 26.x, che ha target `net10.0` (D-007).
-
-Avalonia per la UI: gira nativamente su Windows, Linux e macOS incluso Apple Silicon,
-a differenza di WPF. MVVM con CommunityToolkit.Mvvm.
-
-**Alternative valutate:** MAUI (supporto Linux desktop assente), Uno Platform (più
-complesso da configurare, nessun vantaggio qui), UI web + backend locale (aggiunge un
-browser e un layer HTTP per nessun beneficio in un'app locale single-user).
-
-**Nota di implementazione:** `Avalonia.Diagnostics` (i DevTools) **non è pubblicato per
-la 12.x**, si ferma alla 11.3.20. Rimosso dalle dipendenze. Da rivalutare quando
-l'equivalente per Avalonia 12 sarà disponibile.
+**Known limitation:** PKHeX.Core carries no *competitive* data (tiers, common spreads,
+metagame items). Those remain our own datasets. See D-009.
 
 ---
 
-## D-012 — Lo script Lua è un unico file, non moduli
+## D-008 — Defences against inconsistent RAM reads
 
-**Stato:** Accettata · 2026-08-10
+**Status:** Accepted · 2026-08-10 · corrected during implementation
 
-La documentazione di mGBA **non specifica** se `require` e `package.path` funzionino per
-moduli locali accanto allo script caricato. Spezzare il bridge in `ups/server.lua`,
-`ups/games.lua` ecc. lo renderebbe dipendente da un comportamento non documentato, e
-soprattutto scomodo: l'utente carica *un* file dal menu di mGBA.
+Reading every frame can capture a snapshot **while the game is writing** to that region
+(a torn read), yielding a Pokémon that never existed.
 
-`emulator-scripts/mgba/ups_bridge.lua` è quindi monolitico ma diviso in sezioni. È
-accettabile perché lo script è deliberatamente stupido (D-006): resta sotto le ~300 righe
-e non conterrà mai logica di dominio.
+Two defences, at two different levels.
 
----
+**In the Lua script — confirmation across two reads.** A change seen once is not sent: it
+is held as "pending" and only transmitted if the following read produces the same hash.
+This costs one polling interval of latency (~66 ms), imperceptible for a party.
 
-## D-013 — Verifica incrociata degli indirizzi Gen 3 su tre fonti
+This defence **must** live in the script, not the app: the script only transmits on
+change, so a second identical read would never reach the C# side and the comparison there
+would be impossible by construction. This was caught during implementation — the original
+version of this decision placed the check in C#.
 
-**Stato:** Accettata · 2026-08-10
+**In the C# parser — per-slot validation.** Each slot must pass, in order:
+`Species != 0`, `FlagHasSpecies`, `ChecksumValid`, `!FlagIsBadEgg`, species ≤ 411.
 
-Gli indirizzi di D-004 sono confermati da tre fonti indipendenti, l'ultima delle quali è
-decisiva:
+The empirical findings that produced that list:
 
-1. Data Crystal (RAM map FireRed/LeafGreen).
-2. `GameSettings.lua` di `40Cakes/pokebot-bizhawk`, tool in uso.
-3. **`res/scripts/pokemon.lua` distribuito da mGBA stesso** (tag 0.10.5) — valori
-   identici, incluso `_partyMonSize = 100`.
+| Input                      | `ChecksumValid` | `FlagHasSpecies` | `Valid` |
+| -------------------------- | --------------- | ---------------- | ------- |
+| Real encrypted Pokémon     | `true`          | `true`           | `true`  |
+| 100 random bytes           | **`false`**     | `false`          | `true`  |
+| Empty slot (all zeroes)    | **`true`**      | `false`          | —       |
 
-Dalla stessa fonte è emerso anche il pattern idiomatico del socket server
-(`res/scripts/socketserver.lua`), che il bridge segue: `socket.bind(nil, port)` →
-`listen()` → `add("received", accept)`, con `socket.ERRORS.AGAIN` come "nessun dato".
+Two non-obvious consequences: `ChecksumValid` **is not sufficient on its own**, because an
+all-zero slot passes it; and PKHeX's `Valid` property is useless as a filter, because it
+stays `true` even for random bytes.
 
-Constatazione utile: in Gen 3 **le revisioni condividono gli stessi indirizzi** (FireRed
-Rev 1, Ruby Rev 1/2 ereditano quelli della revisione base). Il game code basta quindi a
-scegliere la mappa, senza bisogno del CRC32 della ROM. Non è detto che valga per le
-generazioni successive, per questo la chiave resta il game code completo e non il solo
-titolo.
-
----
-
-## D-014 — PKHeX normalizza i tipi agli indici moderni: verificato, non assunto
-
-**Stato:** Accettata · 2026-08-10
-
-Trappola classica della Gen 3: gli ID interni dei tipi **non** coincidono con quelli
-moderni, perché in Gen 3 l'indice 9 è il tipo `???` (Mystery). Internamente Fuoco è 10 e
-Acqua 11; nello schema moderno sono 9 e 10.
-
-Sbagliare qui produrrebbe un'analisi di tipo interamente falsa **senza alcun errore
-visibile**: ogni Pokémon avrebbe il tipo del vicino.
-
-Verificato empiricamente contro PKHeX 26.7.7:
-
-| Pokémon   | `PersonalTable.E[id].Type1` | Interpretazione |
-| --------- | --------------------------- | --------------- |
-| Charizard | 9                           | Fire moderno ✓ (interno Gen 3 sarebbe 10) |
-| Gyarados  | 10                          | Water moderno ✓ |
-| Magnemite | 12                          | Electric moderno ✓ |
-
-Lo stesso vale per `MoveInfo.GetType(id, EntityContext.Gen3)`. **PKHeX normalizza**:
-nessuna conversione da scrivere, e `PokemonType` può essere castato direttamente.
-
-L'assunzione è inchiodata dal test `Parse_LeggeTipiConIndiciModerniNonQuelliInterniGen3`,
-perché è il tipo di cosa che un aggiornamento di PKHeX potrebbe cambiare in silenzio.
-
-**Altro dettaglio Gen 3 confermato:** la natura **non è memorizzata**, è derivata dal PID
-(`PID % 25`). PKHeX la calcola. Impostare `Nature` su un `PK3` con PID fisso non ha
-effetto — cosa che va ricordata quando si costruiranno fixture di test.
+An empty slot *beyond* the declared count is not an error and is not reported; an empty
+slot *within* the declared count is, because it signals a genuine inconsistency.
 
 ---
 
-## D-015 — I mono-tipo vengono normalizzati a `SecondaryType = None`
+## D-009 — Analysis is generation-aware from day one
 
-**Stato:** Accettata · 2026-08-10
+**Status:** Accepted · 2026-08-10
 
-Nei dati di gioco un Pokémon mono-tipo ha lo stesso tipo ripetuto nei due campi (Pikachu:
-`Type1 = Type2 = 12`). Propagarlo così **raddoppierebbe il peso di quel tipo** in ogni
-calcolo difensivo aggregato del team.
+Gen 3 rules differ from modern ones in ways that **change the suggestions themselves**,
+not just the numbers:
 
-Il parser normalizza il secondo tipo a `None` quando coincide con il primo. Coperto dal
-test `Parse_MonoTipoNormalizzaIlSecondoTipoANone`.
+- **17 types, no Fairy.** The type chart must be per generation.
+- **The physical/special split is by TYPE, not by move.** In Gen 3 every Water move is
+  special and every Fighting move is physical, regardless of the move. Role inference
+  (physical vs special attacker) and therefore the recommended nature and EVs follow
+  different rules from Gen 4 onwards.
+- **No hidden abilities**; the ability is a single bit.
+- **EVs**: 510 total, 255 cap per stat (252 is merely the efficiency threshold).
+
+Treating these as "details to fix later" would force a rewrite of the suggestion engine
+when Gen 4 is added. The rules therefore sit behind a per-generation abstraction from the
+start.
+
+---
+
+## D-010 — Two analysis profiles: playthrough and competitive
+
+**Status:** Accepted · 2026-08-10
+
+Roberto's choice, 2026-08-10.
+
+- **Playthrough**: moves already available *now* in the learnset, obtainable items,
+  realistic EVs, coverage against Gym Leaders and the League.
+- **Competitive**: 252/252/4 spreads, speed benchmarks, metagame natures/items/EVs.
+
+These are two sets of heuristics on top of the **same** analysis engine, switchable in the
+UI. The engine computes facts (role, coverage, projected stats); the profile decides *what
+to recommend* from those facts. The separation is binding from the start, otherwise the
+two modes interleave and become unmaintainable.
+
+---
+
+## D-011 — Application stack: .NET 10 + Avalonia
+
+**Status:** Accepted · 2026-08-10
+
+.NET 10 is forced by PKHeX.Core 26.x, which targets `net10.0` (D-007).
+
+Avalonia for the UI: it runs natively on Windows, Linux and macOS including Apple Silicon,
+unlike WPF. MVVM via CommunityToolkit.Mvvm.
+
+**Alternatives considered:** MAUI (no Linux desktop support), Uno Platform (more setup, no
+advantage here), web UI with a local backend (adds a browser and an HTTP layer for no
+benefit in a local single-user app).
+
+**Implementation note:** `Avalonia.Diagnostics` (DevTools) is **not published for 12.x** —
+it stops at 11.3.20. Removed from the dependencies. Revisit when the Avalonia 12
+equivalent ships.
+
+---
+
+## D-012 — The Lua script is a single file, not modules
+
+**Status:** Accepted · 2026-08-10
+
+mGBA's documentation **does not state** whether `require` and `package.path` work for
+local modules next to the loaded script. Splitting the bridge into `ups/server.lua`,
+`ups/games.lua` and so on would make it depend on undocumented behaviour, and would be
+awkward in practice: the user loads *one* file from mGBA's menu.
+
+`emulator-scripts/mgba/ups_bridge.lua` is therefore monolithic but sectioned. That is
+acceptable because the script is deliberately dumb (D-006): it stays under ~300 lines and
+will never contain domain logic.
+
+---
+
+## D-013 — Gen 3 addresses cross-checked against three sources
+
+**Status:** Accepted · 2026-08-10
+
+The addresses in D-004 are confirmed by three independent sources, the last of which is
+decisive:
+
+1. Data Crystal (FireRed/LeafGreen RAM map).
+2. `GameSettings.lua` from `40Cakes/pokebot-bizhawk`, a tool in active use.
+3. **`res/scripts/pokemon.lua` shipped by mGBA itself** (tag 0.10.5) — identical values,
+   including `_partyMonSize = 100`.
+
+The same source also provided the idiomatic socket-server pattern
+(`res/scripts/socketserver.lua`), which the bridge follows: `socket.bind(nil, port)` →
+`listen()` → `add("received", accept)`, with `socket.ERRORS.AGAIN` meaning "no data".
+
+A useful finding: in Gen 3 **revisions share the same addresses** (FireRed Rev 1, Ruby
+Rev 1/2 inherit the base revision's). The game code alone is therefore enough to pick the
+map, with no need for the ROM's CRC32. That may not hold for later generations, which is
+why the key remains the full game code rather than just the title.
+
+---
+
+## D-014 — PKHeX normalises types to modern indices: verified, not assumed
+
+**Status:** Accepted · 2026-08-10
+
+A classic Gen 3 trap: internal type IDs **do not** match modern ones, because index 9 in
+Gen 3 is the `???` (Mystery) type. Internally Fire is 10 and Water is 11; in the modern
+scheme they are 9 and 10.
+
+Getting this wrong would produce an entirely false type analysis **with no visible
+error**: every Pokémon would take its neighbour's type.
+
+Verified empirically against PKHeX 26.7.7:
+
+| Pokémon   | `PersonalTable.E[id].Type1` | Reading |
+| --------- | --------------------------- | ------- |
+| Charizard | 9                           | Modern Fire ✓ (the Gen 3 internal ID would be 10) |
+| Gyarados  | 10                          | Modern Water ✓ |
+| Magnemite | 12                          | Modern Electric ✓ |
+
+The same holds for `MoveInfo.GetType(id, EntityContext.Gen3)`. **PKHeX normalises**: no
+conversion to write, and `PokemonType` can be cast directly.
+
+The assumption is pinned by the `Parse_ReadsModernTypeIndicesNotGen3Internal` test,
+because it is exactly the kind of thing a PKHeX update could change silently.
+
+**Another confirmed Gen 3 detail:** nature is **not stored**, it is derived from the PID
+(`PID % 25`). PKHeX computes it. Setting `Nature` on a `PK3` with a fixed PID has no
+effect — worth remembering when building test fixtures.
+
+---
+
+## D-015 — Mono-type Pokémon are normalised to `SecondaryType = None`
+
+**Status:** Accepted · 2026-08-10
+
+In the game data a mono-type Pokémon repeats the same type in both fields (Pikachu:
+`Type1 = Type2 = 12`). Propagating that as-is would **double that type's weight** in every
+aggregate defensive calculation.
+
+The parser normalises the second type to `None` when it equals the first. Covered by the
+`Parse_MonoTypeNormalisesSecondaryToNone` test.
+
+---
+
+## D-016 — The repository is written in English
+
+**Status:** Accepted · 2026-08-10
+
+Everything committed is in English: commit messages, identifiers, comments, XML docs,
+Markdown, CLI output, UI strings and test names.
+
+Roberto's decision, 2026-08-10, after the first six commits had been written in Italian.
+It is a GPLv3 open-source project intended to be readable by contributors who do not speak
+Italian. The working tree was translated in one pass; the earlier commit *messages* were
+left as they were, since rewriting unpushed history is not worth the churn.

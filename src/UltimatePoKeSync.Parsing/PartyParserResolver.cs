@@ -3,11 +3,11 @@ using UltimatePoKeSync.Contracts;
 namespace UltimatePoKeSync.Parsing;
 
 /// <summary>
-/// Sceglie il parser adatto alla ROM corrente.
+/// Picks the parser that fits the current ROM.
 /// </summary>
 /// <remarks>
-/// Il punto in cui si aggancia una nuova generazione: si registra un parser in piu' e
-/// nient'altro cambia, ne' nel provider ne' nella UI.
+/// This is where a new generation hooks in: register one more parser and nothing else
+/// changes, neither in the provider nor in the UI.
 /// </remarks>
 public sealed class PartyParserResolver : IPartyParserResolver
 {
@@ -16,7 +16,7 @@ public sealed class PartyParserResolver : IPartyParserResolver
     public PartyParserResolver(IEnumerable<IPartyParser> parsers)
         => _parsers = parsers.ToArray();
 
-    /// <summary>Insieme dei parser attualmente implementati.</summary>
+    /// <summary>The set of parsers currently implemented.</summary>
     public static PartyParserResolver CreateDefault() => new([new Gen3PartyParser()]);
 
     public IPartyParser? Resolve(GameIdentity game)

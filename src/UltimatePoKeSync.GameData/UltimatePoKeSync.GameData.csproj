@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Dati statici che PKHeX non fornisce: type chart per generazione (D-009),
-    nature, e le euristiche competitive/playthrough (D-010). JSON offline,
-    nessuna chiamata di rete a runtime.
+    Static data PKHeX does not provide: per-generation type chart (D-009), natures,
+    and the competitive/playthrough heuristics (D-010). Offline JSON, no network
+    calls at runtime.
   -->
 
   <ItemGroup>

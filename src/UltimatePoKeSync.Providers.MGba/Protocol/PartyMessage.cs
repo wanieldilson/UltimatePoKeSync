@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace UltimatePoKeSync.Providers.MGba.Protocol;
 
 /// <summary>
-/// Forma sul filo di un messaggio <c>party</c>. Vedi docs/protocol.md.
+/// Wire shape of a <c>party</c> message. See docs/protocol.md.
 /// </summary>
 internal sealed class PartyMessage
 {

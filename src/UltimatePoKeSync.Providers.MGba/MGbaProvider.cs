@@ -8,12 +8,12 @@ using UltimatePoKeSync.Providers.MGba.Protocol;
 namespace UltimatePoKeSync.Providers.MGba;
 
 /// <summary>
-/// Riceve gli snapshot grezzi dallo script Lua in esecuzione su mGBA.
+/// Receives raw snapshots from the Lua script running inside mGBA.
 /// </summary>
 /// <remarks>
-/// Il client sta qui e il server sta nello script (D-003): <c>socket.connect</c> in Lua
-/// e' bloccante, e un tentativo di riconnessione fallito bloccherebbe l'emulazione. Il
-/// retry deve stare nel processo che puo' permetterselo, cioe' questo.
+/// The client lives here and the server lives in the script (D-003): Lua's
+/// <c>socket.connect</c> is blocking, and a failed reconnection attempt would stall
+/// emulation. Retry logic belongs in the process that can afford it, which is this one.
 /// </remarks>
 public sealed class MGbaProvider : IEmulatorProvider
 {
@@ -29,7 +29,7 @@ public sealed class MGbaProvider : IEmulatorProvider
 
     public event EventHandler<EmulatorConnectionState>? StateChanged;
 
-    /// <summary>Numero di messaggi scartati perche' illeggibili, per la diagnostica.</summary>
+    /// <summary>Number of messages discarded as unreadable, for diagnostics.</summary>
     public int MalformedMessageCount { get; private set; }
 
     public async IAsyncEnumerable<RawPartySnapshot> ReadSnapshotsAsync(
@@ -47,8 +47,8 @@ public sealed class MGbaProvider : IEmulatorProvider
 
             if (client is null)
             {
-                // mGBA chiuso o script non caricato: e' lo stato normale all'avvio
-                // dell'app, non un errore. Si ritenta con backoff, per sempre.
+                // mGBA closed, or the script not loaded: the normal state when the app
+                // starts first, not an error. Retry with backoff, indefinitely.
                 if (!await SafeDelayAsync(delay, cancellationToken).ConfigureAwait(false))
                 {
                     yield break;
@@ -71,7 +71,7 @@ public sealed class MGbaProvider : IEmulatorProvider
 
                     if (line is null)
                     {
-                        break; // connessione chiusa o in errore: si riconnette
+                        break; // connection closed or failed: reconnect
                     }
 
                     if (line.Length == 0)
@@ -123,8 +123,8 @@ public sealed class MGbaProvider : IEmulatorProvider
         }
         catch (Exception)
         {
-            // Emulatore chiuso a meta' riga, cavo staccato, script ricaricato: tutti
-            // casi in cui l'unica risposta sensata e' riconnettersi.
+            // Emulator closed mid-line, socket reset, script reloaded: in every case the
+            // only sensible response is to reconnect.
             return null;
         }
     }
@@ -167,8 +167,8 @@ public sealed class MGbaProvider : IEmulatorProvider
             return false;
         }
 
-        // Un blob di lunghezza inattesa significa che script e client non sono
-        // d'accordo sul formato: meglio scartarlo che interpretarlo a caso.
+        // A blob of unexpected length means script and client disagree about the format:
+        // better to discard it than to interpret it arbitrarily.
         if (bytes.Length != message.SlotSize * message.Slots)
         {
             MalformedMessageCount++;
@@ -186,8 +186,8 @@ public sealed class MGbaProvider : IEmulatorProvider
             Math.Clamp(message.Count, 0, message.Slots),
             bytes,
             message.SlotSize,
-            // Timestamp preso qui e non nello script: mGBA non garantisce un orologio
-            // di sistema e la latenza del loopback e' trascurabile.
+            // Timestamped here rather than in the script: mGBA guarantees no system clock,
+            // and loopback latency is negligible.
             DateTimeOffset.UtcNow,
             message.Sequence);
 

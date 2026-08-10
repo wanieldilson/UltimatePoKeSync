@@ -1,36 +1,36 @@
-# Bridge mGBA
+# mGBA bridge
 
-`ups_bridge.lua` legge la squadra dalla RAM e la spedisce all'app via TCP.
+`ups_bridge.lua` reads the party from RAM and ships it to the app over TCP.
 
-## Requisiti
+## Requirements
 
-mGBA **0.10.0 o successivo** — lo scripting Lua non esiste nelle versioni precedenti.
-Testato con 0.10.5.
+mGBA **0.10.0 or later** — Lua scripting does not exist in earlier versions. Tested with
+0.10.5.
 
-## Uso
+## Usage
 
-1. Avvia mGBA e carica la tua ROM Gen 3.
+1. Start mGBA and load your Gen 3 ROM.
 2. `Tools` → `Scripting…`
-3. Nella finestra di scripting: `File` → `Load script…` e scegli `ups_bridge.lua`.
-4. Nella console dovresti leggere:
+3. In the scripting window: `File` → `Load script…` and pick `ups_bridge.lua`.
+4. The console should show:
 
    ```
-   [UltimatePoKeSync] in ascolto su 127.0.0.1:8888
-   [UltimatePoKeSync] gioco riconosciuto: Emerald (USA) [BPEE] rev0
+   [UltimatePoKeSync] listening on 127.0.0.1:8888
+   [UltimatePoKeSync] game recognised: Emerald (USA) [BPEE] rev0
    ```
 
-5. Avvia l'app:
+5. Start the app:
 
    ```
    dotnet run --project src/UltimatePoKeSync.Cli
    ```
 
-L'ordine non conta: lo script funziona sia caricato prima della ROM sia dopo, e l'app può
-partire prima di mGBA — resta in attesa e si connette da sola.
+Order does not matter: the script works whether loaded before or after the ROM, and the
+app can start before mGBA — it waits and connects on its own.
 
-## Giochi supportati
+## Supported games
 
-| Game code | Gioco               |
+| Game code | Game                |
 | --------- | ------------------- |
 | `BPEE`    | Emerald (USA)       |
 | `BPRE`    | FireRed (USA)       |
@@ -38,31 +38,31 @@ partire prima di mGBA — resta in attesa e si connette da sola.
 | `AXVE`    | Ruby (USA)          |
 | `AXPE`    | Sapphire (USA)      |
 
-Le versioni non USA hanno indirizzi RAM diversi e non sono ancora mappate. Su una ROM non
-riconosciuta lo script **rifiuta di leggere** e lo dice in console, invece di indovinare:
-leggere con la mappa sbagliata produrrebbe Pokémon plausibili ma inventati.
+Other regional releases have not been mapped yet. On an unrecognised ROM the script
+**refuses to read** and says so in the console, instead of guessing: reading with the
+wrong map would produce plausible but invented Pokémon.
 
-## Problemi comuni
+## Common problems
 
-**`porta 8888 gia' in uso`** — un'altra istanza di mGBA sta già eseguendo il bridge, o un
-altro programma occupa la porta. Cambia `UPS_PORT` in cima allo script, ricaricalo, e
-avvia l'app con `--port <la stessa porta>`.
+**`port 8888 already in use`** — another mGBA instance is already running the bridge, or
+another program holds the port. Change `UPS_PORT` at the top of the script, reload it, and
+start the app with `--port <the same port>`.
 
-**`gioco non supportato`** — la ROM non è in tabella. Controlla il game code stampato in
+**`unsupported game`** — the ROM is not in the table. Check the game code printed in the
 console.
 
-**Niente in console** — lo script non è stato caricato: la finestra di scripting deve
-restare aperta.
+**Nothing in the console** — the script was not loaded: the scripting window has to stay
+open.
 
-## Cosa fa (e cosa non fa)
+## What it does (and does not do)
 
-Legge il byte del conteggio squadra e i 600 byte dei sei slot, e li spedisce **grezzi**,
-in base64. Non decifra, non valida checksum, non traduce ID: tutto questo avviene lato
-C#, una volta sola, condiviso da tutti gli emulatori (vedi D-006 in `docs/DECISIONS.md`).
+It reads the party-count byte and the 600 bytes of the six slots, and ships them **raw**,
+base64-encoded. It does not decrypt, validate checksums or translate IDs: all of that
+happens on the C# side, once, shared across every emulator (see D-006 in
+`docs/DECISIONS.md`).
 
-Controlla la squadra 15 volte al secondo e trasmette solo quando i byte cambiano davvero.
-Un cambiamento viene inviato solo dopo essere stato confermato da una seconda lettura
-identica, per non trasmettere uno stato catturato mentre il gioco stava scrivendo in
-memoria (D-008).
+It polls the party 15 times per second and transmits only when the bytes actually change.
+A change is sent only after a second identical read confirms it, so a state captured while
+the game was writing to memory is never transmitted (D-008).
 
-Protocollo completo: [`docs/protocol.md`](../../docs/protocol.md).
+Full protocol: [`docs/protocol.md`](../../docs/protocol.md).

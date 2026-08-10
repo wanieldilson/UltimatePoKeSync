@@ -1,20 +1,13 @@
 # roms/
 
-Metti qui le ROM per lo sviluppo e i test.
+Put development and test ROMs here.
 
-**Il contenuto di questa cartella è escluso da git** (`roms/*` in `.gitignore`, con
-l'eccezione di questo file). Nessuna ROM, nessun savefile e nessuno savestate finirà mai
-in un commit.
+**The contents of this folder are excluded from git** (`roms/*` in `.gitignore`, with this
+file as the only exception). No ROM, savefile or savestate will ever end up in a commit.
 
-Non versionare ROM: non sono nostre da distribuire.
+Do not version ROMs: they are not ours to distribute.
 
-## Nome atteso
+## Naming
 
-Qualsiasi nome va bene, ma per comodità:
-
-```
-roms/emerald.gba
-```
-
-Il gioco viene riconosciuto dal game code nell'header (`BPEE` per Emerald USA), non dal
-nome del file.
+Any filename works. The game is identified by the game code in the ROM header (`BPEE` for
+USA Emerald), never by the filename.

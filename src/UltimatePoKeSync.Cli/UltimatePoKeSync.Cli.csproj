@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Console headless di diagnostica. Serve a validare la catena
-    mGBA -> TCP -> parsing senza tirare in ballo la UI, ed e' il target
-    della demo di milestone M3.
+    Headless diagnostic console. Validates the mGBA -> TCP -> parsing chain without
+    involving the UI, and is the target of milestone M3.
   -->
 
   <PropertyGroup>

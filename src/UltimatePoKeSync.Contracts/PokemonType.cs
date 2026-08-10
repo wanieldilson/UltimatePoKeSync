@@ -1,9 +1,9 @@
 namespace UltimatePoKeSync.Contracts;
 
 /// <summary>
-/// I 18 tipi. Attenzione: <see cref="Fairy"/> non esiste prima della Gen 6, e in Gen 1
-/// il tipo Buio e Acciaio non esistono. La type chart e' quindi selezionata per
-/// generazione, non globale. Vedi D-009.
+/// The 18 types. Note: <see cref="Fairy"/> does not exist before Gen 6, and Dark and
+/// Steel do not exist in Gen 1. The type chart is therefore selected per generation
+/// rather than being global. See D-009.
 /// </summary>
 public enum PokemonType
 {

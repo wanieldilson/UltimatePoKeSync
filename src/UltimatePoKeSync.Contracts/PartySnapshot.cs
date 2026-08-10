@@ -1,16 +1,16 @@
 namespace UltimatePoKeSync.Contracts;
 
 /// <summary>
-/// La squadra decodificata in un dato istante.
+/// The decoded party at a point in time.
 /// </summary>
-/// <param name="Game">ROM di provenienza.</param>
-/// <param name="Members">Solo gli slot validi, in ordine. Puo' essere vuota.</param>
-/// <param name="CapturedAt">Momento della cattura dei byte originali.</param>
-/// <param name="Sequence">Contatore dello snapshot grezzo da cui deriva.</param>
+/// <param name="Game">Source ROM.</param>
+/// <param name="Members">Valid slots only, in order. May be empty.</param>
+/// <param name="CapturedAt">When the underlying bytes were captured.</param>
+/// <param name="Sequence">Sequence of the raw snapshot this came from.</param>
 /// <param name="RejectedSlots">
-/// Slot scartati e perche'. Non e' un errore: durante una lettura a meta' scrittura, o
-/// con un uovo in squadra, e' normale che qualche slot non passi la validazione. Tenerne
-/// traccia serve a distinguere "il gioco sta scrivendo" da "la mappa di memoria e' sbagliata".
+/// Slots that were discarded, and why. Not an error in itself: during a mid-write read,
+/// or with an egg in the party, it is normal for a slot to fail validation. Tracking them
+/// is what distinguishes "the game is writing" from "the memory map is wrong".
 /// </param>
 public sealed record PartySnapshot(
     GameIdentity Game,
@@ -27,6 +27,6 @@ public sealed record PartySnapshot(
     public bool IsEmpty => Members.Count == 0;
 }
 
-/// <param name="SlotIndex">Indice dello slot scartato.</param>
-/// <param name="Reason">Motivo leggibile, per la diagnostica.</param>
+/// <param name="SlotIndex">Index of the rejected slot.</param>
+/// <param name="Reason">Human-readable reason, for diagnostics.</param>
 public sealed record RejectedSlot(int SlotIndex, string Reason);

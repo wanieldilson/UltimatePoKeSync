@@ -1,8 +1,8 @@
 namespace UltimatePoKeSync.Contracts;
 
 /// <summary>
-/// Un Pokemon del party, decodificato. E' il modello di dominio che UI e analisi
-/// consumano; oltre questo punto nessuno tocca piu' byte grezzi ne PKHeX.
+/// A decoded party member. This is the domain model the UI and the analysis consume;
+/// past this point nobody touches raw bytes or PKHeX again.
 /// </summary>
 public sealed record PokemonSnapshot
 {
@@ -19,8 +19,8 @@ public sealed record PokemonSnapshot
     public required PokemonType PrimaryType { get; init; }
 
     /// <summary>
-    /// Secondo tipo, oppure <see cref="PokemonType.None"/> per i mono-tipo. In Gen 3 i
-    /// mono-tipo hanno lo stesso tipo ripetuto nei dati di gioco: qui e' gia' normalizzato.
+    /// Second type, or <see cref="PokemonType.None"/> for mono-type Pokémon. In the game
+    /// data mono-types repeat the same type twice; this is already normalised here.
     /// </summary>
     public required PokemonType SecondaryType { get; init; }
 
@@ -30,7 +30,7 @@ public sealed record PokemonSnapshot
 
     public required StatBlock EffortValues { get; init; }
 
-    /// <summary>Statistiche effettive correnti, cosi' come il gioco le ha calcolate.</summary>
+    /// <summary>Effective current stats, exactly as the game computed them.</summary>
     public required StatBlock CurrentStats { get; init; }
 
     public required int NatureId { get; init; }
@@ -54,8 +54,8 @@ public sealed record PokemonSnapshot
     public required uint PersonalityValue { get; init; }
 
     /// <summary>
-    /// Somma degli EV. In Gen 3 il limite e' 510 sul totale e 255 per statistica; 252 e'
-    /// solo la soglia oltre la quale gli EV non producono piu' punti. Vedi D-009.
+    /// Sum of the EVs. In Gen 3 the limit is 510 total and 255 per stat; 252 is merely
+    /// the point beyond which EVs stop yielding stat points. See D-009.
     /// </summary>
     public int TotalEffortValues => EffortValues.Total;
 
@@ -65,11 +65,11 @@ public sealed record PokemonSnapshot
         $"#{SlotIndex} {SpeciesName} Lv.{Level} ({PrimaryType}{(IsDualType ? "/" + SecondaryType : "")})";
 }
 
-/// <param name="MoveId">ID della mossa, 0 se lo slot e' vuoto.</param>
-/// <param name="Name">Nome leggibile.</param>
-/// <param name="Type">Tipo della mossa.</param>
-/// <param name="CurrentPp">PP residui.</param>
-/// <param name="MaxPp">PP massimi, PP-Up gia' applicati.</param>
+/// <param name="MoveId">Move ID, 0 when the slot is empty.</param>
+/// <param name="Name">Human-readable name.</param>
+/// <param name="Type">Move type.</param>
+/// <param name="CurrentPp">Remaining PP.</param>
+/// <param name="MaxPp">Maximum PP, with PP Ups already applied.</param>
 public sealed record MoveSlot(int MoveId, string Name, PokemonType Type, int CurrentPp, int MaxPp)
 {
     public static MoveSlot Empty { get; } = new(0, "-", PokemonType.None, 0, 0);

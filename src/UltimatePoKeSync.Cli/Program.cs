@@ -5,8 +5,8 @@ using UltimatePoKeSync.Providers.MGba;
 namespace UltimatePoKeSync.Cli;
 
 /// <summary>
-/// Console di diagnostica: valida la catena mGBA -> TCP -> parsing senza la UI.
-/// E' il target della milestone M3.
+/// Diagnostic console: validates the mGBA -> TCP -> parsing chain without the UI.
+/// This is the M3 milestone target.
 /// </summary>
 internal static class Program
 {
@@ -36,9 +36,9 @@ internal static class Program
 
         provider.StateChanged += (_, state) => WriteState(state, options);
 
-        Console.WriteLine($"UltimatePoKeSync — in attesa di mGBA su {options.Host}:{options.Port}");
-        Console.WriteLine("Carica emulator-scripts/mgba/ups_bridge.lua in mGBA (Tools > Scripting).");
-        Console.WriteLine("Ctrl+C per uscire.\n");
+        Console.WriteLine($"UltimatePoKeSync — waiting for mGBA on {options.Host}:{options.Port}");
+        Console.WriteLine("Load emulator-scripts/mgba/ups_bridge.lua in mGBA (Tools > Scripting).");
+        Console.WriteLine("Ctrl+C to quit.\n");
 
         try
         {
@@ -47,7 +47,7 @@ internal static class Program
                 IPartyParser? parser = resolver.Resolve(raw.Game);
                 if (parser is null)
                 {
-                    Console.WriteLine($"[!] Nessun parser per {raw.Game}. Snapshot ignorato.");
+                    Console.WriteLine($"[!] No parser for {raw.Game}. Snapshot ignored.");
                     continue;
                 }
 
@@ -56,10 +56,10 @@ internal static class Program
         }
         catch (OperationCanceledException)
         {
-            // Uscita richiesta dall'utente.
+            // User asked to quit.
         }
 
-        Console.WriteLine("\nChiusura.");
+        Console.WriteLine("\nShutting down.");
         return 0;
     }
 
@@ -69,7 +69,7 @@ internal static class Program
 
         if (party.IsEmpty)
         {
-            Console.WriteLine("│  (squadra vuota)");
+            Console.WriteLine("│  (empty party)");
         }
 
         foreach (PokemonSnapshot mon in party.Members)
@@ -82,12 +82,12 @@ internal static class Program
             Console.WriteLine($"│");
             Console.WriteLine($"│  [{mon.SlotIndex}] {mon.SpeciesName}{nickname}  Lv.{mon.Level}  {types}"
                 + (mon.IsShiny ? "  ✦shiny" : string.Empty)
-                + (mon.IsEgg ? "  (uovo)" : string.Empty));
-            Console.WriteLine($"│      Natura {mon.NatureName} · Abilità {mon.AbilityName} · Oggetto {mon.HeldItemName}");
+                + (mon.IsEgg ? "  (egg)" : string.Empty));
+            Console.WriteLine($"│      Nature {mon.NatureName} · Ability {mon.AbilityName} · Item {mon.HeldItemName}");
             Console.WriteLine($"│      Base  {Format(mon.BaseStats)}");
-            Console.WriteLine($"│      IV    {Format(mon.IndividualValues)}");
-            Console.WriteLine($"│      EV    {Format(mon.EffortValues)}   (totale {mon.TotalEffortValues}/510)");
-            Console.WriteLine($"│      Stat  {Format(mon.CurrentStats)}");
+            Console.WriteLine($"│      IVs   {Format(mon.IndividualValues)}");
+            Console.WriteLine($"│      EVs   {Format(mon.EffortValues)}   (total {mon.TotalEffortValues}/510)");
+            Console.WriteLine($"│      Stats {Format(mon.CurrentStats)}");
 
             foreach (MoveSlot move in mon.Moves.Where(m => !m.IsEmpty))
             {
@@ -97,7 +97,7 @@ internal static class Program
 
         foreach (RejectedSlot rejected in party.RejectedSlots)
         {
-            Console.WriteLine($"│  [!] slot {rejected.SlotIndex} scartato: {rejected.Reason}");
+            Console.WriteLine($"│  [!] slot {rejected.SlotIndex} rejected: {rejected.Reason}");
         }
 
         Console.WriteLine("└─");
@@ -111,11 +111,11 @@ internal static class Program
     {
         string message = state switch
         {
-            EmulatorConnectionState.Connecting => "connessione in corso...",
-            EmulatorConnectionState.Streaming => "connesso, in ascolto.",
+            EmulatorConnectionState.Connecting => "connecting...",
+            EmulatorConnectionState.Streaming => "connected, listening.",
             EmulatorConnectionState.Reconnecting =>
-                $"connessione persa, riprovo su {options.Host}:{options.Port}...",
-            EmulatorConnectionState.Faulted => "errore non recuperabile.",
+                $"connection lost, retrying on {options.Host}:{options.Port}...",
+            EmulatorConnectionState.Faulted => "unrecoverable error.",
             _ => state.ToString(),
         };
 
@@ -133,9 +133,9 @@ internal static class Program
         Console.WriteLine("""
             UltimatePoKeSync CLI
 
-              --host <indirizzo>   Host dello script Lua (default 127.0.0.1)
-              --port <porta>       Porta, deve coincidere con UPS_PORT (default 8888)
-              --help               Questo messaggio
+              --host <address>   Host of the Lua script (default 127.0.0.1)
+              --port <port>      Port, must match UPS_PORT (default 8888)
+              --help             This message
             """);
     }
 }

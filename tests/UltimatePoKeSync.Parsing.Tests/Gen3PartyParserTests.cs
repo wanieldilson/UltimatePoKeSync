@@ -8,7 +8,7 @@ public sealed class Gen3PartyParserTests
     private readonly Gen3PartyParser _parser = new();
 
     [Fact]
-    public void Parse_DecifraIByteGrezziSenzaAiuto()
+    public void Parse_DecryptsRawBytesUnaided()
     {
         RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(Gen3TestData.CreateGyarados());
 
@@ -22,12 +22,12 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
-    public void Parse_LeggeTipiConIndiciModerniNonQuelliInterniGen3()
+    public void Parse_ReadsModernTypeIndicesNotGen3Internal()
     {
-        // Il tranello: in Gen 3 gli ID interni dei tipi hanno "???" all'indice 9, quindi
-        // Fuoco e' 10 e Acqua 11. PKHeX li normalizza allo schema moderno (Acqua = 10).
-        // Se questa assunzione cadesse, ogni analisi di tipo sarebbe sbagliata in modo
-        // silenzioso, quindi va inchiodata da un test.
+        // The trap: Gen 3 internal type IDs have "???" at index 9, so Fire is 10 and Water
+        // is 11. PKHeX normalises them to the modern scheme (Water = 10). If that
+        // assumption ever broke, every type analysis would be silently wrong, so it has to
+        // be pinned by a test. See D-014.
         RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(Gen3TestData.CreateGyarados());
 
         PokemonSnapshot mon = Assert.Single(_parser.Parse(raw).Members);
@@ -37,10 +37,10 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
-    public void Parse_MonoTipoNormalizzaIlSecondoTipoANone()
+    public void Parse_MonoTypeNormalisesSecondaryToNone()
     {
-        // Nei dati di gioco un mono-tipo ha il tipo ripetuto due volte. Lasciarlo passare
-        // cosi' raddoppierebbe il peso di quel tipo nei calcoli difensivi.
+        // In the game data a mono-type repeats its type twice. Letting that through would
+        // double that type's weight in defensive calculations. See D-015.
         RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(Gen3TestData.CreatePikachu());
 
         PokemonSnapshot mon = Assert.Single(_parser.Parse(raw).Members);
@@ -51,7 +51,7 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
-    public void Parse_LeggeIvEvNaturaOggettoEMosse()
+    public void Parse_ReadsIvsEvsNatureItemAndMoves()
     {
         RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(Gen3TestData.CreateGyarados());
 
@@ -63,8 +63,8 @@ public sealed class Gen3PartyParserTests
         Assert.Equal("Ganlon Berry", mon.HeldItemName);
         Assert.Equal("Intimidate", mon.AbilityName);
 
-        // La natura in Gen 3 e' derivata dal PID, non memorizzata: qui verifichiamo solo
-        // che sia stata risolta in un nome valido.
+        // Gen 3 nature is derived from the PID rather than stored, so all we check here is
+        // that it resolved to a valid name.
         Assert.NotEqual("?", mon.NatureName);
 
         Assert.Equal(4, mon.Moves.Count);
@@ -74,10 +74,10 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
-    public void Parse_ByteSpazzaturaVengonoScartatiNonInterpretati()
+    public void Parse_JunkBytesAreRejectedNotInterpreted()
     {
-        // Il fallimento peggiore possibile e' mostrare un Pokemon inventato. Deve essere
-        // scartato con un motivo, non tradotto in qualcosa di plausibile. Vedi D-008.
+        // The worst possible failure is showing an invented Pokémon. It must be rejected
+        // with a reason, not translated into something plausible. See D-008.
         RawPartySnapshot raw = Gen3TestData.WithJunkInFirstSlot();
 
         PartySnapshot party = _parser.Parse(raw);
@@ -88,9 +88,10 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
-    public void Parse_SlotVuotiOltreIlConteggioNonSonoSegnalatiComeErrori()
+    public void Parse_EmptySlotsBeyondTheCountAreNotReportedAsErrors()
     {
-        // Con 1 Pokemon in squadra, i 5 slot rimanenti sono zeri: normale, non un problema.
+        // With one Pokémon in the party the remaining five slots are zeroes: normal, not a
+        // problem.
         RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(Gen3TestData.CreatePikachu());
 
         PartySnapshot party = _parser.Parse(raw);
@@ -100,9 +101,9 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
-    public void Parse_SlotVuotoMaConteggiatoVieneSegnalato()
+    public void Parse_EmptySlotWithinTheCountIsReported()
     {
-        // Il conteggio dichiara 3 Pokemon ma ne troviamo 1: sintomo di lettura incoerente.
+        // The count declares three Pokémon but we find one: a sign of an inconsistent read.
         RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(
             Gen3TestData.Emerald, declaredCount: 3, Gen3TestData.CreatePikachu());
 
@@ -113,7 +114,7 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
-    public void Parse_SquadraCompletaLeggeTuttiGliSlot()
+    public void Parse_FullPartyReadsEverySlot()
     {
         RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(
             Gen3TestData.CreateGyarados(),
@@ -131,14 +132,14 @@ public sealed class Gen3PartyParserTests
     }
 
     [Theory]
-    [InlineData("BPEE", true)]  // Emerald
+    [InlineData("BPEE", true)]  // Emerald USA
     [InlineData("BPRE", true)]  // FireRed
     [InlineData("BPGE", true)]  // LeafGreen
     [InlineData("AXVE", true)]  // Ruby
     [InlineData("AXPE", true)]  // Sapphire
-    [InlineData("BPEJ", false)] // Emerald giapponese: indirizzi diversi, non ancora mappata
+    [InlineData("BPEJ", false)] // Japanese Emerald: different addresses, not mapped yet
     [InlineData("XXXX", false)]
-    public void CanParse_AccettaSoloIGiochiMappati(string gameCode, bool expected)
+    public void CanParse_AcceptsOnlyMappedGames(string gameCode, bool expected)
     {
         var game = new GameIdentity(gameCode, "T", 0, PokemonGeneration.Gen3);
 
@@ -146,7 +147,7 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
-    public void CanParse_RifiutaLeAltreGenerazioni()
+    public void CanParse_RejectsOtherGenerations()
     {
         var game = new GameIdentity("BPEE", "T", 0, PokemonGeneration.Gen4);
 
@@ -154,7 +155,7 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
-    public void Parse_GiocoSconosciutoRestituisceUnRifiutoNonUnaEccezione()
+    public void Parse_UnknownGameReturnsARejectionNotAnException()
     {
         var game = new GameIdentity("XXXX", "?", 0, PokemonGeneration.Gen3);
         RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(game, 1, Gen3TestData.CreatePikachu());

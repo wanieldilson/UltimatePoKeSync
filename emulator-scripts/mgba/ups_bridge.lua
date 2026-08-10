@@ -1,49 +1,49 @@
 --[[
-  UltimatePoKeSync — bridge mGBA -> app
+  UltimatePoKeSync — mGBA -> app bridge
 
-  Legge la squadra dalla RAM e la spedisce via TCP come byte GREZZI.
-  Questo script non interpreta nulla: non decifra, non valida checksum, non
-  traduce ID di specie. Tutta la decodifica avviene lato C#, una volta sola,
-  condivisa da tutti gli emulatori. Vedi D-006 nel decision log.
+  Reads the party from RAM and ships it over TCP as RAW bytes.
+  This script interprets nothing: it does not decrypt, does not validate checksums,
+  does not translate species IDs. All decoding happens on the C# side, once, shared
+  across every emulator. See D-006 in the decision log.
 
-  USO
+  USAGE
     1. mGBA -> Tools -> Scripting... -> File -> Load script...
-    2. Seleziona questo file.
-    3. Avvia la ROM (o caricala prima, funziona in entrambi gli ordini).
-    4. L'app si connette a 127.0.0.1:8888.
+    2. Pick this file.
+    3. Start the ROM (or load it first, either order works).
+    4. The app connects to 127.0.0.1:8888.
 
-  PROTOCOLLO
-    Una riga JSON per messaggio, terminata da "\n". Vedi docs/protocol.md.
+  PROTOCOL
+    One JSON line per message, terminated by "\n". See docs/protocol.md.
 
-  COMPATIBILITA'
-    mGBA 0.10.0+ (lo scripting Lua non esiste prima).
-    Questo file e' volutamente monolitico: mGBA non documenta il supporto a
-    `require` per moduli locali, quindi spezzarlo in piu' file lo renderebbe
-    fragile e scomodo da caricare. Vedi D-012.
+  COMPATIBILITY
+    mGBA 0.10.0+ (Lua scripting does not exist before that).
+    This file is deliberately monolithic: mGBA does not document `require` support for
+    local modules, so splitting it up would make it fragile and awkward to load.
+    See D-012.
 ]]
 
 --------------------------------------------------------------------------------
--- Configurazione
+-- Configuration
 --------------------------------------------------------------------------------
 
 local UPS_PORT = 8888
 
--- Ogni quanti frame controllare la squadra. 60/4 = 15 volte al secondo: piu' che
--- sufficiente per una squadra, e a 60 Hz sprecheremmo CPU per nulla.
+-- How many frames between party checks. 60/4 = 15 times per second: plenty for a
+-- party, and polling at 60 Hz would burn CPU for nothing.
 local UPS_POLL_INTERVAL = 4
 
 local UPS_PROTOCOL_VERSION = 1
 
 --------------------------------------------------------------------------------
--- Mappa di memoria Gen 3
+-- Gen 3 memory map
 --
--- Indirizzi verificati su tre fonti indipendenti: Data Crystal, GameSettings.lua
--- di 40Cakes/pokebot-bizhawk e res/scripts/pokemon.lua distribuito da mGBA stesso.
--- Vedi D-004.
+-- Addresses cross-checked against three independent sources: Data Crystal,
+-- GameSettings.lua from 40Cakes/pokebot-bizhawk, and res/scripts/pokemon.lua shipped
+-- by mGBA itself. See D-004 and D-013.
 --
--- Le revisioni Gen 3 (FireRed Rev 1, Ruby Rev 1/2...) condividono gli stessi
--- indirizzi, quindi il game code basta a identificare la mappa. Non sara' vero
--- per tutte le generazioni: per questo la chiave resta il game code completo.
+-- Gen 3 revisions share the same addresses (FireRed Rev 1, Ruby Rev 1/2...), so the
+-- game code alone identifies the map. That will not hold for every generation, which
+-- is why the key stays the full game code.
 --------------------------------------------------------------------------------
 
 local GAMES = {
@@ -54,39 +54,39 @@ local GAMES = {
 	["BPGE"] = { name = "LeafGreen (USA)", gen = 3, party = 0x02024284, count = 0x02024029 },
 }
 
-local GEN3_SLOT_SIZE = 100 -- 80 byte "stored" + 20 byte di statistiche di battaglia
+local GEN3_SLOT_SIZE = 100 -- 80 "stored" bytes + 20 bytes of battle stats
 local GEN3_SLOT_COUNT = 6
 
 --------------------------------------------------------------------------------
--- Stato
+-- State
 --------------------------------------------------------------------------------
 
 local server = nil
 local clients = {}
 local nextClientId = 1
 
-local game = nil        -- voce di GAMES per la ROM corrente, o nil
-local gameCode = nil    -- es. "BPEE"
+local game = nil     -- entry from GAMES for the current ROM, or nil
+local gameCode = nil -- e.g. "BPEE"
 local gameTitle = ""
 local gameRevision = 0
 
 local frameCounter = 0
 local sequence = 0
-local lastPayload = nil -- ultimo messaggio inviato, per i client che si connettono dopo
+local lastPayload = nil -- last message sent, replayed to clients that connect later
 
--- Conferma su due letture consecutive, vedi D-008.
--- "confirmed" e' l'ultimo stato gia' spedito; "pending" e' un cambiamento visto una
--- volta sola e non ancora confermato.
+-- Confirmation across two reads, see D-008.
+-- "confirmed" is the last state already sent; "pending" is a change seen once and not
+-- yet confirmed.
 local confirmedHash, confirmedCount = nil, -1
 local pendingHash, pendingCount = nil, -1
 
 --------------------------------------------------------------------------------
--- Utility
+-- Utilities
 --------------------------------------------------------------------------------
 
 local B64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
---- Codifica una stringa di byte in base64.
+--- Encodes a byte string as base64.
 local function base64(data)
 	local out = {}
 	local n = #data
@@ -121,7 +121,7 @@ local function base64(data)
 	return table.concat(out)
 end
 
---- FNV-1a 32 bit. Serve solo a capire se i byte sono cambiati, non e' crittografico.
+--- FNV-1a 32-bit. Only used to tell whether the bytes changed; not cryptographic.
 local function hash32(data)
 	local h = 2166136261
 	for _, byte in ipairs({ data:byte(1, #data) }) do
@@ -131,7 +131,7 @@ local function hash32(data)
 	return h
 end
 
---- Escape del minimo indispensabile: nei nostri campi entrano solo titoli ROM e base64.
+--- Escapes the bare minimum: our fields only ever hold ROM titles and base64.
 local function jsonEscape(text)
 	return (text:gsub('[%c"\\]', function(c)
 		if c == '"' then return '\\"' end
@@ -149,7 +149,7 @@ local function logError(message)
 end
 
 --------------------------------------------------------------------------------
--- Rete
+-- Networking
 --------------------------------------------------------------------------------
 
 local function dropClient(id, reason)
@@ -157,7 +157,7 @@ local function dropClient(id, reason)
 	if not client then return end
 	clients[id] = nil
 	pcall(function() client:close() end)
-	log("client " .. id .. " disconnesso (" .. reason .. ")")
+	log("client " .. id .. " disconnected (" .. reason .. ")")
 end
 
 local function broadcast(line)
@@ -169,8 +169,8 @@ local function broadcast(line)
 	end
 end
 
---- Svuota il buffer di ricezione. Non accettiamo comandi: se non leggessimo,
---- il buffer del socket si riempirebbe e la connessione si bloccherebbe.
+--- Drains the receive buffer. We accept no commands, but if we never read, the socket
+--- buffer would fill up and the connection would stall.
 local function drainClient(id)
 	local client = clients[id]
 	if not client then return end
@@ -188,7 +188,7 @@ end
 local function acceptClient()
 	local client, err = server:accept()
 	if err then
-		logError("accept fallita: " .. tostring(err))
+		logError("accept failed: " .. tostring(err))
 		return
 	end
 
@@ -197,12 +197,12 @@ local function acceptClient()
 	clients[id] = client
 
 	client:add("received", function() drainClient(id) end)
-	client:add("error", function() dropClient(id, "errore socket") end)
+	client:add("error", function() dropClient(id, "socket error") end)
 
-	log("client " .. id .. " connesso")
+	log("client " .. id .. " connected")
 
-	-- Stato corrente subito, senza aspettare il prossimo cambiamento: altrimenti
-	-- un'app avviata a partita ferma resterebbe vuota a tempo indefinito.
+	-- Send the current state right away rather than waiting for the next change:
+	-- otherwise an app started while the game sits idle would stay empty indefinitely.
 	if lastPayload then
 		client:send(lastPayload)
 	end
@@ -213,11 +213,11 @@ local function startServer()
 	server, err = socket.bind(nil, UPS_PORT)
 	if err then
 		if err == socket.ERRORS.ADDRESS_IN_USE then
-			logError("porta " .. UPS_PORT .. " gia' in uso. Un'altra istanza di mGBA sta "
-				.. "gia' eseguendo il bridge? Cambia UPS_PORT in cima allo script "
-				.. "(e nell'app) e ricarica.")
+			logError("port " .. UPS_PORT .. " already in use. Is another mGBA instance "
+				.. "already running the bridge? Change UPS_PORT at the top of this "
+				.. "script (and in the app), then reload.")
 		else
-			logError("bind fallita: " .. tostring(err))
+			logError("bind failed: " .. tostring(err))
 		end
 		server = nil
 		return
@@ -226,18 +226,18 @@ local function startServer()
 	local ok
 	ok, err = server:listen()
 	if err then
-		logError("listen fallita: " .. tostring(err))
+		logError("listen failed: " .. tostring(err))
 		server:close()
 		server = nil
 		return
 	end
 
 	server:add("received", acceptClient)
-	log("in ascolto su 127.0.0.1:" .. UPS_PORT)
+	log("listening on 127.0.0.1:" .. UPS_PORT)
 end
 
 --------------------------------------------------------------------------------
--- Rilevamento del gioco
+-- Game detection
 --------------------------------------------------------------------------------
 
 local function detectGame()
@@ -248,31 +248,31 @@ local function detectGame()
 
 	if not emu then return end
 
-	-- getGameCode() restituisce il codice con prefisso di piattaforma, es. "AGB-BPEE".
+	-- getGameCode() returns the code with a platform prefix, e.g. "AGB-BPEE".
 	local raw = emu:getGameCode()
 	if not raw or raw == "" then
-		logError("nessun game code nell'header: ROM non standard o non caricata.")
+		logError("no game code in the header: non-standard ROM, or no ROM loaded.")
 		return
 	end
 
 	gameCode = raw:match("([A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9])$") or raw
 	gameTitle = emu:getGameTitle() or ""
-	gameRevision = emu:read8(0x080000BC) -- byte "software version" dell'header GBA
+	gameRevision = emu:read8(0x080000BC) -- GBA header "software version" byte
 
 	game = GAMES[gameCode]
 	if not game then
-		-- Rifiutiamo esplicitamente invece di indovinare: leggere con la mappa
-		-- sbagliata produrrebbe Pokemon plausibili ma inventati. Vedi D-005.
-		logError("gioco non supportato: " .. tostring(raw) .. " (\"" .. gameTitle .. "\"). "
-			.. "Nessuna lettura verra' effettuata.")
+		-- Refuse explicitly rather than guess: reading with the wrong map would produce
+		-- plausible but invented Pokemon. See D-005.
+		logError("unsupported game: " .. tostring(raw) .. " (\"" .. gameTitle .. "\"). "
+			.. "No reads will be performed.")
 		return
 	end
 
-	log("gioco riconosciuto: " .. game.name .. " [" .. gameCode .. "] rev" .. gameRevision)
+	log("game recognised: " .. game.name .. " [" .. gameCode .. "] rev" .. gameRevision)
 end
 
 --------------------------------------------------------------------------------
--- Lettura e invio
+-- Read and send
 --------------------------------------------------------------------------------
 
 local function buildPayload(count, data)
@@ -297,13 +297,12 @@ local function pollParty()
 	frameCounter = frameCounter + 1
 	if frameCounter % UPS_POLL_INTERVAL ~= 0 then return end
 	if not game or not emu then return end
-	if next(clients) == nil then return end -- nessuno in ascolto: non sprecare cicli
+	if next(clients) == nil then return end -- nobody listening: do not waste cycles
 
 	local count = emu:read8(game.count)
 	if count > GEN3_SLOT_COUNT then
-		-- Byte catturato a meta' scrittura, o mappa sbagliata. In entrambi i casi
-		-- non e' un valore su cui basarsi: lo limitiamo e lasciamo che sia il lato
-		-- C# a validare slot per slot. Vedi D-008.
+		-- Byte sampled mid-write, or the wrong map. Either way it is not a value to
+		-- rely on: clamp it and let the C# side validate slot by slot. See D-008.
 		count = GEN3_SLOT_COUNT
 	end
 
@@ -314,29 +313,29 @@ local function pollParty()
 
 	local hash = hash32(data)
 
-	-- Niente di nuovo rispetto a quello che abbiamo gia' spedito.
+	-- Nothing new compared to what we already sent.
 	if hash == confirmedHash and count == confirmedCount then
 		pendingHash, pendingCount = nil, -1
 		return
 	end
 
 	if hash == pendingHash and count == pendingCount then
-		-- Stesso contenuto per due letture consecutive: il gioco non stava scrivendo
-		-- a meta' della struttura. Ora possiamo spedirlo. Vedi D-008.
+		-- Same content across two consecutive reads: the game was not writing halfway
+		-- through the structure. Safe to send now. See D-008.
 		confirmedHash, confirmedCount = hash, count
 		pendingHash, pendingCount = nil, -1
 
 		lastPayload = buildPayload(count, data)
 		broadcast(lastPayload)
 	else
-		-- Primo avvistamento: aspettiamo la prossima lettura per confermarlo. Costa
-		-- un intervallo di polling di latenza (~66 ms), che su una squadra e' nulla.
+		-- First sighting: wait for the next read to confirm it. Costs one polling
+		-- interval of latency (~66 ms), which is nothing for a party.
 		pendingHash, pendingCount = hash, count
 	end
 end
 
 --------------------------------------------------------------------------------
--- Avvio
+-- Startup
 --------------------------------------------------------------------------------
 
 callbacks:add("start", detectGame)
@@ -345,8 +344,8 @@ callbacks:add("frame", pollParty)
 
 startServer()
 
--- Lo script puo' essere caricato con la ROM gia' in esecuzione: in quel caso il
--- callback "start" non scattera' mai, quindi rileviamo subito.
+-- The script can be loaded with the ROM already running, in which case the "start"
+-- callback never fires, so detect immediately.
 if emu then
 	detectGame()
 end

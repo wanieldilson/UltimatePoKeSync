@@ -10,7 +10,7 @@ public sealed class MGbaProviderTests
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
     [Fact]
-    public async Task RiceveUnoSnapshotValido()
+    public async Task ReceivesAValidSnapshot()
     {
         await using var bridge = FakeBridge.Start();
         using var cancellation = new CancellationTokenSource(Timeout);
@@ -19,8 +19,8 @@ public sealed class MGbaProviderTests
         IAsyncEnumerator<RawPartySnapshot> stream =
             provider.ReadSnapshotsAsync(cancellation.Token).GetAsyncEnumerator(cancellation.Token);
 
-        // ReadSnapshotsAsync e' un iteratore lazy: non si connette finche' non si chiede
-        // il primo elemento. Va innescato prima di aspettare la connessione.
+        // ReadSnapshotsAsync is a lazy iterator: it does not connect until the first
+        // element is requested. It has to be kicked off before waiting for the connection.
         ValueTask<bool> next = stream.MoveNextAsync();
         await bridge.FirstClientConnected.WaitAsync(cancellation.Token);
         await bridge.SendLineAsync(PartyLine(new byte[600]));
@@ -36,9 +36,9 @@ public sealed class MGbaProviderTests
     }
 
     [Fact]
-    public async Task ByteGrezziSulFiloDiventanoUnPokemonDecodificato()
+    public async Task RawBytesOnTheWireBecomeADecodedPokemon()
     {
-        // Il percorso completo: cifrato come in RAM -> base64 -> TCP -> JSON -> PK3.
+        // The whole path: encrypted as in RAM -> base64 -> TCP -> JSON -> PK3.
         var gyarados = new PK3
         {
             Species = 130,
@@ -85,7 +85,7 @@ public sealed class MGbaProviderTests
     }
 
     [Fact]
-    public async Task IgnoraIMessaggiIllegibiliESiTieneILeggibili()
+    public async Task SkipsUnreadableMessagesAndKeepsTheReadableOne()
     {
         await using var bridge = FakeBridge.Start();
         using var cancellation = new CancellationTokenSource(Timeout);
@@ -98,12 +98,12 @@ public sealed class MGbaProviderTests
         ValueTask<bool> next = stream.MoveNextAsync();
         await bridge.FirstClientConnected.WaitAsync(cancellation.Token);
 
-        await bridge.SendLineAsync("questo non e' JSON");
-        await bridge.SendLineAsync("""{"v":99,"type":"party"}""");        // versione futura
-        await bridge.SendLineAsync("""{"v":1,"type":"hello"}""");          // tipo sconosciuto
-        await bridge.SendLineAsync(PartyLine(new byte[600], data: "!!!")); // base64 rotto
-        await bridge.SendLineAsync(PartyLine(new byte[100]));              // lunghezza incoerente
-        await bridge.SendLineAsync(PartyLine(new byte[600], sequence: 7)); // buono
+        await bridge.SendLineAsync("this is not JSON");
+        await bridge.SendLineAsync("""{"v":99,"type":"party"}""");         // future version
+        await bridge.SendLineAsync("""{"v":1,"type":"hello"}""");           // unknown type
+        await bridge.SendLineAsync(PartyLine(new byte[600], data: "!!!"));  // broken base64
+        await bridge.SendLineAsync(PartyLine(new byte[100]));               // inconsistent length
+        await bridge.SendLineAsync(PartyLine(new byte[600], sequence: 7));  // good
 
         Assert.True(await next);
 
@@ -112,7 +112,7 @@ public sealed class MGbaProviderTests
     }
 
     [Fact]
-    public async Task SiRiconnetteQuandoLEmulatoreCade()
+    public async Task ReconnectsWhenTheEmulatorGoesAway()
     {
         await using var bridge = FakeBridge.Start();
         using var cancellation = new CancellationTokenSource(Timeout);
@@ -126,8 +126,8 @@ public sealed class MGbaProviderTests
         await bridge.SendLineAsync(PartyLine(new byte[600], sequence: 1));
         Assert.True(await first);
 
-        // mGBA sparisce: il provider deve riconnettersi da solo, senza che nessuno
-        // riavvii lo stream.
+        // mGBA vanishes: the provider must reconnect on its own, without anyone restarting
+        // the stream.
         bridge.DropAllClients();
 
         RawPartySnapshot? received = null;
@@ -139,7 +139,7 @@ public sealed class MGbaProviderTests
             }
         }, cancellation.Token);
 
-        // Ritenta finche' non riprende: il backoff rende il momento esatto non deterministico.
+        // Keep resending until it picks up: backoff makes the exact moment non-deterministic.
         while (!pump.IsCompleted && !cancellation.IsCancellationRequested)
         {
             await bridge.SendLineAsync(PartyLine(new byte[600], sequence: 2));
@@ -152,12 +152,12 @@ public sealed class MGbaProviderTests
     }
 
     [Fact]
-    public async Task NonFallisceSeLEmulatoreNonCEAncora()
+    public async Task DoesNotFailWhenTheEmulatorIsNotThereYet()
     {
-        // Caso normalissimo: l'app parte prima di mGBA. Deve restare in attesa, non morire.
+        // Entirely normal case: the app starts before mGBA. It must wait, not die.
         var options = new MGbaProviderOptions
         {
-            Port = 1, // nessuno in ascolto
+            Port = 1, // nobody listening
             ConnectTimeout = TimeSpan.FromMilliseconds(100),
             InitialReconnectDelay = TimeSpan.FromMilliseconds(20),
             MaxReconnectDelay = TimeSpan.FromMilliseconds(50),
@@ -171,7 +171,7 @@ public sealed class MGbaProviderTests
 
         await foreach (RawPartySnapshot _ in provider.ReadSnapshotsAsync(cancellation.Token))
         {
-            Assert.Fail("nessuno snapshot puo' arrivare da una porta chiusa");
+            Assert.Fail("no snapshot can arrive from a closed port");
         }
 
         Assert.Contains(EmulatorConnectionState.Connecting, states);

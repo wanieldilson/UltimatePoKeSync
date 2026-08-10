@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Il confine dell'architettura. Vedi D-006 nel decision log.
+    The architectural boundary. See D-006 in the decision log.
 
-    Questo progetto definisce COSA un emulatore deve consegnare (byte grezzi + identita
-    del gioco) senza sapere NULLA di come vengono estratti ne di come vengono
-    interpretati. Per questo motivo non ha, e non deve avere, alcuna dipendenza:
-    ne da PKHeX, ne da un emulatore specifico, ne da una generazione specifica.
+    This project defines WHAT an emulator must deliver (raw bytes + game identity)
+    without knowing ANYTHING about how they were extracted or how they are
+    interpreted. That is why it has, and must keep, zero dependencies: not on
+    PKHeX, not on a specific emulator, not on a specific generation.
   -->
 
 </Project>

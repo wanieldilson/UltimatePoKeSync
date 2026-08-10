@@ -1,53 +1,53 @@
 namespace UltimatePoKeSync.Contracts;
 
 /// <summary>
-/// Sorgente di snapshot grezzi. Un'implementazione per emulatore: mGBA oggi, BizHawk o
-/// DeSmuME domani. Vedi D-006.
+/// A source of raw snapshots. One implementation per emulator: mGBA today, BizHawk or
+/// DeSmuME tomorrow. See D-006.
 /// </summary>
 /// <remarks>
-/// Il contratto e' deliberatamente povero: nessun concetto di Pokemon, di generazione o
-/// di indirizzo di memoria. E' quello che rende sostituibile l'emulatore senza toccare
-/// il resto dell'app.
+/// The contract is deliberately thin: no notion of a Pokémon, a generation or a memory
+/// address. That is what makes the emulator replaceable without touching the rest of the
+/// app.
 /// </remarks>
 public interface IEmulatorProvider : IAsyncDisposable
 {
-    /// <summary>Nome leggibile, mostrato nella UI. Es. "mGBA".</summary>
+    /// <summary>Human-readable name shown in the UI. E.g. "mGBA".</summary>
     string Name { get; }
 
-    /// <summary>Stato corrente della connessione.</summary>
+    /// <summary>Current connection state.</summary>
     EmulatorConnectionState State { get; }
 
-    /// <summary>Segnalato a ogni transizione di stato.</summary>
+    /// <summary>Raised on every state transition.</summary>
     event EventHandler<EmulatorConnectionState>? StateChanged;
 
     /// <summary>
-    /// Flusso di snapshot, uno per ogni cambiamento rilevato nella squadra.
+    /// Stream of snapshots, one per detected change in the party.
     /// </summary>
     /// <remarks>
-    /// L'implementazione gestisce la riconnessione internamente: il flusso non termina
-    /// perche' l'emulatore e' stato chiuso, si limita a smettere di produrre elementi
-    /// finche' non torna disponibile. Termina solo alla cancellazione del token.
+    /// The implementation handles reconnection internally: the stream does not end
+    /// because the emulator was closed, it simply stops producing items until the
+    /// emulator is back. It only ends when the token is cancelled.
     /// </remarks>
     IAsyncEnumerable<RawPartySnapshot> ReadSnapshotsAsync(CancellationToken cancellationToken);
 }
 
 public enum EmulatorConnectionState
 {
-    /// <summary>Mai avviato.</summary>
+    /// <summary>Never started.</summary>
     Idle,
 
-    /// <summary>Tentativo di connessione in corso.</summary>
+    /// <summary>Connection attempt in progress.</summary>
     Connecting,
 
-    /// <summary>Connesso, ma nessuna ROM riconosciuta caricata.</summary>
+    /// <summary>Connected, but no recognised ROM is loaded.</summary>
     ConnectedNoGame,
 
-    /// <summary>Connesso e in ricezione di snapshot.</summary>
+    /// <summary>Connected and receiving snapshots.</summary>
     Streaming,
 
-    /// <summary>Connessione persa; il provider sta ritentando.</summary>
+    /// <summary>Connection lost; the provider is retrying.</summary>
     Reconnecting,
 
-    /// <summary>Errore non recuperabile: il provider ha smesso di ritentare.</summary>
+    /// <summary>Unrecoverable error: the provider has stopped retrying.</summary>
     Faulted,
 }

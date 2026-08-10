@@ -1,9 +1,8 @@
 namespace UltimatePoKeSync.Contracts;
 
 /// <summary>
-/// Generazione dei giochi. Non e' una curiosita' anagrafica: determina le regole di
-/// battaglia usate dall'analisi (numero di tipi, split fisico/speciale, cap EV).
-/// Vedi D-009 nel decision log.
+/// Game generation. Not trivia: it determines the battle rules the analysis uses
+/// (number of types, physical/special split, EV caps). See D-009 in the decision log.
 /// </summary>
 public enum PokemonGeneration
 {

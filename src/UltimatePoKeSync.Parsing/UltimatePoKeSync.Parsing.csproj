@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Traduce i byte grezzi in Pokemon. E' l'unico progetto che conosce PKHeX.Core,
-    cosi la dipendenza GPL e il formato binario restano confinati qui. Vedi D-007.
+    Turns raw bytes into Pokemon. The only project that knows about PKHeX.Core, so the
+    GPL dependency and the binary format stay confined here. See D-007.
   -->
 
   <ItemGroup>

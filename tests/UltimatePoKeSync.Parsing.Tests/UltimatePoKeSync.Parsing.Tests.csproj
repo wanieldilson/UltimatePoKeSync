@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Blob da 100 byte catturati dalla RAM reale, usati come fixture di regressione. -->
+    <!-- 100-byte blobs captured from real RAM, used as regression fixtures. -->
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

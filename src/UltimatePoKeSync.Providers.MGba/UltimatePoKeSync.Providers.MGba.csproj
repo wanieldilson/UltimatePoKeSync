@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Provider per mGBA: client TCP verso lo script Lua (D-003), con reconnect.
-    Dipende solo da Contracts: non conosce PKHeX ne le regole di gioco.
+    mGBA provider: TCP client talking to the Lua script (D-003), with reconnect.
+    Depends only on Contracts: it knows neither PKHeX nor the game rules.
   -->
 
   <ItemGroup>

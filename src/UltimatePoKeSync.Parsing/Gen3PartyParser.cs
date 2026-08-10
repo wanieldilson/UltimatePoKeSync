@@ -4,28 +4,28 @@ using UltimatePoKeSync.Contracts;
 namespace UltimatePoKeSync.Parsing;
 
 /// <summary>
-/// Interpreta i byte grezzi della Gen 3 (GBA) usando PKHeX.
+/// Interprets raw Gen 3 (GBA) bytes using PKHeX.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Il lavoro difficile lo fa <see cref="PK3"/>: il suo costruttore accetta i 100 byte
-/// cosi' come stanno in RAM e si occupa da solo di decifrarli (XOR con
-/// <c>PID xor OTID</c>) e di rimettere in ordine le quattro sottostrutture permutate in
-/// base al PID. Verificato empiricamente, non solo sulla documentazione. Vedi D-007.
+/// <see cref="PK3"/> does the hard part: its constructor accepts the 100 bytes exactly as
+/// they sit in RAM and handles decryption (XOR with <c>PID xor OTID</c>) and reordering of
+/// the four PID-permuted substructures on its own. Verified empirically, not just from the
+/// documentation. See D-007.
 /// </para>
 /// <para>
-/// Qui restano tre responsabilita': decidere quali slot sono veri, tradurre nel modello
-/// di dominio e non lanciare mai eccezioni per dati incoerenti.
+/// Three responsibilities are left here: deciding which slots are real, translating into
+/// the domain model, and never throwing on inconsistent data.
 /// </para>
 /// </remarks>
 public sealed class Gen3PartyParser : IPartyParser
 {
-    /// <summary>Codice lingua PKHeX. 2 = inglese.</summary>
+    /// <summary>PKHeX language code. 2 = English.</summary>
     private const int Language = 2;
 
     private const int Generation = 3;
 
-    /// <summary>Ultima specie della Gen 3 (Deoxys). Oltre, i dati sono spazzatura.</summary>
+    /// <summary>Last Gen 3 species (Deoxys). Beyond that, the data is garbage.</summary>
     private const ushort MaxGen3Species = 411;
 
     private readonly GameStrings _strings = GameInfo.GetStrings("en");
@@ -42,7 +42,7 @@ public sealed class Gen3PartyParser : IPartyParser
         {
             return new PartySnapshot(
                 raw.Game, [], raw.CapturedAt, raw.Sequence,
-                [new RejectedSlot(-1, $"gioco non supportato dal parser Gen 3: {raw.Game.GameCode}")]);
+                [new RejectedSlot(-1, $"game not supported by the Gen 3 parser: {raw.Game.GameCode}")]);
         }
 
         var members = new List<PokemonSnapshot>(raw.SlotCapacity);
@@ -52,14 +52,14 @@ public sealed class Gen3PartyParser : IPartyParser
         {
             var pk = new PK3(raw.GetSlot(slot).ToArray());
 
-            // Slot oltre il conteggio dichiarato e vuoto: e' semplicemente una casella
-            // libera, non c'e' niente da segnalare.
+            // A slot beyond the declared count that is also empty is simply a free slot:
+            // nothing worth reporting.
             bool beyondDeclaredCount = slot >= raw.PartyCount;
             if (pk.Species == 0 || !pk.FlagHasSpecies)
             {
                 if (!beyondDeclaredCount)
                 {
-                    rejected.Add(new RejectedSlot(slot, "slot vuoto ma conteggiato in squadra"));
+                    rejected.Add(new RejectedSlot(slot, "empty slot but counted in the party"));
                 }
 
                 continue;
@@ -67,10 +67,10 @@ public sealed class Gen3PartyParser : IPartyParser
 
             if (!pk.ChecksumValid)
             {
-                // Il caso tipico e' una lettura catturata a meta' scrittura. Con la
-                // conferma su due letture lato script dovrebbe essere raro; se diventa
-                // frequente, la mappa di memoria e' sbagliata. Vedi D-008.
-                rejected.Add(new RejectedSlot(slot, "checksum non valido"));
+                // The typical cause is a read captured mid-write. With the two-read
+                // confirmation in the script this should be rare; if it becomes frequent,
+                // the memory map is wrong. See D-008.
+                rejected.Add(new RejectedSlot(slot, "invalid checksum"));
                 continue;
             }
 
@@ -82,7 +82,7 @@ public sealed class Gen3PartyParser : IPartyParser
 
             if (pk.Species > MaxGen3Species)
             {
-                rejected.Add(new RejectedSlot(slot, $"specie fuori range per la Gen 3: {pk.Species}"));
+                rejected.Add(new RejectedSlot(slot, $"species out of range for Gen 3: {pk.Species}"));
                 continue;
             }
 
@@ -96,8 +96,8 @@ public sealed class Gen3PartyParser : IPartyParser
     {
         PersonalInfo3 info = personal[pk.Species];
 
-        // PKHeX espone i tipi gia' normalizzati agli indici moderni (Fire = 9), non a
-        // quelli interni della Gen 3 dove l'indice 9 e' il tipo "???". Verificato.
+        // PKHeX exposes types already normalised to modern indices (Fire = 9), not to the
+        // Gen 3 internal ones where index 9 is the "???" type. Verified. See D-014.
         var primary = (PokemonType)info.Type1;
         var secondary = info.Type2 == info.Type1 ? PokemonType.None : (PokemonType)info.Type2;
 
@@ -118,8 +118,8 @@ public sealed class Gen3PartyParser : IPartyParser
             CurrentStats = new StatBlock(
                 pk.Stat_HPMax, pk.Stat_ATK, pk.Stat_DEF, pk.Stat_SPA, pk.Stat_SPD, pk.Stat_SPE),
 
-            // In Gen 3 la natura non e' memorizzata: e' derivata dal PID (PID % 25).
-            // PKHeX la calcola per noi.
+            // In Gen 3 nature is not stored: it is derived from the PID (PID % 25).
+            // PKHeX computes it for us.
             NatureId = (int)pk.Nature,
             NatureName = Lookup(_strings.Natures, (int)pk.Nature, "?"),
 
@@ -152,7 +152,7 @@ public sealed class Gen3PartyParser : IPartyParser
 
             int basePp = MoveInfo.GetPP(EntityContext.Gen3, id);
 
-            // Ogni PP-Up aggiunge il 20% dei PP base, troncato.
+            // Each PP Up adds 20% of the base PP, truncated.
             int maxPp = basePp + (basePp / 5 * ppUps[i]);
 
             moves.Add(new MoveSlot(
@@ -167,15 +167,15 @@ public sealed class Gen3PartyParser : IPartyParser
     }
 
     /// <summary>
-    /// Accesso difensivo alle tabelle di stringhe: un ID corrotto non deve far esplodere
-    /// il parsing dell'intera squadra.
+    /// Defensive access to the string tables: one corrupt ID must not blow up parsing of
+    /// the whole party.
     /// </summary>
     private static string Lookup(IReadOnlyList<string> table, int index, string fallback) =>
         index >= 0 && index < table.Count ? table[index] : fallback;
 
     /// <summary>
-    /// Ogni gioco Gen 3 ha la propria tabella di stat base: Emerald e FireRed/LeafGreen
-    /// differiscono in alcune voci (soprattutto negli oggetti tenuti in natura).
+    /// Each Gen 3 game has its own base-stat table: Emerald and FireRed/LeafGreen differ
+    /// in a few entries, mostly wild held items.
     /// </summary>
     private static PersonalTable3? ResolvePersonalTable(string gameCode) => gameCode switch
     {

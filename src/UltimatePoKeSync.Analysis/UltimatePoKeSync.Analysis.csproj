@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Motore di analisi: coverage difensiva/offensiva, deduzione del ruolo,
-    suggerimenti EV/natura/mosse/oggetto. Le regole sono per generazione (D-009)
-    e i suggerimenti passano per un profilo selezionabile (D-010).
+    Analysis engine: defensive/offensive coverage, role inference, EV/nature/move/item
+    suggestions. Rules are per generation (D-009) and suggestions go through a
+    selectable profile (D-010).
   -->
 
   <ItemGroup>

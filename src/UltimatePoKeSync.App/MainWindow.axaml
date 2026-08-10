@@ -5,14 +5,14 @@
         Width="1000" Height="700"
         MinWidth="720" MinHeight="480">
 
-  <!-- Segnaposto. La dashboard vera arriva con la milestone M7. -->
+  <!-- Placeholder. The real dashboard lands with milestone M7. -->
   <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
     <TextBlock Text="UltimatePoKeSync"
                FontSize="28" FontWeight="SemiBold"
                HorizontalAlignment="Center" />
-    <TextBlock Text="La dashboard arriva con la milestone M7."
+    <TextBlock Text="The dashboard lands with milestone M7."
                Opacity="0.7" HorizontalAlignment="Center" />
-    <TextBlock Text="Per ora usa la CLI:  dotnet run --project src/UltimatePoKeSync.Cli"
+    <TextBlock Text="For now, use the CLI:  dotnet run --project src/UltimatePoKeSync.Cli"
                Opacity="0.7" FontFamily="monospace" HorizontalAlignment="Center" />
   </StackPanel>
 
