@@ -26,7 +26,8 @@ packages/
 *.trx
 coverage*.xml
 
-# ROM e savefile: mai nel repository, per ovvi motivi di copyright
+# ROM e savefile: mai nel repository, per ovvi motivi di copyright.
+# Doppia protezione: per estensione ovunque, e l'intera cartella roms/.
 *.gba
 *.gb
 *.gbc
@@ -35,6 +36,9 @@ coverage*.xml
 *.sa1
 *.ss[0-9]
 *.state
+
+roms/*
+!roms/README.md
 
 # Configurazione locale
 appsettings.Local.json
