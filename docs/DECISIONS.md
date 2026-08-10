@@ -338,7 +338,7 @@ left as they were, since rewriting unpushed history is not worth the churn.
 
 ## D-017 — Western Emerald localisations share the USA addresses
 
-**Status:** Accepted · 2026-08-10 · **empirical verification pending**
+**Status:** Accepted · 2026-08-10 · **verified against the real ROM**
 
 The development ROM turned out to be Italian Emerald: game code `BPEI`, not `BPEE`.
 Under D-005 the script correctly refused to read it, since it was not in the table.
@@ -354,10 +354,25 @@ Evidence that the addresses are shared, from `GameSettings.lua` in
 Every Western localisation therefore shares the EWRAM layout; only the text differs.
 `BPEI` was added on that basis, together with `BPEF`, `BPED` and `BPES`.
 
-**This is inference, not measurement.** It must be confirmed against the real ROM: with a
-Pokémon in the party, every slot has to pass `ChecksumValid`. If the map were wrong, the
-checksum would fail and the slot would be rejected rather than shown — which is exactly
-the behaviour D-008 was built for. Update this entry once confirmed.
+**Verified on 2026-08-10** against a real Italian Emerald ROM running in mGBA 0.10.5. The
+starter appeared correctly the moment it entered the party:
+
+```
+┌─ POKEMON EMER [BPEI] rev0  ·  seq 3
+│  [0] TREECKO  Lv.5  Grass
+│      Nature Bashful · Ability Overgrow · Item -
+│      IVs   HP 19  Atk 14  Def 24  SpA 29  SpD 0  Spe 25
+│      · Pound  Normal  35/35 PP
+│      · Leer   Normal  30/30 PP
+└─
+```
+
+Species, level, type, ability, moves and IVs all consistent, and **zero rejected slots
+across the whole session**. Since a wrong address could not produce a slot passing
+`ChecksumValid`, the inference is confirmed rather than merely plausible.
+
+The same session incidentally validated the change detection end to end: PP dropping
+during a battle (35 → 34 → 33 → 32) produced one snapshot each, and nothing in between.
 
 Japanese releases genuinely do have different addresses (`0x02024190` / `0x0202418D` for
 Emerald) and are deliberately left out until someone can test them.
