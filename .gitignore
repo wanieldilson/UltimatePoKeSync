@@ -1,0 +1,40 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+publish/
+*.user
+*.suo
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+
+# macOS
+.DS_Store
+
+# NuGet
+*.nupkg
+packages/
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+coverage*.xml
+
+# ROM e savefile: mai nel repository, per ovvi motivi di copyright
+*.gba
+*.gb
+*.gbc
+*.nds
+*.sav
+*.sa1
+*.ss[0-9]
+*.state
+
+# Configurazione locale
+appsettings.Local.json

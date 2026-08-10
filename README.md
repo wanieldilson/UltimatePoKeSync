@@ -1,2 +1,43 @@
 # UltimatePoKeSync
-Cross-platform desktop app (Win/Linux/macOS) that analyzes your Pokémon team in real time by reading your emulator's RAM — no manual entry required. Calculates team weaknesses/strengths and suggests optimal EVs, nature, and moves for each Pokémon. Multi-generation support.
+
+App desktop cross-platform (Windows, Linux, macOS incluso Apple Silicon) che analizza in
+tempo reale la squadra Pokémon del giocatore leggendo direttamente la RAM di un
+emulatore. Nessun inserimento manuale: colleghi lo script, giochi, e il team compare.
+
+Calcola debolezze e resistenze aggregate della squadra e suggerisce EV, natura, mosse e
+oggetto per ogni Pokémon, con due profili di analisi — **playthrough** e **competitivo**.
+
+## Stato
+
+In sviluppo iniziale. Target corrente: **Gen 3 / Pokémon Emerald (U)** tramite **mGBA**.
+L'architettura è multi-emulatore e multi-generazione fin dal primo commit.
+
+## Come funziona
+
+```
+mGBA + script Lua  --TCP 127.0.0.1:8888-->  app .NET  -->  PKHeX.Core  -->  analisi  -->  UI Avalonia
+   (byte grezzi)                             (client)      (parsing)
+```
+
+Lo script Lua non interpreta nulla: spedisce i byte grezzi del party e l'identità del
+gioco. Tutta la decodifica avviene lato C#. Aggiungere un altro emulatore significa
+scrivere un nuovo script, non toccare la logica dell'app.
+
+## Requisiti
+
+- .NET 10 SDK
+- mGBA 0.10.5 o successivo (lo scripting Lua esiste dalla 0.10.0)
+- Una ROM Gen 3 di tua proprietà — non è inclusa e non lo sarà mai
+
+## Documentazione
+
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — registro di ogni scelta di progetto, con le
+  alternative valutate e il perché. È il punto di partenza per capire il codice.
+
+## Licenza
+
+GPLv3. Vedi [`LICENSE`](LICENSE).
+
+Il progetto usa [PKHeX.Core](https://github.com/kwsch/PKHeX) (GPL-3.0-or-later) per il
+parsing delle strutture dati Pokémon; il copyleft si estende per linking, quindi l'intera
+app è GPLv3. Vedi D-007 nel decision log.
