@@ -381,3 +381,85 @@ Emerald) and are deliberately left out until someone can test them.
 string tables regardless of the ROM's language. On an Italian ROM the nicknames the player
 typed come through correctly — the Gen 3 character map is shared across Western languages
 — but species names display in English. Worth revisiting when the UI gets localised.
+
+---
+
+## D-018 — Deciding *when* a change matters is its own layer
+
+**Status:** Accepted · 2026-08-10
+
+The provider knows how to obtain bytes. The parser knows how to read them. Neither is in a
+position to judge whether a change deserves recomputing the analysis — and that judgement
+has to happen somewhere, or the UI recomputes several times per second during every battle.
+
+`UltimatePoKeSync.Session` holds `PartyTracker`, which sits between the two and emits a
+party only when something analytically meaningful changed. It depends on `Contracts`
+alone, so it knows neither mGBA nor PKHeX.
+
+**What counts as meaningful:** species, personality value, level, nature, ability, held
+item, egg flag, IVs, EVs, move IDs and slot order.
+
+**What does not:** current PP, current HP, and any other battle state. A single battle turn
+moves PP; none of it changes a single recommendation about EVs, nature, moves or items.
+
+Three further rules live here, each earning its place:
+
+- **Out-of-order snapshots are dropped**, except when the sequence restarts at 1. Reloading
+  the script or resetting the emulator restarts the counter, and mistaking that for a stale
+  message would leave the tracker deaf until the sequence climbed back past the old
+  high-water mark.
+- **Snapshots with rejected slots are skipped** in favour of the last good party, so a torn
+  read does not make the team flicker down a member and back.
+- **…but only five times in a row.** A genuinely broken party — a bad egg is a real and
+  permanent state — would otherwise stall the display forever. After five attempts the
+  tracker concludes the problem is the party rather than the timing, and reports what it
+  sees.
+
+The comparison key is a string rather than a hash: at 15 updates per second the cost is
+irrelevant, and a hash collision would silently swallow a real party change, which is
+precisely the failure this layer exists to prevent.
+
+---
+
+## D-019 — Slots past the declared party count are never read
+
+**Status:** Accepted · 2026-08-10
+
+Found by capturing real RAM rather than by reasoning: in the Italian Emerald capture with
+one Pokémon in the party, **none of the other five slots was all zeroes**. The game does
+not reliably wipe a slot when a Pokémon leaves the team.
+
+In that particular capture the leftovers decoded to `Species = 0`, so nothing surfaced. But
+the bytes left behind by a Pokémon deposited in the PC are a complete, **checksum-valid**
+Pokémon. The original implementation examined all six slots and admitted any that passed
+validation, so it would eventually have shown a ghost — a team member the game no longer
+had.
+
+The parser now iterates only up to `PartyCount`. This is also what `docs/protocol.md`
+already promised ("the app uses it as an upper bound"); the code simply had not implemented
+its own contract.
+
+Trusting the count is safe because the script confirms it across two consecutive reads
+(D-008): a torn count byte would have to read identically twice to get through.
+
+Covered by `Parse_ValidPokemonBeyondTheCountIsNotResurrected` and by the real-RAM fixture
+test, which asserts that the leftover bytes are genuinely non-zero — so the test would
+notice if a future capture stopped exercising the case.
+
+---
+
+## D-020 — Test fixtures captured from real RAM, not only hand-built
+
+**Status:** Accepted · 2026-08-10
+
+Fixtures built with PKHeX prove the parser agrees with PKHeX's own writer. They cannot
+prove it agrees with what the game actually puts in memory — and that is the claim the
+whole project rests on.
+
+`upks --dump <dir>` writes every raw snapshot as a JSON fixture. The first one,
+`tests/…/Fixtures/emerald-it-treecko.json`, is 600 bytes captured from Italian Emerald
+running in mGBA, and it immediately paid for itself by exposing D-019.
+
+Implementation note: `--dump` needed no change to the mGBA provider, the parser or the
+tracker — just a `DumpingEmulatorProvider` wrapped around the real one. A small, concrete
+demonstration that the abstraction of D-006 is doing real work.

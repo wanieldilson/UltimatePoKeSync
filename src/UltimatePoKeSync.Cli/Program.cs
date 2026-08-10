@@ -1,12 +1,13 @@
 using UltimatePoKeSync.Contracts;
 using UltimatePoKeSync.Parsing;
 using UltimatePoKeSync.Providers.MGba;
+using UltimatePoKeSync.Session;
 
 namespace UltimatePoKeSync.Cli;
 
 /// <summary>
-/// Diagnostic console: validates the mGBA -> TCP -> parsing chain without the UI.
-/// This is the M3 milestone target.
+/// Diagnostic console: validates the mGBA -> TCP -> parsing -> tracking chain without
+/// the UI.
 /// </summary>
 internal static class Program
 {
@@ -24,6 +25,8 @@ internal static class Program
             Port = int.TryParse(GetOption(args, "--port"), out int port) ? port : 8888,
         };
 
+        string? dumpDirectory = GetOption(args, "--dump");
+
         using var cancellation = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
         {
@@ -31,41 +34,49 @@ internal static class Program
             cancellation.Cancel();
         };
 
-        await using var provider = new MGbaProvider(options);
-        IPartyParserResolver resolver = PartyParserResolver.CreateDefault();
+        var mgba = new MGbaProvider(options);
+        IEmulatorProvider provider = dumpDirectory is null
+            ? mgba
+            : new DumpingEmulatorProvider(mgba, dumpDirectory, path =>
+                Console.WriteLine($"[dump] {path}"));
 
-        provider.StateChanged += (_, state) => WriteState(state, options);
-
-        Console.WriteLine($"UltimatePoKeSync — waiting for mGBA on {options.Host}:{options.Port}");
-        Console.WriteLine("Load emulator-scripts/mgba/ups_bridge.lua in mGBA (Tools > Scripting).");
-        Console.WriteLine("Ctrl+C to quit.\n");
-
-        try
+        await using (provider)
         {
-            await foreach (RawPartySnapshot raw in provider.ReadSnapshotsAsync(cancellation.Token))
+            var tracker = new PartyTracker(provider, PartyParserResolver.CreateDefault());
+
+            mgba.StateChanged += (_, state) => WriteState(state, options);
+
+            Console.WriteLine($"UltimatePoKeSync — waiting for mGBA on {options.Host}:{options.Port}");
+            Console.WriteLine("Load emulator-scripts/mgba/ups_bridge.lua in mGBA (Tools > Scripting).");
+            if (dumpDirectory is not null)
             {
-                IPartyParser? parser = resolver.Resolve(raw.Game);
-                if (parser is null)
-                {
-                    Console.WriteLine($"[!] No parser for {raw.Game}. Snapshot ignored.");
-                    continue;
-                }
-
-                PrintParty(parser.Parse(raw));
+                Console.WriteLine($"Dumping raw snapshots to {dumpDirectory}");
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // User asked to quit.
+
+            Console.WriteLine("Ctrl+C to quit.\n");
+
+            try
+            {
+                await foreach (PartySnapshot party in tracker.TrackAsync(cancellation.Token))
+                {
+                    PrintParty(party);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // User asked to quit.
+            }
+
+            Console.WriteLine($"\n{tracker.Diagnostics}");
         }
 
-        Console.WriteLine("\nShutting down.");
+        Console.WriteLine("Shutting down.");
         return 0;
     }
 
     private static void PrintParty(PartySnapshot party)
     {
-        Console.WriteLine($"┌─ {party.Game}  ·  seq {party.Sequence}  ·  {party.CapturedAt.LocalDateTime:HH:mm:ss.fff}");
+        Console.WriteLine($"┌─ {party.Game}  ·  seq {party.Sequence}  ·  {party.CapturedAt.LocalDateTime:HH:mm:ss.fff}  ·  {party.Count} in party");
 
         if (party.IsEmpty)
         {
@@ -135,6 +146,7 @@ internal static class Program
 
               --host <address>   Host of the Lua script (default 127.0.0.1)
               --port <port>      Port, must match UPS_PORT (default 8888)
+              --dump <dir>       Write every raw snapshot to <dir> as a test fixture
               --help             This message
             """);
     }

@@ -114,6 +114,29 @@ public sealed class Gen3PartyParserTests
     }
 
     [Fact]
+    public void Parse_ValidPokemonBeyondTheCountIsNotResurrected()
+    {
+        // The scenario: six real Pokémon sit in the blob but the game says two are in the
+        // party, because the rest were deposited in the PC and their bytes were left
+        // behind. Those leftovers still carry a valid checksum, so only the declared count
+        // keeps them out of the team. See D-019.
+        RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(
+            Gen3TestData.Emerald,
+            declaredCount: 2,
+            Gen3TestData.CreateGyarados(),
+            Gen3TestData.CreatePikachu(),
+            Gen3TestData.CreateGyarados(),
+            Gen3TestData.CreatePikachu(),
+            Gen3TestData.CreateGyarados(),
+            Gen3TestData.CreatePikachu());
+
+        PartySnapshot party = _parser.Parse(raw);
+
+        Assert.Equal(2, party.Count);
+        Assert.Empty(party.RejectedSlots);
+    }
+
+    [Fact]
     public void Parse_FullPartyReadsEverySlot()
     {
         RawPartySnapshot raw = Gen3TestData.ToRawSnapshot(

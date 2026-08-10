@@ -48,20 +48,20 @@ public sealed class Gen3PartyParser : IPartyParser
         var members = new List<PokemonSnapshot>(raw.SlotCapacity);
         var rejected = new List<RejectedSlot>();
 
-        for (int slot = 0; slot < raw.SlotCapacity; slot++)
+        // Only slots below the declared count can be party members. Slots past it are not
+        // examined at all, and deliberately so: the game does not reliably wipe a slot
+        // when a Pokémon leaves the party, so leftover bytes there can still decode into a
+        // complete, checksum-valid Pokémon that is no longer on the team. Reading them
+        // would resurrect ghosts. See D-019.
+        int usableSlots = Math.Min(raw.PartyCount, raw.SlotCapacity);
+
+        for (int slot = 0; slot < usableSlots; slot++)
         {
             var pk = new PK3(raw.GetSlot(slot).ToArray());
 
-            // A slot beyond the declared count that is also empty is simply a free slot:
-            // nothing worth reporting.
-            bool beyondDeclaredCount = slot >= raw.PartyCount;
             if (pk.Species == 0 || !pk.FlagHasSpecies)
             {
-                if (!beyondDeclaredCount)
-                {
-                    rejected.Add(new RejectedSlot(slot, "empty slot but counted in the party"));
-                }
-
+                rejected.Add(new RejectedSlot(slot, "empty slot but counted in the party"));
                 continue;
             }
 

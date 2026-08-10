@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Orchestration: turns a stream of raw snapshots into a stream of party changes worth
+    reacting to. Depends only on Contracts, so it knows neither the emulator nor PKHeX.
+    See D-018.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
