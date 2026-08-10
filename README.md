@@ -10,8 +10,10 @@ moves and held item for each Pokémon, with two analysis profiles — **playthro
 
 ## Status
 
-Early development. Current target: **Gen 3 / Pokémon Emerald** via **mGBA**. The
-architecture is multi-emulator and multi-generation from the first commit.
+Early development. **M5 is complete:** the app can parse a live Gen 3 party and compute its
+17-type defensive and offensive coverage, including ability modifiers and unanswered gaps.
+Current target: **Gen 3 / Pokémon Emerald** via **mGBA**. The architecture is multi-emulator
+and multi-generation from the first commit.
 
 ## How it works
 

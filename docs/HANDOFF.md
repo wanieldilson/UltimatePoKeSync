@@ -1,6 +1,6 @@
 # Handoff — state of the project
 
-Last updated: 2026-08-10, after milestone M4.
+Last updated: 2026-08-10, after milestone M5.
 
 Read this first, then [`DECISIONS.md`](DECISIONS.md) for the reasoning behind every choice.
 `DECISIONS.md` is the authority; this file is orientation.
@@ -20,13 +20,23 @@ Verified on 2026-08-10 with **Pokémon Emerald (Italy)** running in mGBA 0.10.5:
 appeared with correct species, level, type, ability, moves and IVs, with zero rejected
 slots. PP dropping during a battle produced exactly one snapshot per change.
 
-**41 tests green** — 24 parsing, 12 session, 5 provider. `UltimatePoKeSync.Analysis.Tests`
-exists but is empty; that is M5's job.
+The M5 analysis chain is also complete:
+
+```
+PartySnapshot --> Gen3Rules (embedded chart + move data) --> TeamAnalyzer --> TeamAnalysis
+```
+
+It reports all 17 defensive matchups (including ability modifiers), all offensive coverage
+from currently known damaging moves, and the unanswered gaps. Results keep the contributing
+Pokémon and moves so the UI can explain them rather than displaying an opaque score.
+
+**75 tests green** — 34 analysis, 24 parsing, 12 session, 5 provider.
 
 ## What does not exist yet
 
-- `UltimatePoKeSync.GameData` — empty project. Needs the Gen 3 type chart and heuristics.
-- `UltimatePoKeSync.Analysis` — empty project. No team analysis, no suggestions.
+- Per-Pokémon role inference and suggestions (EVs, nature, moves, item) — M6.
+- Playthrough and competitive profile heuristics — M6; the M5 engine deliberately produces
+  profile-independent facts only.
 - `UltimatePoKeSync.App` — Avalonia placeholder window only. Real dashboard is M7.
 
 ## Milestones
@@ -38,8 +48,8 @@ exists but is empty; that is M5's job.
 | M2 | TCP transport with reconnect | done |
 | M3 | Gen 3 parsing via PKHeX, CLI output | done, verified on real RAM |
 | M4 | Party tracking, change suppression, real-RAM fixtures | done |
-| **M5** | **Gen 3 type chart + team analysis** | **next** |
-| M6 | Per-Pokémon suggestions (EVs, nature, moves, item) | not started |
+| M5 | Gen 3 type chart + team analysis | done |
+| **M6** | **Per-Pokémon suggestions (EVs, nature, moves, item)** | **next** |
 | M7 | Avalonia dashboard | not started |
 | M8 | Second provider or generation, to prove the abstraction | not started |
 
@@ -121,15 +131,36 @@ Each of these cost real time to discover. They are all recorded in `DECISIONS.md
 8. **The two-read confirmation must stay in the Lua script.** The script only transmits on
    change, so a second identical read never reaches C# — the check is impossible there by
    construction (D-008).
+9. **Damaging does not always mean type coverage.** Gen 3 uses base power `1` as a sentinel
+   for fixed-damage, one-hit knockout and variable-power moves. Seismic Toss and Fissure do
+   not gain super-effective damage; Low Kick and Hidden Power do. `Gen3Rules` distinguishes
+   them explicitly (D-022).
 
 ---
 
-## M5 — what comes next
+## M5 — implementation notes
 
-Goal: aggregate defensive and offensive coverage for the team, plus the gaps.
+The public entry point is `TeamAnalyzer.Analyze(PartySnapshot)`. It resolves
+`IGenerationRules` from the snapshot's generation and fails explicitly when unsupported.
+
+`TeamAnalysis` always contains 17 defensive and 17 offensive entries for Gen 3, plus:
+
+- `DefensiveGaps`: a party weakness with no resistant or immune switch-in.
+- `OffensiveGaps`: a defending type no current damaging move hits super effectively.
+
+The Gen 3 chart and all 355 move base-power values are embedded JSON under
+`UltimatePoKeSync.GameData/Data`. Both were mechanically cross-checked against the matching
+`pret/pokeemerald` source before M5 was committed. See D-021 and D-022.
+
+Ability adjustments implemented: Levitate, Wonder Guard, Flash Fire, Volt Absorb, Water
+Absorb and Thick Fat.
+
+## M6 — what comes next
+
+Goal: infer each Pokémon's role and suggest EVs, nature, moves and held item.
 
 Two Gen 3 rules that **change the answers**, not just the numbers. Build them in from the
-start; retrofitting them when Gen 4 arrives means a rewrite (D-009).
+start; M5 already exposes them through `IGenerationRules` (D-009).
 
 **1. Seventeen types, no Fairy.** The type chart must be selected per generation. Also
 relevant for Gen 3: Ghost is not resisted the same way as in Gen 1, and `PokemonType.Fairy`
@@ -147,15 +178,16 @@ So a Gyarados (base Atk 125, base SpA 60) gets nothing from a Water move in Gen 
 Water is special. Role inference and therefore recommended nature and EVs follow completely
 different logic from Gen 4 onwards.
 
-Abilities that alter type effectiveness are in scope for the aggregate chart: Levitate
-(Ground immunity), Wonder Guard, Flash Fire, Volt Absorb, Water Absorb, Thick Fat.
+Existing placement:
 
-Suggested placement:
+- `UltimatePoKeSync.GameData` — embedded Gen 3 chart and move powers, `ITypeChart`,
+  `IGenerationRules`, the physical/special split and ability modifiers.
+- `UltimatePoKeSync.Analysis` — pure functions over `PartySnapshot`, no I/O.
+- `UltimatePoKeSync.Analysis.Tests` — rules and team-coverage tests.
 
-- `UltimatePoKeSync.GameData` — the 17×17 chart as embedded JSON, a `ITypeChart` per
-  generation, natures table, and the physical/special type split.
-- `UltimatePoKeSync.Analysis` — pure functions over `PartySnapshot`, no I/O, easily tested.
-- `UltimatePoKeSync.Analysis.Tests` — currently empty, start here.
+M6 still needs nature data and the recommendation heuristics. Prefer adding facts to the
+core analysis before profile policy consumes them; do not make the core analyzer accept a
+profile.
 
 Remember D-010: two profiles, **playthrough** and **competitive**, sharing one engine. The
 engine computes facts (role, coverage, projected stats); the profile decides what to
