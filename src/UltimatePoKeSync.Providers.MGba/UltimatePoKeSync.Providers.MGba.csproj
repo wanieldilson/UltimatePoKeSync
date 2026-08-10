@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Provider per mGBA: client TCP verso lo script Lua (D-003), con reconnect.
+    Dipende solo da Contracts: non conosce PKHeX ne le regole di gioco.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Console headless di diagnostica. Serve a validare la catena
+    mGBA -> TCP -> parsing senza tirare in ballo la UI, ed e' il target
+    della demo di milestone M3.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>upks</AssemblyName>
+    <RootNamespace>UltimatePoKeSync.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
+    <ProjectReference Include="..\UltimatePoKeSync.Providers.MGba\UltimatePoKeSync.Providers.MGba.csproj" />
+    <ProjectReference Include="..\UltimatePoKeSync.Parsing\UltimatePoKeSync.Parsing.csproj" />
+  </ItemGroup>
+
+</Project>

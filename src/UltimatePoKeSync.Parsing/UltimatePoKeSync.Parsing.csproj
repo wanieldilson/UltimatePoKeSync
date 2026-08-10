@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Traduce i byte grezzi in Pokemon. E' l'unico progetto che conosce PKHeX.Core,
+    cosi la dipendenza GPL e il formato binario restano confinati qui. Vedi D-007.
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="PKHeX.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

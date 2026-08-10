@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/UltimatePoKeSync.Analysis/UltimatePoKeSync.Analysis.csproj" />
+    <Project Path="src/UltimatePoKeSync.App/UltimatePoKeSync.App.csproj" />
+    <Project Path="src/UltimatePoKeSync.Cli/UltimatePoKeSync.Cli.csproj" />
+    <Project Path="src/UltimatePoKeSync.Contracts/UltimatePoKeSync.Contracts.csproj" />
+    <Project Path="src/UltimatePoKeSync.GameData/UltimatePoKeSync.GameData.csproj" />
+    <Project Path="src/UltimatePoKeSync.Parsing/UltimatePoKeSync.Parsing.csproj" />
+    <Project Path="src/UltimatePoKeSync.Providers.MGba/UltimatePoKeSync.Providers.MGba.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UltimatePoKeSync.Analysis.Tests/UltimatePoKeSync.Analysis.Tests.csproj" />
+    <Project Path="tests/UltimatePoKeSync.Parsing.Tests/UltimatePoKeSync.Parsing.Tests.csproj" />
+  </Folder>
+</Solution>
