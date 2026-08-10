@@ -546,3 +546,32 @@ without mutating the live `PokemonSnapshot`.
 rules would drift), use floating-point formulae and round at the end (rejected: the games
 truncate at specific intermediate steps), and return only percentage deltas (rejected: EV
 and speed recommendations need exact projected values).
+
+---
+
+## D-024 — Recommendations combine explainable inference with offline presets
+
+**Status:** Accepted · 2026-08-10
+
+M6 uses a hybrid recommendation model. The core first infers a broad role from auditable
+facts in the live snapshot: base stats, the Gen 3 physical/special split, and how many
+current moves scale from each offensive stat or provide utility. Recommendation profiles
+may then use versioned reference presets as priors for plausible roles and movepools. A
+preset never overrides live Pokémon data, generation rules, move legality, team gaps, or
+profile policy; missing preset data falls back to the deterministic inference.
+
+The first reference catalog is Pokémon Showdown's Gen 3 Random Battle set data, pinned to
+commit `db93869dcc216c0be39e7f86e9a64edcc7496d89` and embedded for offline use. Its 220
+species and 393 sets are treated as broad expert-authored role and movepool examples, not
+as standard OU usage or as complete competitive builds. The source is MIT-licensed and is
+recorded in `THIRD_PARTY_NOTICES.md`.
+
+A future competitive profile may use pinned Smogon ladder statistics whose generated data
+is MIT-licensed as a weighting signal. Smogon Dex editorial sets must not be bundled
+without explicit permission. No recommendation path performs a runtime network call.
+
+**Alternatives considered:** derive every recommendation from first principles (rejected:
+deterministic but unnecessarily reinvents expert movepool knowledge), reproduce one preset
+verbatim (rejected: ignores the live team and confuses Random Battle with standard play),
+query an online service at runtime (rejected: harms determinism and offline operation), and
+bundle Smogon Dex sets without permission (rejected: their reuse terms require permission).
