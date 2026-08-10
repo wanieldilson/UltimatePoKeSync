@@ -463,3 +463,31 @@ running in mGBA, and it immediately paid for itself by exposing D-019.
 Implementation note: `--dump` needed no change to the mGBA provider, the parser or the
 tracker — just a `DumpingEmulatorProvider` wrapped around the real one. A small, concrete
 demonstration that the abstraction of D-006 is doing real work.
+
+---
+
+## D-021 — Battle facts come from embedded, validated per-generation data
+
+**Status:** Accepted · 2026-08-10
+
+The type chart and move base powers are versioned as embedded JSON in `GameData` and loaded
+through an `IGenerationRules` resolved by generation. The loader validates the generation,
+the exact ordered type set, every matrix dimension and multiplier, and the expected move
+count before exposing any data. There is no runtime network access and no silent fallback
+to another generation.
+
+The Gen 3 data is transcribed from the matching `pret/pokeemerald` decompilation tables:
+`gTypeEffectiveness` in `src/battle_main.c` and `gBattleMoves` in
+`src/data/battle_moves.h`. Keeping move power as data is necessary because PKHeX exposes a
+move's type and PP but not its Gen 3 base power; without it a status move such as Leer would
+incorrectly count as Normal offensive coverage.
+
+`IGenerationRules` also owns the type-based physical/special split and the six defensive
+ability modifiers in M5's scope. This prevents Gen 3 assumptions from leaking into the
+analysis engine and gives a future generation one replacement boundary.
+
+**Alternatives considered:** hard-coded C# dictionaries (rejected: difficult to audit as a
+complete chart), a current-generation web API (rejected: not generation-stable and would
+make an offline app network-dependent), treating every known move as damaging (rejected:
+produces false offensive coverage), and putting ability switches directly in the analysis
+engine (rejected: they are generation rules, not analysis heuristics).
