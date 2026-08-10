@@ -18,10 +18,12 @@ internal static class AnalysisTestData
         string? speciesName = null,
         int level = 50,
         StatBlock? baseStats = null,
+        int? speciesId = null,
         params MoveSlot[] moves) => new()
         {
             SlotIndex = slot,
-            SpeciesId = (ushort)(slot + 1),
+            // Anything that reaches a learnset needs the real national dex number.
+            SpeciesId = (ushort)(speciesId ?? slot + 1),
             SpeciesName = speciesName ?? $"Member {slot}",
             Level = level,
             PrimaryType = primaryType,

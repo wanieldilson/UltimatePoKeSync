@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Turns raw bytes into Pokemon. The only project that knows about PKHeX.Core, so the
-    GPL dependency and the binary format stay confined here. See D-007.
+    Turns raw bytes into Pokemon. Knows about PKHeX.Core, as does
+    GameData.Learnsets (D-027); the invariant is that Analysis, Contracts and the UI
+    never do, so the binary format and the GPL dependency stay out of them. See D-007.
   -->
 
   <ItemGroup>

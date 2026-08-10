@@ -1,14 +1,18 @@
 import fs from "node:fs";
 
+// Level-up learnsets used to be imported here too. They are not any more: Showdown
+// merges Ruby/Sapphire, Emerald and FireRed/LeafGreen under one "3L" tag, so the import
+// had to pick one level for three games that disagree. They now come per game from
+// PKHeX. See D-027.
 const revision = "db93869dcc216c0be39e7f86e9a64edcc7496d89";
 const [mode, inputPath] = process.argv.slice(2);
 
-if (!["moves", "learnsets"].includes(mode) || !inputPath) {
-  throw new Error("Usage: node import-showdown-gen3-data.mjs <moves|learnsets> <input-file>");
+if (mode !== "moves" || !inputPath) {
+  throw new Error("Usage: node import-showdown-gen3-data.mjs moves <input-file>");
 }
 
 const lines = fs.readFileSync(inputPath, "utf8").split(/\r?\n/);
-const result = mode === "moves" ? importMoves(lines) : importLearnsets(lines);
+const result = importMoves(lines);
 const indentation = process.argv.includes("--compact") ? undefined : 2;
 process.stdout.write(JSON.stringify(result, null, indentation) + "\n");
 
@@ -69,50 +73,4 @@ function importMoves(sourceLines) {
   }
 
   return { generation: 3, revision, moves };
-}
-
-function importLearnsets(sourceLines) {
-  const species = {};
-  let currentSpecies;
-  let inLearnset = false;
-
-  for (const line of sourceLines) {
-    const entry = line.match(/^\t([a-z0-9]+): \{$/);
-    if (entry) {
-      currentSpecies = entry[1];
-      inLearnset = false;
-      continue;
-    }
-
-    if (line === "\t\tlearnset: {") {
-      inLearnset = true;
-      continue;
-    }
-
-    if (!inLearnset || !currentSpecies) continue;
-    if (line === "\t\t},") {
-      inLearnset = false;
-      continue;
-    }
-
-    const move = line.match(/^\t\t\t([a-z0-9]+): \[(.+)\],$/);
-    if (!move) continue;
-
-    const levels = [...move[2].matchAll(/"3L(\d+)"/g)].map(match => Number(match[1]));
-    if (levels.length === 0) continue;
-
-    species[currentSpecies] ??= [];
-    species[currentSpecies].push({ id: move[1], level: Math.min(...levels) });
-  }
-
-  for (const moves of Object.values(species)) {
-    moves.sort((left, right) => left.level - right.level || left.id.localeCompare(right.id));
-  }
-
-  delete species.missingno;
-  if (Object.keys(species).length !== 386) {
-    throw new Error("Expected level-up learnsets for the 386 Gen 3 species.");
-  }
-
-  return { generation: 3, revision, species };
 }

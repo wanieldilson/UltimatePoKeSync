@@ -640,3 +640,48 @@ milestones unverified against real hardware and puts the first real look at the 
 behind UI work), print analysis unconditionally (rejected: buries the parsing diagnostic
 the CLI exists for), and let the CLI re-rank or trim candidates for readability (rejected:
 the console would then verify the console's policy instead of the engine's).
+
+---
+
+## D-027 — Level-up learnsets are keyed by game, not by generation
+
+**Status:** Accepted · 2026-08-11
+
+The pinned Showdown learnset tagged every Gen 3 level-up entry as `3L`, merging Ruby and
+Sapphire, Emerald, and FireRed and LeafGreen into one table. The importer resolved the
+disagreements with `Math.min` over the levels, which is not a conservative choice but a
+wrong one: it reports a level the running game does not use.
+
+Measured against PKHeX, **42 of the 386 Gen 3 species** teach at least one move at a
+different level depending on the game. Zubat is the clean example: Supersonic at 6 and
+Astonish at 11 in RSE, exactly reversed in FRLG. On FireRed the merged table claimed a
+level-6 Zubat could already know Supersonic. The failure is invisible — a plausible number
+in a field that looks authoritative.
+
+So the level-up learnset moves behind `ILevelUpLearnsetSource`, which takes a
+`GameIdentity`. Move *identity* stays behind `IMoveReferenceCatalog` keyed by generation,
+which is the correct granularity for it: a move's number and name are stable within a
+generation, and its type changes only across generations (Charm is Normal in Gen 3 and
+Fairy from Gen 6).
+
+The implementation reads PKHeX's `LearnSource3E`, `LearnSource3RS`, `LearnSource3FR` and
+`LearnSource3LG`. PKHeX is already a dependency for parsing, already GPLv3, and already
+ships one learn source per game for every generation from RB to SV. Choosing it removes a
+bundled dataset instead of adding one, and the same class shape will serve Gen 1 to Gen 9
+unchanged — which matters, because supporting every generation is a stated goal, not a
+hypothetical.
+
+It lives in its own project, `UltimatePoKeSync.GameData.Learnsets`, so D-007 still holds:
+`Analysis`, `Contracts` and the UI depend on the abstraction and never on PKHeX. That
+costs the engine its parameterless constructor — the default composition cannot name a
+type Analysis cannot see — so `PokemonRecommendationEngine.CreateDefault` now takes the
+learnset source and the composition root supplies it. `Parsing` is consequently no longer
+the only project that references PKHeX; the invariant was always "the analysis layer does
+not", and that is what the comment in each project now says.
+
+**Alternatives considered:** keep Showdown and pick the maximum instead of the minimum
+level (rejected: still one number for three games, wrong in the other direction), generate
+per-game datasets from the `pret` disassemblies (rejected: one importer per game, Gen 3
+only, and the whole exercise repeats for every future generation, while PKHeX has already
+done it), and expose PKHeX types through `GameData` directly (rejected: drags the
+dependency into everything that reads game data, including the UI).

@@ -13,10 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\UltimatePoKeSync.Analysis\UltimatePoKeSync.Analysis.csproj" />
-    <ProjectReference Include="..\..\src\UltimatePoKeSync.GameData\UltimatePoKeSync.GameData.csproj" />
-    <!-- The engine's real learnset source. Analysis itself stays PKHeX-free; its tests
-         exercise the composition the CLI and the UI actually use. -->
     <ProjectReference Include="..\..\src\UltimatePoKeSync.GameData.Learnsets\UltimatePoKeSync.GameData.Learnsets.csproj" />
   </ItemGroup>
 

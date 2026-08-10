@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Level-up learnsets taken from PKHeX per game rather than per generation. It is a
+    separate project so that Analysis, Contracts and the UI keep depending only on the
+    ILevelUpLearnsetSource abstraction, never on PKHeX. See D-007 and D-027.
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="PKHeX.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
+    <ProjectReference Include="..\UltimatePoKeSync.GameData\UltimatePoKeSync.GameData.csproj" />
+  </ItemGroup>
+
+</Project>

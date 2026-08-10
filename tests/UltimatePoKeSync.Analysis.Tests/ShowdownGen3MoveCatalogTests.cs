@@ -7,12 +7,11 @@ namespace UltimatePoKeSync.Analysis.Tests;
 public sealed class ShowdownGen3MoveCatalogTests
 {
     [Fact]
-    public void Catalog_LoadsAllGen3MovesAndSpecies()
+    public void Catalog_LoadsAllGen3Moves()
     {
         ShowdownGen3MoveCatalog catalog = ShowdownGen3MoveCatalog.Instance;
 
         Assert.Equal(354, catalog.MoveCount);
-        Assert.Equal(386, catalog.SpeciesCount);
         Assert.Equal(PokemonGeneration.Gen3, catalog.Generation);
         Assert.Equal(ShowdownGen3PresetCatalog.Revision, catalog.SourceRevision);
     }
@@ -32,18 +31,12 @@ public sealed class ShowdownGen3MoveCatalogTests
     }
 
     [Fact]
-    public void FindLevelUpMoves_FiltersTreeckoAtCurrentLevel()
+    public void Find_ByMoveId_MatchesTheNameLookup()
     {
-        IReadOnlyList<LevelUpMoveReference> moves =
-            ShowdownGen3MoveCatalog.Instance.FindLevelUpMoves("Treecko", 11);
+        ShowdownGen3MoveCatalog catalog = ShowdownGen3MoveCatalog.Instance;
 
-        Assert.Equal(["leer", "pound", "absorb", "quickattack"], moves.Select(move => move.Move.ReferenceId));
-        Assert.Equal(11, moves[^1].LearnedAtLevel);
-    }
-
-    [Fact]
-    public void FindLevelUpMoves_NormalizesGenderSymbols()
-    {
-        Assert.NotEmpty(ShowdownGen3MoveCatalog.Instance.FindLevelUpMoves("Nidoran♀", 10));
+        Assert.Equal(catalog.Find("Earthquake"), catalog.Find(89));
+        Assert.Null(catalog.Find(0));
+        Assert.Null(catalog.Find(355));
     }
 }

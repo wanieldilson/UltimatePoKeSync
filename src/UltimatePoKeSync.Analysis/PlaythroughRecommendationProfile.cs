@@ -31,7 +31,7 @@ public sealed class PlaythroughRecommendationProfile : IRecommendationProfile
 
         MoveRecommendation[] levelUp =
         [
-            .. context.MoveCatalog.FindLevelUpMoves(member.SpeciesName, member.Level)
+            .. context.Learnsets.FindLevelUpMoves(context.Game, member.SpeciesId, member.Level)
                 .Where(candidate => current.All(
                     existing => existing.Move.ReferenceId != candidate.Move.ReferenceId))
                 .OrderByDescending(candidate => presetMoves.Contains(candidate.Move.ReferenceId))

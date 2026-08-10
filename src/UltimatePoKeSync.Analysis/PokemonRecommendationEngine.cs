@@ -11,18 +11,22 @@ public sealed class PokemonRecommendationEngine
     private readonly IGenerationRulesResolver _rulesResolver;
     private readonly IReferencePresetCatalog _presetCatalog;
     private readonly IMoveReferenceCatalog _moveCatalog;
+    private readonly ILevelUpLearnsetSource _learnsets;
     private readonly IReadOnlyDictionary<RecommendationProfileKind, IRecommendationProfile> _profiles;
 
-    public PokemonRecommendationEngine()
-        : this(
+    /// <summary>
+    /// The usual composition. The learnset source is injected because it is per game and
+    /// PKHeX-backed, and Analysis must not depend on PKHeX. See D-007 and D-027.
+    /// </summary>
+    public static PokemonRecommendationEngine CreateDefault(ILevelUpLearnsetSource learnsets) =>
+        new(
             new TeamAnalyzer(),
             new PokemonRoleAnalyzer(),
             GenerationRulesResolver.Default,
             ShowdownGen3PresetCatalog.Instance,
             ShowdownGen3MoveCatalog.Instance,
-            [new PlaythroughRecommendationProfile(), new CompetitiveRecommendationProfile()])
-    {
-    }
+            learnsets,
+            [new PlaythroughRecommendationProfile(), new CompetitiveRecommendationProfile()]);
 
     public PokemonRecommendationEngine(
         TeamAnalyzer teamAnalyzer,
@@ -30,6 +34,7 @@ public sealed class PokemonRecommendationEngine
         IGenerationRulesResolver rulesResolver,
         IReferencePresetCatalog presetCatalog,
         IMoveReferenceCatalog moveCatalog,
+        ILevelUpLearnsetSource learnsets,
         IEnumerable<IRecommendationProfile> profiles)
     {
         ArgumentNullException.ThrowIfNull(teamAnalyzer);
@@ -37,6 +42,7 @@ public sealed class PokemonRecommendationEngine
         ArgumentNullException.ThrowIfNull(rulesResolver);
         ArgumentNullException.ThrowIfNull(presetCatalog);
         ArgumentNullException.ThrowIfNull(moveCatalog);
+        ArgumentNullException.ThrowIfNull(learnsets);
         ArgumentNullException.ThrowIfNull(profiles);
 
         _teamAnalyzer = teamAnalyzer;
@@ -44,6 +50,7 @@ public sealed class PokemonRecommendationEngine
         _rulesResolver = rulesResolver;
         _presetCatalog = presetCatalog;
         _moveCatalog = moveCatalog;
+        _learnsets = learnsets;
         _profiles = profiles.ToDictionary(profile => profile.Kind);
 
         foreach (RecommendationProfileKind kind in Enum.GetValues<RecommendationProfileKind>())
@@ -71,6 +78,13 @@ public sealed class PokemonRecommendationEngine
                 $"No recommendation reference data is available for {party.Game.Generation}.");
         }
 
+        // Learnsets are per game, not per generation: the same generation's games teach
+        // the same move at different levels. See D-027.
+        if (!_learnsets.Supports(party.Game))
+        {
+            throw new NotSupportedException($"No level-up learnsets are available for {party.Game}.");
+        }
+
         TeamAnalysis teamAnalysis = _teamAnalyzer.Analyze(party);
         if (!_profiles.TryGetValue(profileKind, out IRecommendationProfile? profile))
         {
@@ -83,11 +97,13 @@ public sealed class PokemonRecommendationEngine
             {
                 PokemonRoleAnalysis role = _roleAnalyzer.Analyze(member, party.Game.Generation);
                 return profile.Recommend(new RecommendationContext(
+                    party.Game,
                     teamAnalysis,
                     role,
                     rules,
                     _presetCatalog,
-                    _moveCatalog));
+                    _moveCatalog,
+                    _learnsets));
             }),
         ];
 

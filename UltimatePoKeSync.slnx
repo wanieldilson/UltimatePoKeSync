@@ -5,12 +5,14 @@
     <Project Path="src/UltimatePoKeSync.Cli/UltimatePoKeSync.Cli.csproj" />
     <Project Path="src/UltimatePoKeSync.Contracts/UltimatePoKeSync.Contracts.csproj" />
     <Project Path="src/UltimatePoKeSync.GameData/UltimatePoKeSync.GameData.csproj" />
+    <Project Path="src/UltimatePoKeSync.GameData.Learnsets/UltimatePoKeSync.GameData.Learnsets.csproj" />
     <Project Path="src/UltimatePoKeSync.Parsing/UltimatePoKeSync.Parsing.csproj" />
     <Project Path="src/UltimatePoKeSync.Providers.MGba/UltimatePoKeSync.Providers.MGba.csproj" />
     <Project Path="src/UltimatePoKeSync.Session/UltimatePoKeSync.Session.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/UltimatePoKeSync.Analysis.Tests/UltimatePoKeSync.Analysis.Tests.csproj" />
+    <Project Path="tests/UltimatePoKeSync.GameData.Learnsets.Tests/UltimatePoKeSync.GameData.Learnsets.Tests.csproj" />
     <Project Path="tests/UltimatePoKeSync.Parsing.Tests/UltimatePoKeSync.Parsing.Tests.csproj" />
     <Project Path="tests/UltimatePoKeSync.Providers.MGba.Tests/UltimatePoKeSync.Providers.MGba.Tests.csproj" />
     <Project Path="tests/UltimatePoKeSync.Session.Tests/UltimatePoKeSync.Session.Tests.csproj" />

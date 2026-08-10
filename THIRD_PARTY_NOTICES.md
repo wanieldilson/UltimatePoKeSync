@@ -2,15 +2,17 @@
 
 ## Pokémon Showdown Gen 3 Random Battle sets
 
-The embedded Random Battle sets and the generated Gen 3 move and level-up learnset
-catalogs are derived from Pokémon Showdown:
+The embedded Random Battle sets and the generated Gen 3 move catalog are derived from
+Pokémon Showdown:
 
 - Source: https://github.com/smogon/pokemon-showdown
 - File: https://github.com/smogon/pokemon-showdown/blob/db93869dcc216c0be39e7f86e9a64edcc7496d89/data/random-battles/gen3/sets.json
 - Move metadata: https://github.com/smogon/pokemon-showdown/blob/db93869dcc216c0be39e7f86e9a64edcc7496d89/data/moves.ts
-- Learnsets: https://github.com/smogon/pokemon-showdown/blob/db93869dcc216c0be39e7f86e9a64edcc7496d89/data/learnsets.ts
 - Revision: `db93869dcc216c0be39e7f86e9a64edcc7496d89`
 - Retrieved: 2026-08-10
+
+Level-up learnsets were also imported from Showdown until 2026-08-11. They now come from
+PKHeX.Core, which holds a separate table per game rather than one per generation (D-027).
 
 Pokémon Showdown is distributed under the MIT License:
 

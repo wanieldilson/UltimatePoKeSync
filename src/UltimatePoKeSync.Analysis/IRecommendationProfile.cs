@@ -1,3 +1,4 @@
+using UltimatePoKeSync.Contracts;
 using UltimatePoKeSync.GameData;
 
 namespace UltimatePoKeSync.Analysis;
@@ -10,8 +11,10 @@ public interface IRecommendationProfile
 }
 
 public sealed record RecommendationContext(
+    GameIdentity Game,
     TeamAnalysis TeamAnalysis,
     PokemonRoleAnalysis RoleAnalysis,
     IGenerationRules Rules,
     IReferencePresetCatalog PresetCatalog,
-    IMoveReferenceCatalog MoveCatalog);
+    IMoveReferenceCatalog MoveCatalog,
+    ILevelUpLearnsetSource Learnsets);

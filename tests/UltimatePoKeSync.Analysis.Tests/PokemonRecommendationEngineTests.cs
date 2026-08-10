@@ -1,12 +1,14 @@
 using UltimatePoKeSync.Contracts;
 using UltimatePoKeSync.GameData;
+using UltimatePoKeSync.GameData.Learnsets;
 using Xunit;
 
 namespace UltimatePoKeSync.Analysis.Tests;
 
 public sealed class PokemonRecommendationEngineTests
 {
-    private readonly PokemonRecommendationEngine _engine = new();
+    private readonly PokemonRecommendationEngine _engine =
+        PokemonRecommendationEngine.CreateDefault(PKHeXGen3LevelUpLearnsets.Instance);
 
     [Fact]
     public void CompetitiveProfile_CombinesLiveRoleWithMatchedPreset()
@@ -57,6 +59,7 @@ public sealed class PokemonRecommendationEngineTests
             speciesName: "Treecko",
             level: 11,
             baseStats: new StatBlock(40, 45, 35, 65, 55, 70),
+            speciesId: 252,
             moves:
             [
                 AnalysisTestData.Move(71, "Absorb", PokemonType.Grass),

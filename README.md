@@ -62,6 +62,7 @@ Detailed instructions and troubleshooting:
 | `src/…Providers.MGba/`    | TCP client with reconnect. Knows nothing of PKHeX or game rules |
 | `src/…Parsing/`           | Bytes → Pokémon via PKHeX. The only project that depends on PKHeX |
 | `src/…GameData/`          | Per-generation type chart, natures, heuristics |
+| `src/…GameData.Learnsets/`| Per-game level-up learnsets, read from PKHeX |
 | `src/…Analysis/`          | Team coverage, roles, suggestions |
 | `src/…Cli/`               | Headless diagnostic console |
 | `src/…App/`               | Avalonia UI |

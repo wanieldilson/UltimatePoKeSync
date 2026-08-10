@@ -55,16 +55,17 @@ dotnet run --project src/UltimatePoKeSync.Cli -- \
 can be checked with no emulator running. Rendering lives in `AnalysisReport` and formats
 only; it never re-ranks or filters what the engine returned.
 
-**101 tests green** — 60 analysis, 24 parsing, 12 session, 5 provider.
+**106 tests green** — 59 analysis, 24 parsing, 12 session, 6 learnsets, 5 provider.
 
 ## What does not exist yet
 
 - Save-specific playthrough availability. Party RAM does not expose the bag, badges, map
   progress, Move Reminder access or transfer history, so uncertain candidates are labelled
   as requiring an availability check (D-025).
-- Game-specific level-up catalogs and competitive usage/speed-benchmark weighting. The
-  current pinned learnset is generation-wide and the presets are Random Battle references,
-  not standard OU statistics.
+- Competitive usage and speed-benchmark weighting. The presets are Random Battle
+  references, not standard OU statistics.
+- TM/HM, tutor and egg moves. Only level-up moves are proposed, even though PKHeX exposes
+  the other sources through the same learn sources.
 - `UltimatePoKeSync.App` — Avalonia placeholder window only. Real dashboard is M7.
 - The CLI has no test project of its own. `AnalysisReport` and `RawSnapshotDump.Read` are
   covered only by running `--replay` against a fixture by hand.
@@ -168,6 +169,10 @@ Each of these cost real time to discover. They are all recorded in `DECISIONS.md
 10. **A legal candidate is not necessarily available in the current save.** Do not remove
     or reinterpret `RecommendationAvailability`: it is the honesty boundary while bag and
     progression facts are absent (D-025).
+11. **Games of the same generation disagree on learnsets.** 42 of the 386 Gen 3 species
+    learn a move at a different level in RSE than in FRLG. Never key a learnset by
+    generation, and never merge the games — the result is a plausible wrong number
+    (D-027).
 
 ---
 
@@ -201,8 +206,9 @@ Implemented:
 - explainable broad roles based on base stats, current moves and the Gen 3 type-based
   physical/special split;
 - playthrough priorities and competitive exact EV/nature/item candidates;
-- pinned Pokémon Showdown Random Battle references: 220 species, 393 role/movepool sets,
-  354 moves and generation-wide level-up data for all 386 Gen 3 species;
+- pinned Pokémon Showdown Random Battle references: 220 species, 393 role/movepool sets
+  and 354 moves;
+- per-game level-up learnsets read from PKHeX, not merged across the generation (D-027);
 - deterministic fallback to the current moveset when no external preset exists;
 - candidate availability labels rather than unsupported claims about the current save.
 
@@ -218,12 +224,21 @@ competitive profile falls back to the current moveset because the Random Battle 
 holds no unevolved Treecko. **A live mGBA session with the analysis flags has not been run
 yet** — the replay uses captured bytes, not a running emulator.
 
-Next, decide how much of the remaining availability gap belongs in M6. The smallest useful
-slice is an Emerald-specific level-up source plus explicit caller-supplied available items.
-Parsing badges, bag contents and world progress is a larger input contract and should not
-be smuggled into the pure analyzer. Competitive refinements can later add pinned,
-MIT-licensed ladder usage weights and real speed benchmarks without changing the profile
-boundary.
+The level-up source is now per game (D-027). `ILevelUpLearnsetSource` takes a
+`GameIdentity` and is backed by PKHeX, which ships one learn source per game for every
+generation up to Gen 9 — so extending past Gen 3 is a mapping table, not a new dataset.
+`Analysis` still has no PKHeX reference; the composition root injects the source through
+`PokemonRecommendationEngine.CreateDefault`.
+
+Next: the UI (M7). Roberto's bar is a person setting the whole thing up quickly and using
+it comfortably, not a developer dashboard, so the setup path — load the script, find the
+port, see the team — matters as much as the analysis panels. `AnalysisReport` in the CLI
+shows the exact objects the UI will bind to.
+
+Still open afterwards: the availability gap. Parsing badges, bag contents and world
+progress is a larger input contract and should not be smuggled into the pure analyzer.
+Competitive refinements can later add pinned, MIT-licensed ladder usage weights and real
+speed benchmarks without changing the profile boundary.
 
 ## Useful references
 

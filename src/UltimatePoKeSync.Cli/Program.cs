@@ -1,5 +1,6 @@
 using UltimatePoKeSync.Analysis;
 using UltimatePoKeSync.Contracts;
+using UltimatePoKeSync.GameData.Learnsets;
 using UltimatePoKeSync.Parsing;
 using UltimatePoKeSync.Providers.MGba;
 using UltimatePoKeSync.Session;
@@ -85,7 +86,8 @@ internal static class Program
             Console.WriteLine("Ctrl+C to quit.\n");
 
             var teamAnalyzer = new TeamAnalyzer();
-            var recommendationEngine = new PokemonRecommendationEngine();
+            PokemonRecommendationEngine recommendationEngine =
+                PokemonRecommendationEngine.CreateDefault(PKHeXGen3LevelUpLearnsets.Instance);
 
             try
             {
@@ -133,7 +135,12 @@ internal static class Program
 
         PartySnapshot party = parser.Parse(raw);
         PrintParty(party);
-        PrintAnalysis(party, analyze, profileKind, new TeamAnalyzer(), new PokemonRecommendationEngine());
+        PrintAnalysis(
+            party,
+            analyze,
+            profileKind,
+            new TeamAnalyzer(),
+            PokemonRecommendationEngine.CreateDefault(PKHeXGen3LevelUpLearnsets.Instance));
         Console.WriteLine("└─");
         return 0;
     }
