@@ -213,3 +213,46 @@ a differenza di WPF. MVVM con CommunityToolkit.Mvvm.
 **Alternative valutate:** MAUI (supporto Linux desktop assente), Uno Platform (più
 complesso da configurare, nessun vantaggio qui), UI web + backend locale (aggiunge un
 browser e un layer HTTP per nessun beneficio in un'app locale single-user).
+
+**Nota di implementazione:** `Avalonia.Diagnostics` (i DevTools) **non è pubblicato per
+la 12.x**, si ferma alla 11.3.20. Rimosso dalle dipendenze. Da rivalutare quando
+l'equivalente per Avalonia 12 sarà disponibile.
+
+---
+
+## D-012 — Lo script Lua è un unico file, non moduli
+
+**Stato:** Accettata · 2026-08-10
+
+La documentazione di mGBA **non specifica** se `require` e `package.path` funzionino per
+moduli locali accanto allo script caricato. Spezzare il bridge in `ups/server.lua`,
+`ups/games.lua` ecc. lo renderebbe dipendente da un comportamento non documentato, e
+soprattutto scomodo: l'utente carica *un* file dal menu di mGBA.
+
+`emulator-scripts/mgba/ups_bridge.lua` è quindi monolitico ma diviso in sezioni. È
+accettabile perché lo script è deliberatamente stupido (D-006): resta sotto le ~300 righe
+e non conterrà mai logica di dominio.
+
+---
+
+## D-013 — Verifica incrociata degli indirizzi Gen 3 su tre fonti
+
+**Stato:** Accettata · 2026-08-10
+
+Gli indirizzi di D-004 sono confermati da tre fonti indipendenti, l'ultima delle quali è
+decisiva:
+
+1. Data Crystal (RAM map FireRed/LeafGreen).
+2. `GameSettings.lua` di `40Cakes/pokebot-bizhawk`, tool in uso.
+3. **`res/scripts/pokemon.lua` distribuito da mGBA stesso** (tag 0.10.5) — valori
+   identici, incluso `_partyMonSize = 100`.
+
+Dalla stessa fonte è emerso anche il pattern idiomatico del socket server
+(`res/scripts/socketserver.lua`), che il bridge segue: `socket.bind(nil, port)` →
+`listen()` → `add("received", accept)`, con `socket.ERRORS.AGAIN` come "nessun dato".
+
+Constatazione utile: in Gen 3 **le revisioni condividono gli stessi indirizzi** (FireRed
+Rev 1, Ruby Rev 1/2 ereditano quelli della revisione base). Il game code basta quindi a
+scegliere la mappa, senza bisogno del CRC32 della ROM. Non è detto che valga per le
+generazioni successive, per questo la chiave resta il game code completo e non il solo
+titolo.
