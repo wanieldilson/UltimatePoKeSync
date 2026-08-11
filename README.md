@@ -18,6 +18,8 @@ coverage, its weak points, and what to do about them.
 [Install](#install) · [What it does](#what-it-does) · [How it works](#how-it-works) ·
 [From source](#running-from-source) · [Documentation](#documentation)
 
+<img src="docs/assets/screenshot.png" width="900" alt="The dashboard: the live party on the left, and the selected Pokémon with its role, nature, effort values and base stats on the right">
+
 </div>
 
 ---
@@ -25,7 +27,10 @@ coverage, its weak points, and what to do about them.
 ## What it does
 
 - **Reads your party as you play.** The emulator's memory, decoded in real time. Species,
-  level, types, nature, ability, held item, IVs, EVs, moves and PP.
+  level, types, nature, ability, held item, IVs, EVs, moves and PP — and what is happening
+  to it right now: hit points left, poison, burn, sleep.
+- **Shows the real sprites**, read from your own cartridge through the bridge. Nothing is
+  bundled: they are Nintendo's, and you already own every one you will see.
 - **Analyses the whole team.** All 17 Gen 3 matchups on both sides, including ability
   effects, and the gaps: what you are weak to with nothing to switch in, and what nothing
   on the team can hit hard.
