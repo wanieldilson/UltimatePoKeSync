@@ -74,6 +74,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         ScriptPath = SetupGuide.ScriptPath;
         PlatformName = SetupGuide.PlatformName;
         PortHelp = SetupGuide.PortHelp(live.Port);
+        RevealButtonText = SetupGuide.RevealButtonText;
+        IsTranslocated = SetupGuide.IsTranslocated;
+        TranslocationWarning = SetupGuide.TranslocationWarning;
 
         _live.StateChanged += (_, state) => _post(() => OnStateChanged(state));
         _live.PartyChanged += (_, party) => _post(() => OnPartyChanged(party));
@@ -101,6 +104,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public string PortHelp { get; }
 
+    public string RevealButtonText { get; }
+
+    /// <summary>macOS is running us from a randomised throwaway copy. See D-029.</summary>
+    public bool IsTranslocated { get; }
+
+    public string TranslocationWarning { get; }
+
     public string ProfileText => IsCompetitive ? "Competitive" : "Playthrough";
 
     /// <summary>Green once bytes are actually arriving, amber while they are not.</summary>
@@ -121,6 +131,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// <summary>Returns to the whole-team view. Selection itself is the list box's job.</summary>
     [RelayCommand]
     private void ClearSelection() => SelectedSlot = null;
+
+    /// <summary>
+    /// Opens the file manager on the script. Typing that path into mGBA's dialog by hand
+    /// is the one step most likely to go wrong.
+    /// </summary>
+    [RelayCommand]
+    private static void RevealScript() => SetupGuide.RevealScript();
 
     partial void OnSelectedSlotChanged(PokemonSlotViewModel? value) =>
         OnPropertyChanged(nameof(ShowTeamPanel));

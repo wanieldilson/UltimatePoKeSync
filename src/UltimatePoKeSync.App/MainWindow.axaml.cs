@@ -2,16 +2,21 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using UltimatePoKeSync.App.Services;
 using UltimatePoKeSync.App.ViewModels;
 
 namespace UltimatePoKeSync.App;
 
 public partial class MainWindow : Window
 {
-    private readonly MainWindowViewModel _viewModel = new();
+    private readonly MainWindowViewModel _viewModel;
 
     public MainWindow()
     {
+        // The script has to be on disk before the setup screen points at it.
+        SetupGuide.EnsureScript();
+        _viewModel = new MainWindowViewModel();
+
         AvaloniaXamlLoader.Load(this);
         DataContext = _viewModel;
 

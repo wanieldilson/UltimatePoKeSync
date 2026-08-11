@@ -761,3 +761,40 @@ unpack, `codesign --verify --deep --strict`, launch.
 
 Notarising, which would remove the right-click → Open step entirely, still needs a paid
 Apple Developer account and remains a business decision.
+
+---
+
+## D-029 — The setup screen points at a stable folder, not at the executable
+
+**Status:** Accepted · 2026-08-11
+
+The setup screen showed the bridge script where it shipped, next to the executable. On
+macOS that produced a path like
+`/private/var/folders/ch/…/AppTranslocation/005EAC16-…/d/UltimatePoKeSync-2.app/Contents/MacOS/emulator-scripts/ups_bridge.lua`.
+
+That is App Translocation. An app opened straight from Downloads, still carrying the
+quarantine attribute and never moved in Finder, is executed from a randomised read-only
+copy. Everything works, but every path the app reports about itself is a throwaway. The
+one step the user has to perform by hand — find this file in mGBA's open dialog — became
+the hardest one in the whole product.
+
+The script is therefore copied on startup into a per-user folder that does not move:
+`~/Library/Application Support/UltimatePoKeSync` on macOS, `%APPDATA%\UltimatePoKeSync` on
+Windows, `$XDG_DATA_HOME` or `~/.local/share/UltimatePoKeSync` on Linux. The copy is
+refreshed whenever the shipped script differs, so updating the app updates the script.
+Alongside the path there is now a **Show in Finder** button, because selecting a file in a
+file manager beats retyping a path, and the macOS steps start by telling the user to move
+the app into Applications, which is what stops translocation happening at all. When the app
+detects it is translocated it says so directly instead of leaving the user to wonder about
+the strange path.
+
+`~/Documents` would have been the most discoverable location, but writing there triggers a
+macOS privacy prompt, and asking for a permission dialog during setup trades one confusion
+for another. Application Support needs no permission, and the reveal button removes the
+only downside of a hidden folder.
+
+**Alternatives considered:** keep using the executable's folder and tell people to move the
+app first (rejected: the instruction arrives after the broken path is already on screen),
+write next to the ROM (rejected: the app does not know where the ROM is, and that folder is
+the user's, not ours), and embed the script and write it to a temporary file on demand
+(rejected: a temporary path is exactly the problem being fixed).

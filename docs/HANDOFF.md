@@ -71,7 +71,7 @@ and select only; the facts come from `Analysis`, so the window and the CLI canno
 GitHub Actions workflow publishes self-contained single-file binaries for Windows, Linux
 and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 
-**121 tests green** — 67 analysis, 24 parsing, 12 session, 7 app, 6 learnsets, 5 provider.
+**122 tests green** — 67 analysis, 24 parsing, 12 session, 8 app, 6 learnsets, 5 provider.
 
 ## What does not exist yet
 
@@ -197,7 +197,12 @@ Each of these cost real time to discover. They are all recorded in `DECISIONS.md
 10. **A legal candidate is not necessarily available in the current save.** Do not remove
     or reinterpret `RecommendationAvailability`: it is the honesty boundary while bag and
     progression facts are absent (D-025).
-11. **Games of the same generation disagree on learnsets.** 42 of the 386 Gen 3 species
+11. **macOS runs a downloaded app from a randomised throwaway copy** unless it is moved
+    into Applications first. Never show the user a path derived from where the executable
+    is: it will be under `/private/var/folders/…/AppTranslocation/…` and unusable (D-029).
+12. **Apple Silicon kills unsigned binaries** — exit 137, reported by Finder as "damaged".
+    macOS artifacts have to be built and signed on a macOS runner (D-028 amendment).
+13. **Games of the same generation disagree on learnsets.** 42 of the 386 Gen 3 species
     learn a move at a different level in RSE than in FRLG. Never key a learnset by
     generation, and never merge the games — the result is a plausible wrong number
     (D-027).

@@ -68,7 +68,7 @@
       <StackPanel MaxWidth="720" Margin="24,32" Spacing="18" HorizontalAlignment="Center">
         <TextBlock Text="Connect the emulator" FontSize="22" FontWeight="SemiBold" />
         <TextBlock Classes="muted"
-                   Text="{Binding PlatformName, StringFormat='Four steps on {0}. mGBA cannot load a script from the command line, so this part is manual — once, then it just works.'}" />
+                   Text="{Binding PlatformName, StringFormat='Setting up on {0}. mGBA cannot load a script from the command line, so this part is manual — once, then it just works.'}" />
 
         <ItemsControl ItemsSource="{Binding SetupSteps}">
           <ItemsControl.ItemTemplate>
@@ -80,12 +80,19 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
 
+        <Border Classes="card" Background="#33D9602E" IsVisible="{Binding IsTranslocated}">
+          <TextBlock Text="{Binding TranslocationWarning}" TextWrapping="Wrap" />
+        </Border>
+
         <Border Classes="card">
           <StackPanel Spacing="8">
             <TextBlock Text="Script to load" Classes="section" />
             <SelectableTextBlock Text="{Binding ScriptPath}" FontFamily="monospace"
                                  TextWrapping="Wrap" FontSize="12" />
-            <Button Name="CopyPathButton" Content="Copy path" HorizontalAlignment="Left" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Name="CopyPathButton" Content="Copy path" />
+              <Button Content="{Binding RevealButtonText}" Command="{Binding RevealScriptCommand}" />
+            </StackPanel>
           </StackPanel>
         </Border>
 

@@ -23,6 +23,24 @@ public sealed class MainWindowViewModelTests
         Assert.EndsWith("ups_bridge.lua", viewModel.ScriptPath, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The path handed to the user must survive being opened from Downloads on macOS,
+    /// where the app itself runs from a randomised throwaway directory. See D-029.
+    /// </summary>
+    [Fact]
+    public void TheScriptPath_IsAStableUserFolder_NotWhereverTheAppHappensToRun()
+    {
+        (MainWindowViewModel viewModel, _) = Create();
+
+        Assert.True(Path.IsPathRooted(viewModel.ScriptPath));
+        Assert.DoesNotContain("AppTranslocation", viewModel.ScriptPath, StringComparison.Ordinal);
+        Assert.DoesNotContain(AppContext.BaseDirectory, viewModel.ScriptPath, StringComparison.Ordinal);
+        Assert.StartsWith(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            viewModel.ScriptPath,
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ConnectionState_ReachesTheHeader()
     {

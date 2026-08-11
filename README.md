@@ -40,8 +40,12 @@ xattr -dr com.apple.quarantine /path/to/UltimatePoKeSync.app
 codesign --force --deep --sign - /path/to/UltimatePoKeSync.app
 ```
 
+On macOS, move the app into **Applications** before opening it. Run from Downloads, macOS
+executes it from a temporary randomised copy and the paths it shows you are useless.
+
 The app opens on a setup screen with the steps for your system and the path of the script
-to load into mGBA. Once the script is running, the team appears by itself.
+to load into mGBA, with a button that reveals it in your file manager. Once the script is
+running, the team appears by itself.
 
 ## How it works
 
