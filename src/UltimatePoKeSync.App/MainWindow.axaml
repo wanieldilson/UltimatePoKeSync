@@ -90,6 +90,10 @@
                      Fill="{Binding ConnectionBrush}" />
             <TextBlock Text="{Binding ConnectionText}" VerticalAlignment="Center" FontSize="12" />
           </StackPanel>
+          <!-- Reachable after connecting too: reloading the script into mGBA is exactly
+               when the path is wanted, and the setup screen is gone by then. -->
+          <Button Content="Bridge script" Command="{Binding RevealScriptCommand}"
+                  ToolTip.Tip="{Binding ScriptPath}" />
           <ToggleSwitch IsChecked="{Binding IsCompetitive}"
                         OffContent="Playthrough" OnContent="Competitive"
                         ToolTip.Tip="Playthrough answers for the story; Competitive answers for battling." />
