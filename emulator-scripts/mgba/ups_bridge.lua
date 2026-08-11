@@ -62,6 +62,15 @@ local GAMES = {
 	["BPRE"] = { name = "FireRed (USA)",    gen = 3, party = 0x02024284, count = 0x02024029 },
 	["BPGE"] = { name = "LeafGreen (USA)",  gen = 3, party = 0x02024284, count = 0x02024029 },
 
+	-- Italian releases of the same four. The addresses are the USA ones, confirmed by
+	-- counting how often each appears as a literal inside the ROM: the value the game
+	-- uses turns up hundreds of times and the others never. tools/check-gen3-addresses.py
+	-- reproduces it. See D-034.
+	["AXVI"] = { name = "Ruby (Italy)",     gen = 3, party = 0x03004360, count = 0x03004350 },
+	["AXPI"] = { name = "Sapphire (Italy)", gen = 3, party = 0x03004360, count = 0x03004350 },
+	["BPRI"] = { name = "FireRed (Italy)",  gen = 3, party = 0x02024284, count = 0x02024029 },
+	["BPGI"] = { name = "LeafGreen (Italy)",gen = 3, party = 0x02024284, count = 0x02024029 },
+
 	-- Every Western Emerald localisation shares the same EWRAM layout. In
 	-- GameSettings.lua the French and German codes map to the same table index as USA,
 	-- and the Spanish entry repeats the identical addresses. See D-017.

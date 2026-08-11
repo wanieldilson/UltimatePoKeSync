@@ -173,9 +173,9 @@ public sealed class PKHeXGen3MoveLearnSource : IMoveLearnSource
     {
         // Every Western Emerald localisation shares one set of tables. See D-017.
         "BPEE" or "BPEF" or "BPED" or "BPES" or "BPEI" => LearnSource3E.Instance,
-        "BPRE" => LearnSource3FR.Instance,
-        "BPGE" => LearnSource3LG.Instance,
-        "AXVE" or "AXPE" => LearnSource3RS.Instance,
+        "BPRE" or "BPRI" => LearnSource3FR.Instance,
+        "BPGE" or "BPGI" => LearnSource3LG.Instance,
+        "AXVE" or "AXPE" or "AXVI" or "AXPI" => LearnSource3RS.Instance,
         _ => null,
     };
 }

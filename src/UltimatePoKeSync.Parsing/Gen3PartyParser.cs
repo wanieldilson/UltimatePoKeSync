@@ -208,9 +208,9 @@ public sealed class Gen3PartyParser : IPartyParser
     {
         // All Western Emerald localisations share one table; only the text differs.
         "BPEE" or "BPEF" or "BPED" or "BPES" or "BPEI" => PersonalTable.E,
-        "BPRE" => PersonalTable.FR,
-        "BPGE" => PersonalTable.LG,
-        "AXVE" or "AXPE" => PersonalTable.RS,
+        "BPRE" or "BPRI" => PersonalTable.FR,
+        "BPGE" or "BPGI" => PersonalTable.LG,
+        "AXVE" or "AXPE" or "AXVI" or "AXPI" => PersonalTable.RS,
         _ => null,
     };
 }

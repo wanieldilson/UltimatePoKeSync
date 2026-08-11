@@ -88,8 +88,8 @@ scripting console for errors, and make sure no second copy of mGBA is holding po
 
 An unrecognised ROM produces no messages at all, deliberately: the script refuses to read a
 memory map it does not know rather than invent Pokémon. The supported game codes are the
-nine Western Gen 3 releases — Emerald in five languages, FireRed, LeafGreen, Ruby and
-Sapphire.
+thirteen Western Gen 3 releases — Emerald in five languages, and FireRed, LeafGreen, Ruby
+and Sapphire in English and Italian.
 
 </details>
 

@@ -1029,3 +1029,52 @@ picks Emerald's still-front table if the animated one is ever missed, which is a
 sprite. Verified on Emerald; the other four games remain unverified, and a wrong guess
 there shows a back sprite rather than nothing — a visible, reportable failure rather than a
 silent one.
+
+---
+
+## D-034 — A ROM can be asked which addresses it uses
+
+**Status:** Accepted · 2026-08-11
+
+Four more games arrived — Italian Ruby, Sapphire, FireRed and LeafGreen — and none of them
+was supported. The table held `AXVE`, `AXPE`, `BPRE` and `BPGE`, the USA releases; the
+Italian ones are `AXVI`, `AXPI`, `BPRI` and `BPGI`. Emerald had five localisations because
+D-017 established they share a layout; the other four games had one apiece.
+
+Adding them meant answering whether an Italian release keeps the USA addresses, and the
+sources D-013 cites do not list these codes. So the question went to the ROMs themselves.
+
+An address cannot be read off a ROM, but it is compiled into it: every routine that touches
+the party loads it from a literal pool, so the value appears in the image again and again.
+A value the game never uses appears zero times — a random 32-bit constant is expected 0.004
+times in sixteen megabytes. That makes a clean test, and the Italian Emerald calibrates it,
+because its address is already verified.
+
+The result is diagonal, which is what a real signal looks like:
+
+| ROM | Emerald address | FireRed/LeafGreen | Ruby/Sapphire |
+| --- | --- | --- | --- |
+| BPEI Emerald | **1091** | 1 | 3 |
+| BPRI FireRed | 0 | **740** | 0 |
+| BPGI LeafGreen | 0 | **740** | 0 |
+| AXVI Ruby | 0 | 0 | **57** |
+| AXPI Sapphire | 0 | 0 | **57** |
+
+Each game uses exactly one family and nothing else. The four codes are therefore filed with
+their USA counterparts, and `tools/check-gen3-addresses.py` reproduces the check for any ROM
+— including one already on file, where a mismatch would mean the entry is wrong.
+
+What this does *not* establish is that the layout at that address is what the parser
+expects. Only loading the game shows that, and the parser fails loudly if it is wrong:
+checksum validation rejects slots rather than inventing Pokémon (D-008).
+
+The same four ROMs settled the open question from D-033. Only Emerald animates its front
+sprites, so the frame count decides nothing elsewhere; all four turned out to hold exactly
+two candidate tables, and decoding Bulbasaur from the lower-addressed one gives the front
+sprite in every case. The fallback is now verified on five games rather than assumed on one.
+
+**Alternatives considered:** add the codes and hope (rejected: that is how invented data
+enters, and D-005 exists because of it), leave them unsupported until an external source
+lists them (rejected: the evidence is stronger than a third-party table, and it is in the
+user's own hand), and infer the address at run time by scanning for it (rejected: the scan
+needs to know what it is looking for, which is the question).

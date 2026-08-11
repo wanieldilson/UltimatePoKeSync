@@ -28,7 +28,15 @@ public sealed class PKHeXGen3MoveLearnSourceTests
     public void Supports_CoversEveryGen3GameTheParserCovers()
     {
         Assert.All(
-            new[] { "BPEE", "BPEF", "BPED", "BPES", "BPEI", "BPRE", "BPGE", "AXVE", "AXPE" },
+            new[]
+            {
+                "BPEE", "BPEF", "BPED", "BPES", "BPEI",
+                "BPRE", "BPGE", "AXVE", "AXPE",
+
+                // Italian releases, confirmed to use the same addresses as their USA
+                // counterparts by tools/check-gen3-addresses.py. See D-034.
+                "BPRI", "BPGI", "AXVI", "AXPI",
+            },
             code => Assert.True(
                 _moves.Supports(new GameIdentity(code, "", 0, PokemonGeneration.Gen3)),
                 code));
