@@ -10,11 +10,29 @@ moves and held item for each Pokémon, with two analysis profiles — **playthro
 
 ## Status
 
-Early development. **M6 is complete:** the app parses a live Gen 3 party, computes its
-17-type defensive and offensive coverage including ability modifiers, and suggests role,
-nature, EVs, moves and held item per Pokémon under either profile. All of it is visible
-from the CLI. Current target: **Gen 3 / Pokémon Emerald** via **mGBA**. The architecture is
-multi-emulator and multi-generation from the first commit.
+Early development, but usable. **M7 is complete:** there is a real desktop app. It shows
+your party live, the team's 17-type coverage with an attributed strength score, and per
+Pokémon the role, nature, effort values and a recommended set — for the story or for
+competitive play. Current target: **Gen 3 / Pokémon Emerald** via **mGBA**. The
+architecture is multi-emulator and multi-generation from the first commit.
+
+## Install
+
+Download the file for your system from the [releases page](../../releases), unpack it and
+run it. Nothing else to install — the .NET runtime is inside.
+
+| System | File |
+| ------ | ---- |
+| Windows | `UltimatePoKeSync-windows-x64.zip` |
+| macOS, Apple Silicon | `UltimatePoKeSync-macos-apple-silicon.zip` |
+| macOS, Intel | `UltimatePoKeSync-macos-intel.zip` |
+| Linux | `UltimatePoKeSync-linux-x64.tar.gz` |
+
+On macOS the app is not signed by Apple, so the first launch has to be right-click → Open →
+Open. Every launch after that is a normal double-click.
+
+The app opens on a setup screen with the steps for your system and the path of the script
+to load into mGBA. Once the script is running, the team appears by itself.
 
 ## How it works
 
@@ -29,16 +47,22 @@ touching the app's logic.
 
 ## Requirements
 
-- .NET 10 SDK
 - mGBA 0.10.5 or later (Lua scripting exists from 0.10.0)
 - A Gen 3 ROM you own — none is included, and none ever will be
+- The .NET 10 SDK, only if you build from source
 
-## Quick start
+## Running from source
 
-1. In mGBA: `Tools` → `Scripting…` → `File` → `Load script…` →
-   [`emulator-scripts/mgba/ups_bridge.lua`](emulator-scripts/mgba/ups_bridge.lua)
-2. Load the ROM (before or after, it does not matter).
-3. `dotnet run --project src/UltimatePoKeSync.Cli`
+Needs the .NET 10 SDK.
+
+```bash
+dotnet run --project src/UltimatePoKeSync.App   # the dashboard
+dotnet run --project src/UltimatePoKeSync.Cli   # the diagnostic console
+```
+
+Either way, load [`emulator-scripts/mgba/ups_bridge.lua`](emulator-scripts/mgba/ups_bridge.lua)
+in mGBA through `Tools` → `Scripting…` → `File` → `Load script…`, with the ROM loaded
+before or after — it does not matter.
 
 Add `--analyze` for team coverage and `--recommend playthrough` (or `competitive`) for
 per-Pokémon suggestions. `--replay <fixture.json>` renders a snapshot dumped with `--dump`
@@ -60,12 +84,12 @@ Detailed instructions and troubleshooting:
 | `emulator-scripts/mgba/`  | Lua script that reads RAM and ships it over TCP |
 | `src/…Contracts/`         | The architectural boundary: raw bytes, not Pokémon. Zero dependencies |
 | `src/…Providers.MGba/`    | TCP client with reconnect. Knows nothing of PKHeX or game rules |
-| `src/…Parsing/`           | Bytes → Pokémon via PKHeX. The only project that depends on PKHeX |
+| `src/…Parsing/`           | Bytes → Pokémon via PKHeX |
 | `src/…GameData/`          | Per-generation type chart, natures, heuristics |
 | `src/…GameData.Learnsets/`| Per-game level-up learnsets, read from PKHeX |
 | `src/…Analysis/`          | Team coverage, roles, suggestions |
 | `src/…Cli/`               | Headless diagnostic console |
-| `src/…App/`               | Avalonia UI |
+| `src/…App/`               | Avalonia dashboard |
 
 ## Documentation
 

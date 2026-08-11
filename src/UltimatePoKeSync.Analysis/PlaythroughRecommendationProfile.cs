@@ -51,15 +51,18 @@ public sealed class PlaythroughRecommendationProfile : IRecommendationProfile
                     candidate.LearnedAtLevel)),
         ];
 
+        MoveRecommendation[] candidates = [.. current, .. levelUp];
+
         return new PokemonRecommendation(
             member,
             Kind,
             context.RoleAnalysis,
             RecommendationPolicy.RecommendNature(context.RoleAnalysis, context.Rules),
             RecommendationPolicy.RecommendPlaythroughEvs(context.RoleAnalysis.Role),
-            [.. current, .. levelUp],
+            candidates,
             RecommendationPolicy.RecommendPlaythroughItems(member),
-            preset);
+            preset,
+            RecommendationPolicy.SelectBuild(context, candidates));
     }
 
     private static bool IsRoleAligned(

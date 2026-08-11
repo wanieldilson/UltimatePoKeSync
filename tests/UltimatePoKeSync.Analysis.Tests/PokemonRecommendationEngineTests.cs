@@ -138,6 +138,73 @@ public sealed class PokemonRecommendationEngineTests
     }
 
     [Fact]
+    public void Build_PicksFourMovesWithAReasonEachAndKeepsTheRest()
+    {
+        PokemonSnapshot gyarados = AnalysisTestData.Member(
+            primaryType: PokemonType.Water,
+            secondaryType: PokemonType.Flying,
+            speciesName: "Gyarados",
+            baseStats: new StatBlock(95, 125, 79, 60, 100, 81),
+            speciesId: 130,
+            moves: [AnalysisTestData.Move(89, "Earthquake", PokemonType.Ground)]);
+
+        PokemonRecommendation result = _engine
+            .Recommend(AnalysisTestData.Party(gyarados), RecommendationProfileKind.Competitive)
+            .Members
+            .Single();
+
+        RecommendedBuild build = result.Build;
+
+        Assert.Equal(4, build.Moves.Count);
+        Assert.Equal(build.Moves.Count, build.Reasons.Count);
+        Assert.All(build.Reasons, reason => Assert.False(string.IsNullOrWhiteSpace(reason)));
+        Assert.Equal(
+            result.MoveCandidates.Count,
+            build.Moves.Count + build.Alternatives.Count);
+        Assert.Empty(build.Moves.Intersect(build.Alternatives));
+    }
+
+    [Fact]
+    public void Build_PrefersSameTypeDamageOnThePhysicalSideForAPhysicalAttacker()
+    {
+        PokemonSnapshot machamp = AnalysisTestData.Member(
+            primaryType: PokemonType.Fighting,
+            speciesName: "Machamp",
+            baseStats: new StatBlock(90, 130, 80, 65, 85, 55),
+            speciesId: 68,
+            moves:
+            [
+                AnalysisTestData.Move(66, "Seismic Toss", PokemonType.Fighting),
+                AnalysisTestData.Move(223, "Cross Chop", PokemonType.Fighting),
+                AnalysisTestData.Move(70, "Strength", PokemonType.Normal),
+            ]);
+
+        RecommendedBuild build = _engine
+            .Recommend(AnalysisTestData.Party(machamp), RecommendationProfileKind.Playthrough)
+            .Members
+            .Single()
+            .Build;
+
+        Assert.Equal(PokemonType.Fighting, build.Moves[0].Move.Type);
+        Assert.Contains("same-type", build.Reasons[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Build_IsEmptyWhenNothingIsKnown()
+    {
+        PokemonSnapshot blank = AnalysisTestData.Member(speciesName: "Magikarp", speciesId: 129);
+
+        RecommendedBuild build = _engine
+            .Recommend(AnalysisTestData.Party(blank), RecommendationProfileKind.Competitive)
+            .Members
+            .Single()
+            .Build;
+
+        Assert.Empty(build.Moves);
+        Assert.Single(build.Reasons);
+    }
+
+    [Fact]
     public void Recommend_HandlesEmptyParty()
     {
         PartySnapshot party = AnalysisTestData.Party();

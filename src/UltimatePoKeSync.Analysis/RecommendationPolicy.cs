@@ -34,6 +34,39 @@ internal static class RecommendationPolicy
             .Preset;
     }
 
+    /// <summary>Picks the four moves to actually run, and says why for each of them.</summary>
+    public static RecommendedBuild SelectBuild(
+        RecommendationContext context,
+        IReadOnlyList<MoveRecommendation> candidates)
+    {
+        const int moveSlots = 4;
+        if (candidates.Count == 0)
+        {
+            return new RecommendedBuild([], ["No move is known for this Pokémon yet."], []);
+        }
+
+        HashSet<string> presetMoves = [.. MatchPreset(context)?.MovePool ?? []];
+
+        var scored = candidates
+            .Select((candidate, index) => new
+            {
+                Candidate = candidate,
+                Index = index,
+                Score = ScoreMove(context, candidate, presetMoves),
+                Reason = ReasonFor(context, candidate, presetMoves),
+            })
+            .OrderByDescending(entry => entry.Score)
+            .ThenBy(entry => entry.Index)
+            .ToArray();
+
+        var chosen = scored.Take(moveSlots).ToArray();
+
+        return new RecommendedBuild(
+            [.. chosen.Select(entry => entry.Candidate)],
+            [.. chosen.Select(entry => $"{entry.Candidate.Move.Name}: {entry.Reason}")],
+            [.. scored.Skip(moveSlots).Select(entry => entry.Candidate)]);
+    }
+
     public static NatureRecommendation RecommendNature(
         PokemonRoleAnalysis role,
         IGenerationRules rules)
@@ -185,6 +218,109 @@ internal static class RecommendationPolicy
 
         return items;
     }
+
+    private static int ScoreMove(
+        RecommendationContext context,
+        MoveRecommendation candidate,
+        IReadOnlySet<string> presetMoves)
+    {
+        PokemonSnapshot member = context.RoleAnalysis.Member;
+        MoveReference move = candidate.Move;
+        MoveCategory category = context.Rules.GetMoveCategory(move.MoveId, move.Type);
+        bool damaging = category != MoveCategory.Status &&
+            context.Rules.CanProvideSuperEffectiveCoverage(move.MoveId);
+
+        int score = 0;
+
+        if (damaging && (move.Type == member.PrimaryType || move.Type == member.SecondaryType))
+        {
+            score += 6;
+        }
+
+        if (damaging && MatchesRoleCategory(context.RoleAnalysis.Role, category))
+        {
+            score += 5;
+        }
+
+        if (damaging && ClosesTeamGap(context, move.Type))
+        {
+            score += 4;
+        }
+
+        if (!damaging && WantsUtility(context.RoleAnalysis.Role))
+        {
+            score += 4;
+        }
+
+        if (candidate.Source == MoveCandidateSource.CurrentMoveset)
+        {
+            score += 3;
+        }
+
+        if (presetMoves.Contains(move.ReferenceId))
+        {
+            score += 2;
+        }
+
+        return score;
+    }
+
+    private static string ReasonFor(
+        RecommendationContext context,
+        MoveRecommendation candidate,
+        IReadOnlySet<string> presetMoves)
+    {
+        PokemonSnapshot member = context.RoleAnalysis.Member;
+        MoveReference move = candidate.Move;
+        MoveCategory category = context.Rules.GetMoveCategory(move.MoveId, move.Type);
+        bool damaging = category != MoveCategory.Status &&
+            context.Rules.CanProvideSuperEffectiveCoverage(move.MoveId);
+
+        if (damaging && ClosesTeamGap(context, move.Type))
+        {
+            return $"the only {move.Type} damage the party has for a type nothing else answers";
+        }
+
+        if (damaging && (move.Type == member.PrimaryType || move.Type == member.SecondaryType))
+        {
+            return MatchesRoleCategory(context.RoleAnalysis.Role, category)
+                ? $"same-type damage on the {category.ToString().ToLowerInvariant()} side this Pokémon hits hardest with"
+                : "same-type damage";
+        }
+
+        if (damaging && MatchesRoleCategory(context.RoleAnalysis.Role, category))
+        {
+            return $"{category.ToString().ToLowerInvariant()} coverage that scales with the better attacking stat";
+        }
+
+        if (!damaging)
+        {
+            return WantsUtility(context.RoleAnalysis.Role)
+                ? "utility, which is what this Pokémon's bulk is for"
+                : "utility";
+        }
+
+        return presetMoves.Contains(move.ReferenceId)
+            ? "part of the matched reference set"
+            : "the best of what is left";
+    }
+
+    private static bool MatchesRoleCategory(PokemonRole role, MoveCategory category) => role switch
+    {
+        PokemonRole.PhysicalAttacker or PokemonRole.PhysicalWall => category == MoveCategory.Physical,
+        PokemonRole.SpecialAttacker or PokemonRole.SpecialWall => category == MoveCategory.Special,
+        PokemonRole.MixedAttacker => category is MoveCategory.Physical or MoveCategory.Special,
+        _ => false,
+    };
+
+    private static bool WantsUtility(PokemonRole role) =>
+        role is PokemonRole.PhysicalWall or PokemonRole.SpecialWall
+            or PokemonRole.MixedWall or PokemonRole.Support;
+
+    /// <summary>Whether this move type answers a type the whole party currently cannot.</summary>
+    private static bool ClosesTeamGap(RecommendationContext context, PokemonType moveType) =>
+        context.TeamAnalysis.OffensiveGaps.Any(
+            gap => context.Rules.TypeChart.GetMultiplier(moveType, gap) > 1);
 
     private static int ScorePreset(
         ReferencePreset preset,

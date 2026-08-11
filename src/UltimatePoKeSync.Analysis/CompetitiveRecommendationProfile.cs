@@ -51,6 +51,7 @@ public sealed class CompetitiveRecommendationProfile : IRecommendationProfile
                 nature.PreferredNatures[0]),
             moves,
             RecommendationPolicy.RecommendCompetitiveItems(context.RoleAnalysis.Role),
-            preset);
+            preset,
+            RecommendationPolicy.SelectBuild(context, moves));
     }
 }

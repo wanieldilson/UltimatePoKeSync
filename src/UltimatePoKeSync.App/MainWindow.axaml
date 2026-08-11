@@ -1,19 +1,348 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:UltimatePoKeSync.App.ViewModels"
+        xmlns:sys="using:System"
         x:Class="UltimatePoKeSync.App.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
         Title="UltimatePoKeSync"
-        Width="1000" Height="700"
-        MinWidth="720" MinHeight="480">
+        Width="1180" Height="760"
+        MinWidth="900" MinHeight="600">
 
-  <!-- Placeholder. The real dashboard lands with milestone M7. -->
-  <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
-    <TextBlock Text="UltimatePoKeSync"
-               FontSize="28" FontWeight="SemiBold"
-               HorizontalAlignment="Center" />
-    <TextBlock Text="The dashboard lands with milestone M7."
-               Opacity="0.7" HorizontalAlignment="Center" />
-    <TextBlock Text="For now, use the CLI:  dotnet run --project src/UltimatePoKeSync.Cli"
-               Opacity="0.7" FontFamily="monospace" HorizontalAlignment="Center" />
-  </StackPanel>
+  <Window.Resources>
+    <!-- One chip shape reused by every coverage list: colour plus the type name, never
+         colour alone, so the panel still reads without colour vision. -->
+    <DataTemplate x:Key="ChipTemplate" x:DataType="vm:TypeChip">
+      <Border Background="{Binding Brush}" CornerRadius="5" Padding="8,3" Margin="0,0,6,6"
+              ToolTip.Tip="{Binding Detail}">
+        <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
+      </Border>
+    </DataTemplate>
+    <ItemsPanelTemplate x:Key="ChipPanel">
+      <WrapPanel />
+    </ItemsPanelTemplate>
+  </Window.Resources>
 
+  <Window.Styles>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+    <Style Selector="TextBlock.section">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Opacity" Value="0.75" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Opacity" Value="0.65" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- Header: what it is, what it is connected to, and which profile is answering. -->
+    <Border Grid.Row="0" Padding="20,14" Background="{DynamicResource SystemControlBackgroundListLowBrush}">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="2">
+          <TextBlock Text="UltimatePoKeSync" FontSize="19" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding GameText}" Classes="muted" FontSize="12" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="18" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Ellipse Width="9" Height="9" VerticalAlignment="Center"
+                     Fill="{Binding ConnectionBrush}" />
+            <TextBlock Text="{Binding ConnectionText}" VerticalAlignment="Center" FontSize="12" />
+          </StackPanel>
+          <ToggleSwitch IsChecked="{Binding IsCompetitive}"
+                        OffContent="Playthrough" OnContent="Competitive"
+                        ToolTip.Tip="Playthrough answers for the story; Competitive answers for battling." />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Setup: shown until a party actually arrives. -->
+    <ScrollViewer Grid.Row="1" IsVisible="{Binding !HasTeam}">
+      <StackPanel MaxWidth="720" Margin="24,32" Spacing="18" HorizontalAlignment="Center">
+        <TextBlock Text="Connect the emulator" FontSize="22" FontWeight="SemiBold" />
+        <TextBlock Classes="muted"
+                   Text="{Binding PlatformName, StringFormat='Four steps on {0}. mGBA cannot load a script from the command line, so this part is manual — once, then it just works.'}" />
+
+        <ItemsControl ItemsSource="{Binding SetupSteps}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="sys:String">
+              <Border Classes="card" Margin="0,0,0,8">
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Script to load" Classes="section" />
+            <SelectableTextBlock Text="{Binding ScriptPath}" FontFamily="monospace"
+                                 TextWrapping="Wrap" FontSize="12" />
+            <Button Name="CopyPathButton" Content="Copy path" HorizontalAlignment="Left" />
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="{Binding PortHelp}" Classes="muted" FontSize="12" />
+        <TextBlock Text="{Binding AnalysisError}" IsVisible="{Binding HasAnalysisError}"
+                   Foreground="#D9602E" TextWrapping="Wrap" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- Dashboard. -->
+    <Grid Grid.Row="1" IsVisible="{Binding HasTeam}" ColumnDefinitions="230,*" Margin="16,16,16,16">
+
+      <ListBox ItemsSource="{Binding Slots}" SelectedItem="{Binding SelectedSlot}"
+               Background="Transparent" BorderThickness="0">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:PokemonSlotViewModel">
+            <Border Background="{Binding TileBrush}" CornerRadius="8" Padding="10" Margin="0,0,0,6">
+              <Grid ColumnDefinitions="Auto,*">
+                <Border Width="40" Height="40" CornerRadius="6" Background="{Binding PrimaryBrush}">
+                  <TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="Bold"
+                             FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="1" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding SpeciesName}" FontWeight="SemiBold" FontSize="13"
+                             TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding NicknameText}" IsVisible="{Binding HasNickname}"
+                             Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding LevelText}" Classes="muted" FontSize="11" />
+                  <TextBlock Text="{Binding TypeText}" Classes="muted" FontSize="11" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <ScrollViewer Grid.Column="1" Margin="16,0,0,0">
+        <Panel>
+
+          <!-- No selection: the whole party. -->
+          <StackPanel Spacing="14" IsVisible="{Binding ShowTeamPanel}">
+
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="Team strength" Classes="section" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" FontSize="22" FontWeight="SemiBold"
+                             Text="{Binding StrengthScore, StringFormat='{}{0}/100'}" />
+                </Grid>
+                <ProgressBar Value="{Binding StrengthScore}" Maximum="100" Height="6" />
+                <TextBlock Text="{Binding StrengthHeadline}" Classes="muted" FontSize="12" />
+
+                <ItemsControl ItemsSource="{Binding StrengthFactors}" Margin="0,6,0,0">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:StrengthRow">
+                      <Grid ColumnDefinitions="150,70,*" Margin="0,4">
+                        <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="12"
+                                   Classes="muted" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="{Binding Explanation}" FontSize="12"
+                                   Classes="muted" VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="12">
+                <TextBlock Text="Defending" Classes="section" />
+                <TextBlock Text="Weak to" FontSize="12" />
+                <ItemsControl ItemsSource="{Binding TeamWeaknesses}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                <TextBlock Text="Neutral" FontSize="12" Margin="0,6,0,0" />
+                <ItemsControl ItemsSource="{Binding TeamNeutral}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                <TextBlock Text="Resisted or immune" FontSize="12" Margin="0,6,0,0" />
+                <ItemsControl ItemsSource="{Binding TeamResisted}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="12">
+                <TextBlock Text="Attacking" Classes="section" />
+                <TextBlock Text="Hit super effectively" FontSize="12" />
+                <ItemsControl ItemsSource="{Binding TeamSuperEffective}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                <TextBlock Text="No super-effective answer" FontSize="12" Margin="0,6,0,0" />
+                <ItemsControl ItemsSource="{Binding TeamUnanswered}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+              </StackPanel>
+            </Border>
+
+          </StackPanel>
+
+          <!-- A slot is selected: everything about that Pokémon. -->
+          <ContentControl IsVisible="{Binding !ShowTeamPanel}" Content="{Binding SelectedSlot}">
+            <ContentControl.ContentTemplate>
+              <DataTemplate x:DataType="vm:PokemonSlotViewModel">
+                <StackPanel Spacing="14">
+
+
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding SpeciesName}" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding NicknameText}" IsVisible="{Binding HasNickname}" Classes="muted" />
+                        <TextBlock Classes="muted" FontSize="12">
+                          <Run Text="{Binding LevelText}" />
+                          <Run Text="·" />
+                          <Run Text="{Binding TypeText}" />
+                          <Run Text="·" />
+                          <Run Text="{Binding NatureName}" />
+                          <Run Text="·" />
+                          <Run Text="{Binding AbilityText}" />
+                          <Run Text="·" />
+                          <Run Text="{Binding HeldItemText}" />
+                        </TextBlock>
+                      </StackPanel>
+                      <Button Grid.Column="1" Content="Back to team" VerticalAlignment="Top"
+                              Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ClearSelectionCommand}" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Stats" Classes="section" />
+                    <Grid ColumnDefinitions="120,60,50,50,*">
+                      <TextBlock Text="" />
+                      <TextBlock Grid.Column="1" Text="Base" Classes="muted" FontSize="11" />
+                      <TextBlock Grid.Column="2" Text="IV" Classes="muted" FontSize="11" />
+                      <TextBlock Grid.Column="3" Text="EV" Classes="muted" FontSize="11" />
+                      <TextBlock Grid.Column="4" Text="Now" Classes="muted" FontSize="11" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Stats}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:StatRow">
+                          <Grid ColumnDefinitions="120,60,50,50,*" Margin="0,3">
+                            <TextBlock Text="{Binding Name}" FontSize="12" />
+                            <TextBlock Grid.Column="1" Text="{Binding Base}" FontSize="12" Classes="muted" />
+                            <TextBlock Grid.Column="2" Text="{Binding Iv}" FontSize="12" Classes="muted" />
+                            <TextBlock Grid.Column="3" Text="{Binding Ev}" FontSize="12" Classes="muted" />
+                            <TextBlock Grid.Column="4" Text="{Binding Current}" FontSize="12" FontWeight="SemiBold" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="Matchups" Classes="section" />
+                    <TextBlock Text="Weak to" FontSize="12" />
+                    <ItemsControl ItemsSource="{Binding Weaknesses}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                    <TextBlock Text="Resists or is immune to" FontSize="12" Margin="0,6,0,0" />
+                    <ItemsControl ItemsSource="{Binding Resistances}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="Known moves" Classes="section" />
+                    <ItemsControl ItemsSource="{Binding Moves}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MoveRow">
+                          <Grid ColumnDefinitions="180,110,*" Margin="0,3">
+                            <TextBlock Text="{Binding Name}" FontSize="12" />
+                            <Border Grid.Column="1" Background="{Binding Brush}" CornerRadius="4"
+                                    Padding="7,1" HorizontalAlignment="Left">
+                              <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
+                            </Border>
+                            <TextBlock Grid.Column="2" Text="{Binding Pp}" FontSize="12" Classes="muted" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="card" IsVisible="{Binding HasRecommendation}">
+                  <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Text="Recommendation" Classes="section" VerticalAlignment="Center" />
+                      <Button Grid.Column="1" Content="Show the best set"
+                              Command="{Binding ToggleBuildCommand}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto">
+                      <TextBlock Text="Role" FontSize="12" Classes="muted" />
+                      <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding RoleText}" FontSize="12" />
+                        <TextBlock Text="{Binding RoleReason}" FontSize="11" Classes="muted" />
+                      </StackPanel>
+
+                      <TextBlock Grid.Row="1" Text="Nature" FontSize="12" Classes="muted" Margin="0,8,0,0" />
+                      <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,8,0,0">
+                        <TextBlock Text="{Binding NatureText}" FontSize="12" />
+                        <TextBlock Text="{Binding NatureNote}" FontSize="11" Classes="muted" />
+                      </StackPanel>
+
+                      <TextBlock Grid.Row="2" Text="Effort values" FontSize="12" Classes="muted" Margin="0,8,0,0" />
+                      <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,8,0,0">
+                        <TextBlock Text="{Binding EffortValueText}" FontSize="12" />
+                        <TextBlock Text="{Binding ProjectedStatsText}" IsVisible="{Binding HasProjectedStats}"
+                                   FontSize="11" Classes="muted" />
+                      </StackPanel>
+                    </Grid>
+
+                    <StackPanel Spacing="8" IsVisible="{Binding ShowBuild}" Margin="0,6,0,0">
+                      <TextBlock Text="Best set" Classes="section" />
+                      <ItemsControl ItemsSource="{Binding BuildMoves}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:BuildMoveRow">
+                            <Grid ColumnDefinitions="180,110,*" Margin="0,3">
+                              <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" />
+                              <Border Grid.Column="1" Background="{Binding Brush}" CornerRadius="4"
+                                      Padding="7,1" HorizontalAlignment="Left">
+                                <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
+                              </Border>
+                              <TextBlock Grid.Column="2" Text="{Binding Reason}" FontSize="11"
+                                         Classes="muted" TextWrapping="Wrap" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+
+                      <TextBlock Text="Also considered" Classes="section" Margin="0,8,0,0"
+                                 IsVisible="{Binding HasAlternatives}" />
+                      <ItemsControl ItemsSource="{Binding Alternatives}" IsVisible="{Binding HasAlternatives}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="sys:String">
+                            <TextBlock Text="{Binding}" FontSize="11" Classes="muted" />
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+
+                      <TextBlock Text="Held item" Classes="section" Margin="0,8,0,0" />
+                      <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="sys:String">
+                            <TextBlock Text="{Binding}" FontSize="11" Classes="muted" />
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+
+                      <TextBlock Text="{Binding PresetText}" IsVisible="{Binding HasPreset}"
+                                 FontSize="11" Classes="muted" Margin="0,8,0,0" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                </StackPanel>
+              </DataTemplate>
+            </ContentControl.ContentTemplate>
+          </ContentControl>
+        </Panel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
 </Window>

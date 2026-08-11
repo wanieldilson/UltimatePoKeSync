@@ -13,6 +13,8 @@ namespace UltimatePoKeSync.Cli;
 /// </summary>
 internal static class Program
 {
+    private static readonly TeamStrengthAnalyzer StrengthAnalyzer = new();
+
     private static async Task<int> Main(string[] args)
     {
         if (args.Contains("--help") || args.Contains("-h"))
@@ -203,7 +205,9 @@ internal static class Program
         {
             if (profileKind is null)
             {
-                AnalysisReport.PrintTeamAnalysis(teamAnalyzer.Analyze(party));
+                TeamAnalysis only = teamAnalyzer.Analyze(party);
+                AnalysisReport.PrintTeamAnalysis(only);
+                AnalysisReport.PrintTeamStrength(StrengthAnalyzer.Evaluate(only));
                 return;
             }
 
@@ -216,6 +220,8 @@ internal static class Program
             if (analyze)
             {
                 AnalysisReport.PrintTeamAnalysis(recommendation.TeamAnalysis);
+                AnalysisReport.PrintTeamStrength(
+                    StrengthAnalyzer.Evaluate(recommendation.TeamAnalysis));
             }
 
             AnalysisReport.PrintRecommendations(recommendation);

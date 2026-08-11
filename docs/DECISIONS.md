@@ -685,3 +685,60 @@ per-game datasets from the `pret` disassemblies (rejected: one importer per game
 only, and the whole exercise repeats for every future generation, while PKHeX has already
 done it), and expose PKHeX types through `GameData` directly (rejected: drags the
 dependency into everything that reads game data, including the UI).
+
+---
+
+## D-028 — The dashboard answers, and shows its working
+
+**Status:** Accepted · 2026-08-11
+
+M7 turns the analysis layers into an application a player can use without a terminal. Three
+choices shape it.
+
+**The window formats; it never decides.** Coverage, roles, strength and builds are computed
+in `Analysis` and rendered by view models that only select and format. The dashboard and the
+CLI therefore agree by construction rather than by discipline, and a disagreement between
+them is a bug with one place to fix.
+
+**A score is never shown alone.** D-022 rejected opaque numbers, and a team strength
+indicator is exactly the thing that becomes one. `TeamStrength` is a list of attributed
+factors — party size, level cohesion, defensive coverage, offensive coverage, nature fit,
+effort-value fit — each carrying its points, the fact behind them and the members
+responsible. The score is their sum, and the panel always shows the breakdown beside it.
+The effort-value factor measures values spent on the *wrong* stats rather than values not
+yet spent, because story play rarely trains at all and reporting that as a weakness is
+noise, not advice.
+
+**A recommended build, without dropping the candidate pool.** D-025 deliberately refused to
+name one best set. A player wants an answer, so `RecommendedBuild` now picks four moves and
+states the reason for each, ranked by same-type damage, the category the role actually
+scales with, whether the move closes a gap nothing else on the team answers, and continuity
+with what is already known. What it turned down stays visible as alternatives. The engine
+still exposes every candidate; the build is one more result, not a replacement.
+
+Sprites are placeholders: a tile in the primary type's colour with the species name and
+level. Pokémon sprites are Nintendo and Game Freak's, and bundling them in a public GPLv3
+repository is a licensing problem rather than an asset problem. Reading them from the
+player's own ROM through the existing bridge is the clean route and is its own milestone.
+Every coloured element also carries its type in text, so the display survives both colour
+blindness and a screenshot.
+
+Distribution is a GitHub Actions workflow that publishes self-contained single-file builds
+for Windows, Linux and both macOS architectures and attaches them to the release. A user
+needs no .NET SDK, no clone and no command line. Compression brings a build to about 62 MB,
+verified locally. The macOS builds are wrapped in an unsigned `.app` bundle, so the first
+launch needs right-click → Open; notarising would require a paid Apple Developer account
+and is a business decision, not a technical one. The bridge script is copied next to the
+executable so the setup screen can hand over a path that exists on the user's disk.
+
+`ILiveTeamSource` exists so the dashboard can be driven by the Italian Emerald capture in a
+test, and the view model takes its UI-thread dispatch as a delegate so that test needs no
+Avalonia application. Without both, the only way to check the window would be to have mGBA
+running — the kind of verification that never gets done.
+
+**Alternatives considered:** put the analysis logic in the view models where it would be
+convenient (rejected: two implementations of the same answers, drifting), show the strength
+score alone as a headline number (rejected: unactionable, and D-022 already settled it),
+have the build replace the candidate list (rejected: hides the trade-off the profiles
+exist to expose), bundle a sprite pack (rejected: not ours to redistribute), and commit
+prebuilt binaries to the repository (rejected: bloats history and still fails Gatekeeper).

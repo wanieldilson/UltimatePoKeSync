@@ -1,6 +1,6 @@
 # Handoff — state of the project
 
-Last updated: 2026-08-11, at the end of milestone M6.
+Last updated: 2026-08-11, at the end of milestone M7.
 
 Read this first, then [`DECISIONS.md`](DECISIONS.md) for the reasoning behind every choice.
 `DECISIONS.md` is the authority; this file is orientation.
@@ -55,7 +55,23 @@ dotnet run --project src/UltimatePoKeSync.Cli -- \
 can be checked with no emulator running. Rendering lives in `AnalysisReport` and formats
 only; it never re-ranks or filters what the engine returned.
 
-**106 tests green** — 59 analysis, 24 parsing, 12 session, 6 learnsets, 5 provider.
+M7 puts all of it in a window (D-028):
+
+```
+LiveTeamService --> MainWindowViewModel --> setup screen | team panel | per-Pokémon detail
+```
+
+Setup guidance per operating system, live party with clickable slot tiles, defensive and
+offensive coverage, an attributed team strength score, and per Pokémon the role, nature,
+effort values and a recommended four-move set with the reason for each pick. The profile
+toggle switches every answer between playthrough and competitive. The view models format
+and select only; the facts come from `Analysis`, so the window and the CLI cannot drift.
+
+`dotnet run --project src/UltimatePoKeSync.App`, or download a build from a release: the
+GitHub Actions workflow publishes self-contained single-file binaries for Windows, Linux
+and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
+
+**121 tests green** — 67 analysis, 24 parsing, 12 session, 7 app, 6 learnsets, 5 provider.
 
 ## What does not exist yet
 
@@ -66,9 +82,16 @@ only; it never re-ranks or filters what the engine returned.
   references, not standard OU statistics.
 - TM/HM, tutor and egg moves. Only level-up moves are proposed, even though PKHeX exposes
   the other sources through the same learn sources.
-- `UltimatePoKeSync.App` — Avalonia placeholder window only. Real dashboard is M7.
+- Sprites. Party members show as a tile in their primary type's colour with the species
+  name, not an image. Reading sprites from the player's own ROM is the clean route and has
+  not been started (D-028).
+- Apple notarisation. macOS downloads are unsigned, so the first launch needs
+  right-click → Open. Fixing it needs a paid Apple Developer account.
 - The CLI has no test project of its own. `AnalysisReport` and `RawSnapshotDump.Read` are
   covered only by running `--replay` against a fixture by hand.
+- Nobody has run the dashboard against a live emulator yet. Its logic is covered by tests
+  driven from the real-RAM capture, and the published binary was launched and shut down
+  cleanly, but no one has watched a real party appear in the window.
 
 ## Milestones
 
@@ -81,8 +104,8 @@ only; it never re-ranks or filters what the engine returned.
 | M4 | Party tracking, change suppression, real-RAM fixtures | done |
 | M5 | Gen 3 type chart + team analysis | done |
 | M6 | Per-Pokémon suggestions (EVs, nature, moves, item) | done, visible from the CLI |
-| **M7** | **Avalonia dashboard** | **next** |
-| M8 | Second provider or generation, to prove the abstraction | not started |
+| M7 | Avalonia dashboard, packaged downloads | done, not yet run live |
+| **M8** | **Second provider or generation, to prove the abstraction** | **next** |
 
 ---
 
@@ -122,9 +145,14 @@ script must be loaded through the GUI:
 1. `open -a mGBA roms/<rom>.gba`
 2. In mGBA: `Tools` → `Scripting…` → `File` → `Load script…` →
    `emulator-scripts/mgba/ups_bridge.lua`
-3. `dotnet run --project src/UltimatePoKeSync.Cli`
+3. `dotnet run --project src/UltimatePoKeSync.App` for the dashboard, or
+   `dotnet run --project src/UltimatePoKeSync.Cli` for the console.
 
 `--dump <dir>` writes every raw snapshot as a JSON fixture.
+
+The dashboard's own logic can be checked without mGBA: `MainWindowViewModel` takes an
+`ILiveTeamSource` and its UI-thread dispatch as a delegate, and
+`UltimatePoKeSync.App.Tests` drives it from the Italian Emerald capture.
 
 ---
 
@@ -230,12 +258,7 @@ generation up to Gen 9 — so extending past Gen 3 is a mapping table, not a new
 `Analysis` still has no PKHeX reference; the composition root injects the source through
 `PokemonRecommendationEngine.CreateDefault`.
 
-Next: the UI (M7). Roberto's bar is a person setting the whole thing up quickly and using
-it comfortably, not a developer dashboard, so the setup path — load the script, find the
-port, see the team — matters as much as the analysis panels. `AnalysisReport` in the CLI
-shows the exact objects the UI will bind to.
-
-Still open afterwards: the availability gap. Parsing badges, bag contents and world
+Still open: the availability gap. Parsing badges, bag contents and world
 progress is a larger input contract and should not be smuggled into the pure analyzer.
 Competitive refinements can later add pinned, MIT-licensed ladder usage weights and real
 speed benchmarks without changing the profile boundary.

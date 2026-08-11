@@ -45,6 +45,17 @@ internal static class AnalysisReport
         }
     }
 
+    public static void PrintTeamStrength(TeamStrength strength)
+    {
+        Console.WriteLine($"│  Strength   {strength.Score}/{strength.MaximumScore}");
+
+        foreach (TeamStrengthFactor factor in strength.Factors)
+        {
+            Console.WriteLine(
+                $"│    {factor.Points,2}/{factor.MaximumPoints,-3} {Describe(factor.Kind),-20} {factor.Explanation}");
+        }
+    }
+
     public static void PrintRecommendations(TeamRecommendation recommendation)
     {
         Console.WriteLine("│");
@@ -64,6 +75,7 @@ internal static class AnalysisReport
 
             PrintNature(member.Nature);
             PrintEffortValues(member.EffortValues);
+            PrintBuild(member.Build);
             PrintMoves(member.MoveCandidates);
             PrintItems(member.ItemCandidates);
 
@@ -103,6 +115,24 @@ internal static class AnalysisReport
             : string.Join(", ", effortValues.PriorityStats.Select(Abbreviate));
 
         Console.WriteLine($"│      EVs      train {priorities}   (no exact spread outside competitive play)");
+    }
+
+    /// <summary>The four moves to actually run, and why each one earned its slot.</summary>
+    private static void PrintBuild(RecommendedBuild build)
+    {
+        if (build.Moves.Count == 0)
+        {
+            return;
+        }
+
+        string label = "Best set";
+
+        for (int index = 0; index < build.Moves.Count; index++)
+        {
+            string reason = index < build.Reasons.Count ? build.Reasons[index] : string.Empty;
+            Console.WriteLine($"│      {label,-8} · {reason}");
+            label = string.Empty;
+        }
     }
 
     private static void PrintMoves(IReadOnlyList<MoveRecommendation> moves)
@@ -149,6 +179,16 @@ internal static class AnalysisReport
     private static string Describe(NatureInfo nature) => nature.IsNeutral
         ? $"{nature.Name} (neutral)"
         : $"{nature.Name} (+{Abbreviate(nature.IncreasedStat!.Value)} -{Abbreviate(nature.DecreasedStat!.Value)})";
+
+    private static string Describe(TeamStrengthKind kind) => kind switch
+    {
+        TeamStrengthKind.PartySize => "party size",
+        TeamStrengthKind.LevelCohesion => "level cohesion",
+        TeamStrengthKind.DefensiveCoverage => "defensive coverage",
+        TeamStrengthKind.OffensiveCoverage => "offensive coverage",
+        TeamStrengthKind.NatureFit => "nature fit",
+        _ => "effort value fit",
+    };
 
     private static string Describe(RecommendationAvailability availability) => availability switch
     {

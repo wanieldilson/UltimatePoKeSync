@@ -2,8 +2,7 @@
 
   <!--
     Avalonia UI. Runs natively on Windows, Linux and macOS including Apple Silicon,
-    unlike WPF. See D-011.
-    The real dashboard lands with milestone M7.
+    unlike WPF. See D-011. The dashboard is milestone M7 (D-028).
   -->
 
   <PropertyGroup>
@@ -11,6 +10,7 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AssemblyName>UltimatePoKeSync</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,7 +25,20 @@
     <ProjectReference Include="..\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.Providers.MGba\UltimatePoKeSync.Providers.MGba.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.Parsing\UltimatePoKeSync.Parsing.csproj" />
+    <ProjectReference Include="..\UltimatePoKeSync.Session\UltimatePoKeSync.Session.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.Analysis\UltimatePoKeSync.Analysis.csproj" />
+    <ProjectReference Include="..\UltimatePoKeSync.GameData\UltimatePoKeSync.GameData.csproj" />
+    <ProjectReference Include="..\UltimatePoKeSync.GameData.Learnsets\UltimatePoKeSync.GameData.Learnsets.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The bridge script ships next to the executable. A user who downloaded a release has
+      no repository to hunt through, and the setup screen needs a real path to point at.
+    -->
+    <None Include="..\..\emulator-scripts\mgba\ups_bridge.lua"
+          Link="emulator-scripts\ups_bridge.lua"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

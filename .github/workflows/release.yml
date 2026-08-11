@@ -1,0 +1,110 @@
+name: Release
+
+# Builds a ready-to-run download for every desktop platform and attaches it to the
+# release. Nobody should need a .NET SDK, a clone, or a command line to use this app.
+#
+# Push a tag to trigger it:  git tag v0.1.0 && git push origin v0.1.0
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Test before publishing anything
+        run: dotnet test --configuration Release
+
+      # Self-contained: the .NET runtime travels with the app. Bigger download, but the
+      # promise is "download and run", and asking for a runtime install breaks it.
+      - name: Publish every runtime
+        run: |
+          set -euo pipefail
+          for rid in win-x64 linux-x64 osx-x64 osx-arm64; do
+            dotnet publish src/UltimatePoKeSync.App \
+              --configuration Release \
+              --runtime "$rid" \
+              --self-contained true \
+              -p:PublishSingleFile=true \
+              -p:EnableCompressionInSingleFile=true \
+              -p:DebugType=none \
+              --output "publish/$rid"
+          done
+
+      # A bare Unix executable opens a Terminal window when double-clicked, so macOS gets
+      # a real bundle. It is unsigned: first launch needs right-click -> Open. Notarising
+      # would need a paid Apple Developer account.
+      - name: Wrap the macOS builds in an app bundle
+        run: |
+          set -euo pipefail
+          for rid in osx-x64 osx-arm64; do
+            bundle="bundles/$rid/UltimatePoKeSync.app"
+            mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
+            cp -R "publish/$rid/." "$bundle/Contents/MacOS/"
+            chmod +x "$bundle/Contents/MacOS/UltimatePoKeSync"
+            cat > "$bundle/Contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key><string>UltimatePoKeSync</string>
+            <key>CFBundleDisplayName</key><string>UltimatePoKeSync</string>
+            <key>CFBundleIdentifier</key><string>online.cazzeggia.ultimatepokesync</string>
+            <key>CFBundleExecutable</key><string>UltimatePoKeSync</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>1.0</string>
+            <key>LSMinimumSystemVersion</key><string>11.0</string>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict>
+          </plist>
+          PLIST
+            sed -i 's/^          //' "$bundle/Contents/Info.plist"
+          done
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          (cd publish/win-x64 && zip -r ../../artifacts/UltimatePoKeSync-windows-x64.zip .)
+          (cd publish/linux-x64 && tar czf ../../artifacts/UltimatePoKeSync-linux-x64.tar.gz .)
+          (cd bundles/osx-x64 && zip -ry ../../artifacts/UltimatePoKeSync-macos-intel.zip UltimatePoKeSync.app)
+          (cd bundles/osx-arm64 && zip -ry ../../artifacts/UltimatePoKeSync-macos-apple-silicon.zip UltimatePoKeSync.app)
+          ls -lh artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UltimatePoKeSync
+          path: artifacts/*
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          body: |
+            Download the file for your system, unpack it and run it. No .NET install needed.
+
+            | System | File |
+            | ------ | ---- |
+            | Windows | `UltimatePoKeSync-windows-x64.zip` |
+            | macOS, Apple Silicon | `UltimatePoKeSync-macos-apple-silicon.zip` |
+            | macOS, Intel | `UltimatePoKeSync-macos-intel.zip` |
+            | Linux | `UltimatePoKeSync-linux-x64.tar.gz` |
+
+            **macOS:** the app is not signed by Apple, so the first launch must be
+            right-click → Open → Open. After that it starts normally.
+
+            The app tells you how to connect mGBA on your system. The bridge script it
+            asks for ships inside the download, in `emulator-scripts/`.
