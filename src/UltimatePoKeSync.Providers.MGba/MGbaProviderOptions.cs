@@ -26,6 +26,15 @@ public sealed record MGbaProviderOptions
     /// <summary>Timeout for a single connection attempt.</summary>
     public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(2);
 
-    /// <summary>Protocol version this client understands.</summary>
-    public int SupportedProtocolVersion { get; init; } = 1;
+    /// <summary>Protocol version this client understands. Reads need 2. See D-033.</summary>
+    public int SupportedProtocolVersion { get; init; } = 2;
+
+    /// <summary>Must not exceed the script's own <c>UPS_MAX_READ</c>.</summary>
+    public int MaximumReadLength { get; init; } = 256 * 1024;
+
+    /// <summary>
+    /// How long to wait for one reply. Generous: the script answers on the emulator's
+    /// thread, so a busy frame can delay it.
+    /// </summary>
+    public TimeSpan ReadTimeout { get; init; } = TimeSpan.FromSeconds(10);
 }

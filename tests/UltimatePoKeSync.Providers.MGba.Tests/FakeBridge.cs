@@ -73,6 +73,40 @@ internal sealed class FakeBridge : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Reads one command line from the first client, so a test can answer it the way the
+    /// script would.
+    /// </summary>
+    public async Task<string> ReadCommandAsync(CancellationToken cancellationToken = default)
+    {
+        TcpClient client;
+        lock (_clients)
+        {
+            client = _clients[0];
+        }
+
+        var buffer = new byte[4096];
+        var line = new StringBuilder();
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            int read = await client.GetStream().ReadAsync(buffer, cancellationToken);
+            if (read == 0)
+            {
+                break;
+            }
+
+            line.Append(Encoding.UTF8.GetString(buffer, 0, read));
+            int newline = line.ToString().IndexOf('\n');
+            if (newline >= 0)
+            {
+                return line.ToString()[..newline];
+            }
+        }
+
+        return string.Empty;
+    }
+
     /// <summary>Simulates mGBA being closed abruptly, to exercise reconnection.</summary>
     public void DropAllClients()
     {

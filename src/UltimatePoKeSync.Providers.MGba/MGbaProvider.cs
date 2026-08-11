@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -15,10 +16,21 @@ namespace UltimatePoKeSync.Providers.MGba;
 /// <c>socket.connect</c> is blocking, and a failed reconnection attempt would stall
 /// emulation. Retry logic belongs in the process that can afford it, which is this one.
 /// </remarks>
-public sealed class MGbaProvider : IEmulatorProvider
+public sealed class MGbaProvider : IEmulatorProvider, IEmulatorMemoryReader
 {
     private readonly MGbaProviderOptions _options;
+
+    /// <summary>Requests waiting for a reply, by the id the script echoes back.</summary>
+    private readonly ConcurrentDictionary<int, TaskCompletionSource<byte[]?>> _pending = new();
+
+    /// <summary>One writer at a time: a command has to reach the script as a whole line.</summary>
+    private readonly SemaphoreSlim _writeLock = new(1, 1);
+
+    private static readonly UTF8Encoding NoBomUtf8 = new(encoderShouldEmitUTF8Identifier: false);
+
     private EmulatorConnectionState _state = EmulatorConnectionState.Idle;
+    private StreamWriter? _writer;
+    private int _nextRequestId;
 
     public MGbaProvider(MGbaProviderOptions? options = null)
         => _options = options ?? new MGbaProviderOptions();
@@ -61,8 +73,21 @@ public sealed class MGbaProvider : IEmulatorProvider
             delay = _options.InitialReconnectDelay;
             SetState(EmulatorConnectionState.Streaming);
 
+            NetworkStream stream = client.GetStream();
+
+            // No byte-order mark: the script reads lines of JSON, and a BOM in front of the
+            // first one is not JSON. Both wrappers leave the stream open, so closing the
+            // client is what closes it, once.
+            var writer = new StreamWriter(stream, NoBomUtf8, 8192, leaveOpen: true)
+            {
+                AutoFlush = false,
+            };
+            _writer = writer;
+
             using (client)
-            using (var reader = new StreamReader(client.GetStream(), Encoding.UTF8, false, 8192))
+            using (writer)
+            using (var reader = new StreamReader(
+                stream, NoBomUtf8, detectEncodingFromByteOrderMarks: false, 8192, leaveOpen: true))
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
@@ -79,11 +104,105 @@ public sealed class MGbaProvider : IEmulatorProvider
                         continue;
                     }
 
+                    // A reply belongs to whoever asked for it, not to the party stream.
+                    if (TryCompleteRequest(line))
+                    {
+                        continue;
+                    }
+
                     if (TryParse(line, out RawPartySnapshot? snapshot))
                     {
                         yield return snapshot;
                     }
                 }
+            }
+
+            _writer = null;
+            FailPendingRequests();
+        }
+    }
+
+    public bool CanRead => _writer is not null && _state == EmulatorConnectionState.Streaming;
+
+    /// <inheritdoc />
+    public async Task<byte[]?> ReadMemoryAsync(
+        uint address,
+        int length,
+        CancellationToken cancellationToken = default)
+    {
+        if (length <= 0 || length > _options.MaximumReadLength)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length));
+        }
+
+        StreamWriter? writer = _writer;
+        if (writer is null)
+        {
+            return null;
+        }
+
+        int id = Interlocked.Increment(ref _nextRequestId);
+        var completion = new TaskCompletionSource<byte[]?>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _pending[id] = completion;
+
+        try
+        {
+            string command = "{\"type\":\"read\",\"id\":" + id
+                    + ",\"address\":" + address
+                    + ",\"length\":" + length + "}";
+
+            await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await writer.WriteLineAsync(command).ConfigureAwait(false);
+                await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _writeLock.Release();
+            }
+
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(_options.ReadTimeout);
+
+            return await completion.Task.WaitAsync(timeout.Token).ConfigureAwait(false);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            // A dropped connection, or a script that never answers. The caller asked for
+            // bytes, not for an exception to handle: it gets nothing and carries on.
+            return null;
+        }
+        finally
+        {
+            _pending.TryRemove(id, out _);
+        }
+    }
+
+    private bool TryCompleteRequest(string line)
+    {
+        if (!MemoryMessage.TryParse(line, _options.SupportedProtocolVersion, out int id, out byte[]? data))
+        {
+            return false;
+        }
+
+        if (_pending.TryRemove(id, out TaskCompletionSource<byte[]?>? completion))
+        {
+            completion.TrySetResult(data);
+        }
+
+        // Consumed either way: a reply nobody is waiting for is still not a party.
+        return true;
+    }
+
+    private void FailPendingRequests()
+    {
+        foreach (int id in _pending.Keys)
+        {
+            if (_pending.TryRemove(id, out TaskCompletionSource<byte[]?>? completion))
+            {
+                completion.TrySetResult(null);
             }
         }
     }
@@ -145,7 +264,11 @@ public sealed class MGbaProvider : IEmulatorProvider
         }
 
         if (message is null
-            || message.Version != _options.SupportedProtocolVersion
+            // Accept anything up to what we understand. A version 1 script still streams
+            // parties correctly; it simply cannot answer a read. Rejecting it would break
+            // a bridge that works.
+            || message.Version > _options.SupportedProtocolVersion
+            || message.Version < 1
             || !string.Equals(message.Type, "party", StringComparison.Ordinal)
             || message.Game?.Code is not { Length: > 0 } code
             || message.Data is not { Length: > 0 } data
