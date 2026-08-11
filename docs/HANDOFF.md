@@ -79,14 +79,12 @@ and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 
 ## What does not exist yet
 
-- Save-specific playthrough availability. Party RAM does not expose the bag, badges, map
-  progress, Move Reminder access or transfer history, so uncertain candidates are labelled
-  as requiring an availability check (D-025).
+- Save-specific availability. Party RAM does not expose the bag, badges, map progress,
+  Move Reminder access or transfer history, so level-up, machine and tutor candidates are
+  all labelled as requiring a check rather than claimed as obtainable (D-025).
 - Competitive usage and speed-benchmark weighting. The presets are Random Battle
   references, not standard OU statistics.
 - Egg moves, deliberately: a Pokémon already caught cannot gain one (D-030).
-- Real per-save availability. Machine and tutor moves are offered but labelled as needing a
-  check, because party RAM shows no bag and no badges (D-025).
 - Sprites. Party members show as a tile in their primary type's colour with the species
   name, not an image. Reading sprites from the player's own ROM is the clean route and has
   not been started (D-028).
