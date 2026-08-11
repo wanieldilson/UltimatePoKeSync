@@ -11,6 +11,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>UltimatePoKeSync</AssemblyName>
+    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,6 +30,12 @@
     <ProjectReference Include="..\UltimatePoKeSync.Analysis\UltimatePoKeSync.Analysis.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.GameData\UltimatePoKeSync.GameData.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.GameData.Learnsets\UltimatePoKeSync.GameData.Learnsets.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Window and taskbar icon. The .ico above is the one Windows stamps on the exe,
+         and the .icns is built from the same artwork by build/make-icns.sh. -->
+    <AvaloniaResource Include="Assets/app-icon.png" />
   </ItemGroup>
 
   <ItemGroup>

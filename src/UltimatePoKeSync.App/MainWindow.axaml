@@ -5,6 +5,7 @@
         x:Class="UltimatePoKeSync.App.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="UltimatePoKeSync"
+        Icon="avares://UltimatePoKeSync/Assets/app-icon.png"
         Width="1180" Height="760"
         MinWidth="900" MinHeight="600">
 

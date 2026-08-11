@@ -83,6 +83,9 @@ jobs:
               --output "publish/$rid"
           done
 
+      - name: Build the macOS icon
+        run: ./build/make-icns.sh build/UltimatePoKeSync.icns
+
       # A bare Unix executable opens a Terminal window when double-clicked, so macOS gets
       # a real bundle.
       - name: Wrap in an app bundle and sign it
@@ -92,6 +95,7 @@ jobs:
             bundle="bundles/$rid/UltimatePoKeSync.app"
             mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
             cp -R "publish/$rid/." "$bundle/Contents/MacOS/"
+            cp build/UltimatePoKeSync.icns "$bundle/Contents/Resources/"
             chmod +x "$bundle/Contents/MacOS/UltimatePoKeSync"
             cat > "$bundle/Contents/Info.plist" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -102,6 +106,7 @@ jobs:
             <key>CFBundleDisplayName</key><string>UltimatePoKeSync</string>
             <key>CFBundleIdentifier</key><string>online.cazzeggia.ultimatepokesync</string>
             <key>CFBundleExecutable</key><string>UltimatePoKeSync</string>
+            <key>CFBundleIconFile</key><string>UltimatePoKeSync</string>
             <key>CFBundlePackageType</key><string>APPL</string>
             <key>CFBundleShortVersionString</key><string>1.0</string>
             <key>LSMinimumSystemVersion</key><string>11.0</string>

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="src/UltimatePoKeSync.App/Assets/upsync-icon.png" width="150" alt="UltimatePoKeSync">
+
 # UltimatePoKeSync
 
 **Your Pokémon team, analysed live, straight from the emulator's memory.**
@@ -157,5 +159,6 @@ The project uses [PKHeX.Core](https://github.com/kwsch/PKHeX) (GPL-3.0-or-later)
 Pokémon data structures; its copyleft extends through linking, so the whole app is GPLv3.
 See D-007 in the decision log.
 
-Pokémon is a trademark of Nintendo, Creatures Inc. and GAME FREAK Inc. This project is not
-affiliated with them, and ships no game data or assets of theirs.
+Pokémon is a trademark of Nintendo, Creatures Inc. and GAME FREAK Inc. This project is a
+fan tool, unaffiliated with them, and ships no ROM, no save data and no assets extracted
+from a game.
