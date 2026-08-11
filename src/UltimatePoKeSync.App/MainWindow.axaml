@@ -217,62 +217,6 @@
                   </StackPanel>
                 </Border>
 
-                <Border Classes="card">
-                  <StackPanel Spacing="6">
-                    <TextBlock Text="Stats" Classes="section" />
-                    <Grid ColumnDefinitions="120,60,50,50,*">
-                      <TextBlock Text="" />
-                      <TextBlock Grid.Column="1" Text="Base" Classes="muted" FontSize="11" />
-                      <TextBlock Grid.Column="2" Text="IV" Classes="muted" FontSize="11" />
-                      <TextBlock Grid.Column="3" Text="EV" Classes="muted" FontSize="11" />
-                      <TextBlock Grid.Column="4" Text="Now" Classes="muted" FontSize="11" />
-                    </Grid>
-                    <ItemsControl ItemsSource="{Binding Stats}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:StatRow">
-                          <Grid ColumnDefinitions="120,60,50,50,*" Margin="0,3">
-                            <TextBlock Text="{Binding Name}" FontSize="12" />
-                            <TextBlock Grid.Column="1" Text="{Binding Base}" FontSize="12" Classes="muted" />
-                            <TextBlock Grid.Column="2" Text="{Binding Iv}" FontSize="12" Classes="muted" />
-                            <TextBlock Grid.Column="3" Text="{Binding Ev}" FontSize="12" Classes="muted" />
-                            <TextBlock Grid.Column="4" Text="{Binding Current}" FontSize="12" FontWeight="SemiBold" />
-                          </Grid>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-                </Border>
-
-                <Border Classes="card">
-                  <StackPanel Spacing="10">
-                    <TextBlock Text="Matchups" Classes="section" />
-                    <TextBlock Text="Weak to" FontSize="12" />
-                    <ItemsControl ItemsSource="{Binding Weaknesses}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
-                    <TextBlock Text="Resists or is immune to" FontSize="12" Margin="0,6,0,0" />
-                    <ItemsControl ItemsSource="{Binding Resistances}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
-                  </StackPanel>
-                </Border>
-
-                <Border Classes="card">
-                  <StackPanel Spacing="10">
-                    <TextBlock Text="Known moves" Classes="section" />
-                    <ItemsControl ItemsSource="{Binding Moves}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:MoveRow">
-                          <Grid ColumnDefinitions="180,110,*" Margin="0,3">
-                            <TextBlock Text="{Binding Name}" FontSize="12" />
-                            <Border Grid.Column="1" Background="{Binding Brush}" CornerRadius="4"
-                                    Padding="7,1" HorizontalAlignment="Left">
-                              <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
-                            </Border>
-                            <TextBlock Grid.Column="2" Text="{Binding Pp}" FontSize="12" Classes="muted" />
-                          </Grid>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-                </Border>
-
                 <Border Classes="card" IsVisible="{Binding HasRecommendation}">
                   <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*,Auto">
@@ -342,6 +286,62 @@
                       <TextBlock Text="{Binding PresetText}" IsVisible="{Binding HasPreset}"
                                  FontSize="11" Classes="muted" Margin="0,8,0,0" />
                     </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Stats" Classes="section" />
+                    <Grid ColumnDefinitions="120,60,50,50,*">
+                      <TextBlock Text="" />
+                      <TextBlock Grid.Column="1" Text="Base" Classes="muted" FontSize="11" />
+                      <TextBlock Grid.Column="2" Text="IV" Classes="muted" FontSize="11" />
+                      <TextBlock Grid.Column="3" Text="EV" Classes="muted" FontSize="11" />
+                      <TextBlock Grid.Column="4" Text="Now" Classes="muted" FontSize="11" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Stats}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:StatRow">
+                          <Grid ColumnDefinitions="120,60,50,50,*" Margin="0,3">
+                            <TextBlock Text="{Binding Name}" FontSize="12" />
+                            <TextBlock Grid.Column="1" Text="{Binding Base}" FontSize="12" Classes="muted" />
+                            <TextBlock Grid.Column="2" Text="{Binding Iv}" FontSize="12" Classes="muted" />
+                            <TextBlock Grid.Column="3" Text="{Binding Ev}" FontSize="12" Classes="muted" />
+                            <TextBlock Grid.Column="4" Text="{Binding Current}" FontSize="12" FontWeight="SemiBold" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="Matchups" Classes="section" />
+                    <TextBlock Text="Weak to" FontSize="12" />
+                    <ItemsControl ItemsSource="{Binding Weaknesses}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                    <TextBlock Text="Resists or is immune to" FontSize="12" Margin="0,6,0,0" />
+                    <ItemsControl ItemsSource="{Binding Resistances}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="Known moves" Classes="section" />
+                    <ItemsControl ItemsSource="{Binding Moves}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MoveRow">
+                          <Grid ColumnDefinitions="180,110,*" Margin="0,3">
+                            <TextBlock Text="{Binding Name}" FontSize="12" />
+                            <Border Grid.Column="1" Background="{Binding Brush}" CornerRadius="4"
+                                    Padding="7,1" HorizontalAlignment="Left">
+                              <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
+                            </Border>
+                            <TextBlock Grid.Column="2" Text="{Binding Pp}" FontSize="12" Classes="muted" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                   </StackPanel>
                 </Border>
 
