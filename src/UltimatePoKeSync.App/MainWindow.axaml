@@ -10,6 +10,7 @@
         MinWidth="900" MinHeight="600">
 
   <Window.Resources>
+
     <!-- One chip shape reused by every coverage list: colour plus the type name, never
          colour alone, so the panel still reads without colour vision. -->
     <DataTemplate x:Key="ChipTemplate" x:DataType="vm:TypeChip">
@@ -24,20 +25,52 @@
   </Window.Resources>
 
   <Window.Styles>
+    <!--
+      A small design system rather than Fluent's defaults. Two type sizes carry the
+      hierarchy (a title and a section label), everything else is one body size and one
+      caption size, so a panel reads as a panel and not as six competing headings. Spacing
+      comes from layout gaps, never from per-element margins that collapse or double.
+    -->
+
     <Style Selector="Border.card">
       <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
       <Setter Property="CornerRadius" Value="10" />
-      <Setter Property="Padding" Value="16" />
+      <Setter Property="Padding" Value="18" />
     </Style>
+
+    <!-- The label above a block of content. Uppercase and tracked out, so it reads as a
+         label at a glance and never competes with the content underneath. -->
     <Style Selector="TextBlock.section">
-      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Opacity" Value="0.75" />
-      <Setter Property="Margin" Value="0,0,0,8" />
+      <Setter Property="Opacity" Value="0.55" />
+      <Setter Property="LetterSpacing" Value="0.09" />
     </Style>
+
+    <Style Selector="TextBlock.title">
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
     <Style Selector="TextBlock.muted">
-      <Setter Property="Opacity" Value="0.65" />
+      <Setter Property="Opacity" Value="0.62" />
       <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.caption">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Opacity" Value="0.62" />
+    </Style>
+
+    <!-- Digits that line up in a column, so scanning a stat table is reading and not
+         hunting. -->
+    <Style Selector="TextBlock.numeric">
+      <Setter Property="FontFeatures" Value="tnum" />
+    </Style>
+
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="8" />
     </Style>
   </Window.Styles>
 
@@ -47,8 +80,8 @@
     <Border Grid.Row="0" Padding="20,14" Background="{DynamicResource SystemControlBackgroundListLowBrush}">
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel Spacing="2">
-          <TextBlock Text="UltimatePoKeSync" FontSize="19" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding GameText}" Classes="muted" FontSize="12" />
+          <TextBlock Text="UltimatePoKeSync" Classes="title" />
+          <TextBlock Text="{Binding GameText}" Classes="caption" />
         </StackPanel>
 
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="18" VerticalAlignment="Center">
@@ -106,29 +139,71 @@
     <!-- Dashboard. -->
     <Grid Grid.Row="1" IsVisible="{Binding HasTeam}" ColumnDefinitions="230,*" Margin="16,16,16,16">
 
-      <ListBox ItemsSource="{Binding Slots}" SelectedItem="{Binding SelectedSlot}"
-               Background="Transparent" BorderThickness="0">
-        <ListBox.ItemTemplate>
-          <DataTemplate x:DataType="vm:PokemonSlotViewModel">
-            <Border Background="{Binding TileBrush}" CornerRadius="8" Padding="10" Margin="0,0,0,6">
-              <Grid ColumnDefinitions="Auto,*">
-                <Border Width="40" Height="40" CornerRadius="6" Background="{Binding PrimaryBrush}">
-                  <TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="Bold"
-                             FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <ListBox ItemsSource="{Binding Slots}" SelectedItem="{Binding SelectedSlot}"
+                   Background="Transparent" BorderThickness="0" Padding="0">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:PokemonSlotViewModel">
+                <Border Background="{Binding TileBrush}" CornerRadius="8" Padding="10,9" Margin="0,0,0,6">
+                  <StackPanel Spacing="7">
+
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <Border Width="38" Height="38" CornerRadius="6" Background="{Binding PrimaryBrush}">
+                        <TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="Bold"
+                                   FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+
+                      <StackPanel Grid.Column="1" Margin="9,0,0,0" Spacing="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding SpeciesName}" FontWeight="SemiBold" FontSize="13"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding NicknameText}" IsVisible="{Binding HasNickname}"
+                                   Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding TypeText}" Classes="muted" FontSize="11" />
+                      </StackPanel>
+
+                      <StackPanel Grid.Column="2" Spacing="3" HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding LevelText}" FontSize="11" HorizontalAlignment="Right" />
+                        <TextBlock Text="✦" IsVisible="{Binding IsShiny}" FontSize="12"
+                                   Foreground="#C9A227" HorizontalAlignment="Right"
+                                   ToolTip.Tip="Shiny" />
+                      </StackPanel>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="7">
+                      <ProgressBar Value="{Binding HpFraction}" Maximum="1" Height="5"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding HpBrush}" />
+                      <TextBlock Grid.Column="1" Text="{Binding HpText}" FontSize="10.5"
+                                 Classes="muted" VerticalAlignment="Center" />
+                      <Border Grid.Column="2" Background="{Binding StatusBrush}" CornerRadius="3"
+                              Padding="5,1" IsVisible="{Binding HasStatus}" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding StatusText}" Foreground="White" FontSize="9.5"
+                                   FontWeight="SemiBold" />
+                      </Border>
+                    </Grid>
+
+                    <TextBlock Text="{Binding HeldItemText}" IsVisible="{Binding HasHeldItem}"
+                               Classes="muted" FontSize="10.5" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
                 </Border>
-                <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="1" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding SpeciesName}" FontWeight="SemiBold" FontSize="13"
-                             TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding NicknameText}" IsVisible="{Binding HasNickname}"
-                             Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding LevelText}" Classes="muted" FontSize="11" />
-                  <TextBlock Text="{Binding TypeText}" Classes="muted" FontSize="11" />
-                </StackPanel>
-              </Grid>
-            </Border>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <ItemsControl ItemsSource="{Binding EmptySlots}" IsVisible="{Binding HasEmptySlots}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="sys:Int32">
+                <Border CornerRadius="8" Padding="10" Margin="0,0,0,6" Height="58"
+                        BorderThickness="1" BorderBrush="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+                  <TextBlock Text="empty slot" Classes="muted" FontSize="11" Opacity="0.45"
+                             VerticalAlignment="Center" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
 
       <ScrollViewer Grid.Column="1" Margin="16,0,0,0">
         <Panel>
@@ -140,7 +215,7 @@
               <StackPanel Spacing="10">
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock Text="Team strength" Classes="section" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" FontSize="22" FontWeight="SemiBold"
+                  <TextBlock Grid.Column="1" FontSize="26" FontWeight="SemiBold" Classes="numeric"
                              Text="{Binding StrengthScore, StringFormat='{}{0}/100'}" />
                 </Grid>
                 <ProgressBar Value="{Binding StrengthScore}" Maximum="100" Height="6" />
@@ -152,7 +227,7 @@
                       <Grid ColumnDefinitions="150,70,*" Margin="0,4">
                         <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="12"
-                                   Classes="muted" VerticalAlignment="Center" />
+                                   Classes="muted numeric" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="2" Text="{Binding Explanation}" FontSize="12"
                                    Classes="muted" VerticalAlignment="Center" />
                       </Grid>
@@ -165,11 +240,11 @@
             <Border Classes="card">
               <StackPanel Spacing="12">
                 <TextBlock Text="Defending" Classes="section" />
-                <TextBlock Text="Weak to" FontSize="12" />
+                <TextBlock Text="Weak to" Classes="caption" />
                 <ItemsControl ItemsSource="{Binding TeamWeaknesses}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
-                <TextBlock Text="Neutral" FontSize="12" Margin="0,6,0,0" />
+                <TextBlock Text="Neutral" Classes="caption" />
                 <ItemsControl ItemsSource="{Binding TeamNeutral}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
-                <TextBlock Text="Resisted or immune" FontSize="12" Margin="0,6,0,0" />
+                <TextBlock Text="Resisted or immune" Classes="caption" />
                 <ItemsControl ItemsSource="{Binding TeamResisted}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
               </StackPanel>
             </Border>
@@ -177,9 +252,9 @@
             <Border Classes="card">
               <StackPanel Spacing="12">
                 <TextBlock Text="Attacking" Classes="section" />
-                <TextBlock Text="Hit super effectively" FontSize="12" />
+                <TextBlock Text="Hit super effectively" Classes="caption" />
                 <ItemsControl ItemsSource="{Binding TeamSuperEffective}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
-                <TextBlock Text="No super-effective answer" FontSize="12" Margin="0,6,0,0" />
+                <TextBlock Text="No super-effective answer" Classes="caption" />
                 <ItemsControl ItemsSource="{Binding TeamUnanswered}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
               </StackPanel>
             </Border>
@@ -197,7 +272,7 @@
                   <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*,Auto">
                       <StackPanel Spacing="2">
-                        <TextBlock Text="{Binding SpeciesName}" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SpeciesName}" Classes="title" />
                         <TextBlock Text="{Binding NicknameText}" IsVisible="{Binding HasNickname}" Classes="muted" />
                         <TextBlock Classes="muted" FontSize="12">
                           <Run Text="{Binding LevelText}" />
@@ -318,9 +393,9 @@
                 <Border Classes="card">
                   <StackPanel Spacing="10">
                     <TextBlock Text="Matchups" Classes="section" />
-                    <TextBlock Text="Weak to" FontSize="12" />
+                    <TextBlock Text="Weak to" Classes="caption" />
                     <ItemsControl ItemsSource="{Binding Weaknesses}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
-                    <TextBlock Text="Resists or is immune to" FontSize="12" Margin="0,6,0,0" />
+                    <TextBlock Text="Resists or is immune to" Classes="caption" />
                     <ItemsControl ItemsSource="{Binding Resistances}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
                   </StackPanel>
                 </Border>

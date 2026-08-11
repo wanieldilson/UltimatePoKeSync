@@ -84,6 +84,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public ObservableCollection<PokemonSlotViewModel> Slots { get; } = [];
 
+    /// <summary>
+    /// The slots the party has not filled, rendered as placeholders. Six greyed boxes say
+    /// "you are carrying two Pokémon" faster than a number does, and party size is one of
+    /// the things the strength score counts.
+    /// </summary>
+    public ObservableCollection<int> EmptySlots { get; } = [];
+
     public ObservableCollection<TypeChip> TeamWeaknesses { get; } = [];
 
     public ObservableCollection<TypeChip> TeamNeutral { get; } = [];
@@ -119,6 +126,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         : new SolidColorBrush(Color.FromRgb(0xC9, 0xA2, 0x27));
 
     public bool HasTeam => Slots.Count > 0;
+
+    public bool HasEmptySlots => EmptySlots.Count > 0;
 
     public bool ShowTeamPanel => SelectedSlot is null;
 
@@ -213,6 +222,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     entry => entry.Member.SlotIndex == member.SlotIndex)));
         }
 
+        UpdateEmptySlots(party.Count);
         OnPropertyChanged(nameof(HasTeam));
         UpdateCoverage(analysis);
         UpdateStrength(strength);
@@ -236,8 +246,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         TeamUnanswered.Clear();
         StrengthFactors.Clear();
 
+        UpdateEmptySlots(party.Count);
         OnPropertyChanged(nameof(HasTeam));
         SelectedSlot = null;
+    }
+
+    private void UpdateEmptySlots(int filled)
+    {
+        const int fullParty = 6;
+
+        EmptySlots.Clear();
+        for (int slot = filled; slot < fullParty; slot++)
+        {
+            EmptySlots.Add(slot);
+        }
+
+        OnPropertyChanged(nameof(HasEmptySlots));
     }
 
     private void UpdateCoverage(TeamAnalysis analysis)

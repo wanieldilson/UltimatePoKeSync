@@ -138,6 +138,55 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public bool IsShiny => Member.IsShiny;
 
+    public string HpText => $"{Member.CurrentHp}/{Member.MaximumHp}";
+
+    public double HpFraction => Member.HpFraction;
+
+    /// <summary>
+    /// Green, amber, red. The same thresholds the games use for the bar in battle, so the
+    /// colour means what a player already expects it to mean.
+    /// </summary>
+    public IBrush HpBrush => Member.HpFraction switch
+    {
+        <= 0 => new SolidColorBrush(Color.FromRgb(0x8A, 0x8A, 0x8A)),
+        <= 0.20 => new SolidColorBrush(Color.FromRgb(0xC0, 0x3D, 0x2E)),
+        <= 0.50 => new SolidColorBrush(Color.FromRgb(0xC9, 0xA2, 0x27)),
+        _ => new SolidColorBrush(Color.FromRgb(0x4E, 0x9A, 0x3F)),
+    };
+
+    public bool HasStatus => Member.Status != StatusCondition.None || Member.IsFainted;
+
+    /// <summary>Three letters, as the games abbreviate them on the party screen.</summary>
+    public string StatusText => Member.IsFainted
+        ? "FNT"
+        : Member.Status switch
+        {
+            StatusCondition.Sleep => "SLP",
+            StatusCondition.Poison => "PSN",
+            StatusCondition.BadPoison => "TOX",
+            StatusCondition.Burn => "BRN",
+            StatusCondition.Freeze => "FRZ",
+            StatusCondition.Paralysis => "PAR",
+            _ => string.Empty,
+        };
+
+    public IBrush StatusBrush => Member.IsFainted
+        ? new SolidColorBrush(Color.FromRgb(0x5A, 0x4C, 0x45))
+        : Member.Status switch
+        {
+            StatusCondition.Sleep => new SolidColorBrush(Color.FromRgb(0x6B, 0x6B, 0x7B)),
+            StatusCondition.Poison or StatusCondition.BadPoison =>
+                new SolidColorBrush(Color.FromRgb(0x92, 0x4A, 0x96)),
+            StatusCondition.Burn => new SolidColorBrush(Color.FromRgb(0xD9, 0x60, 0x2E)),
+            StatusCondition.Freeze => new SolidColorBrush(Color.FromRgb(0x59, 0x9F, 0xB0)),
+            StatusCondition.Paralysis => new SolidColorBrush(Color.FromRgb(0xC9, 0xA2, 0x27)),
+            _ => new SolidColorBrush(Colors.Transparent),
+        };
+
+    public bool HasHeldItem => Member.HeldItemId > 0 && Member.HeldItemName != "-";
+
+    public string FriendshipText => $"{Member.Friendship}/255";
+
     public IReadOnlyList<StatRow> Stats { get; }
 
     public IReadOnlyList<MoveRow> Moves { get; }

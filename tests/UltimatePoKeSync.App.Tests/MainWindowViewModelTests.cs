@@ -80,6 +80,39 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void TheStripShowsTheLiveConditionAndTheSlotsStillToFill()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+
+        source.RaiseParty(LoadRealParty());
+
+        PokemonSlotViewModel slot = viewModel.Slots[0];
+        Assert.Equal("19/19", slot.HpText);
+        Assert.Equal(1, slot.HpFraction);
+        Assert.False(slot.HasStatus);
+        Assert.False(slot.HasHeldItem);
+
+        // One Pokémon carried, five boxes still to fill.
+        Assert.True(viewModel.HasEmptySlots);
+        Assert.Equal(5, viewModel.EmptySlots.Count);
+    }
+
+    /// <summary>
+    /// From the byte the game writes all the way to the three letters on the tile.
+    /// </summary>
+    [Fact]
+    public void APoisonedPokemonReachesTheStripAsPsn()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+
+        source.RaiseParty(LoadRealParty(statusByte: 0b0000_1000));
+
+        PokemonSlotViewModel slot = viewModel.Slots[0];
+        Assert.True(slot.HasStatus);
+        Assert.Equal("PSN", slot.StatusText);
+    }
+
+    [Fact]
     public void SelectingASlot_SwapsToTheDetailPanelAndBackAgain()
     {
         (MainWindowViewModel viewModel, FakeSource source) = Create();
@@ -151,7 +184,7 @@ public sealed class MainWindowViewModelTests
         return (new MainWindowViewModel(source, action => action()), source);
     }
 
-    private static PartySnapshot LoadRealParty()
+    private static PartySnapshot LoadRealParty(int? statusByte = null)
     {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "emerald-it-treecko.json");
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path));
@@ -163,10 +196,17 @@ public sealed class MainWindowViewModelTests
             root.GetProperty("revision").GetInt32(),
             (PokemonGeneration)root.GetProperty("generation").GetInt32());
 
+        byte[] data = Convert.FromBase64String(root.GetProperty("data").GetString()!);
+        if (statusByte is int status)
+        {
+            // Offset 80: the first of the twenty battle-stat bytes in a party slot.
+            data[80] = (byte)status;
+        }
+
         var raw = new RawPartySnapshot(
             game,
             root.GetProperty("partyCount").GetInt32(),
-            Convert.FromBase64String(root.GetProperty("data").GetString()!),
+            data,
             root.GetProperty("slotSize").GetInt32(),
             DateTimeOffset.UnixEpoch,
             1);
