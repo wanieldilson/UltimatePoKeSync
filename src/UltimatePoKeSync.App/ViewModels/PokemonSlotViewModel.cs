@@ -1,4 +1,5 @@
 using System.Globalization;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -160,6 +161,15 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public string HpText => $"{Member.CurrentHp}/{Member.MaximumHp}";
 
     public double HpFraction => Member.HpFraction;
+
+    /// <summary>
+    /// The bar as two proportional columns rather than a ProgressBar. Fluent's has a
+    /// minimum width of its own, wider than the team strip, and Avalonia does not clip
+    /// children — so it drew straight through the side of the tile.
+    /// </summary>
+    public GridLength HpFilled => new(Member.HpFraction, GridUnitType.Star);
+
+    public GridLength HpRemaining => new(1 - Member.HpFraction, GridUnitType.Star);
 
     /// <summary>
     /// Green, amber, red. The same thresholds the games use for the bar in battle, so the

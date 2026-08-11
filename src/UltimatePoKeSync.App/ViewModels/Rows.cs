@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.Media;
 using UltimatePoKeSync.Contracts;
 
@@ -12,6 +13,10 @@ public sealed record StatRow(string Name, int Base, int Iv, int Ev, int Current)
     /// would leave every bar looking short and equally short.
     /// </summary>
     public double Fraction => Math.Clamp(Base / 180.0, 0, 1);
+
+    public GridLength Filled => new(Fraction, GridUnitType.Star);
+
+    public GridLength Empty => new(1 - Fraction, GridUnitType.Star);
 
     /// <summary>Red through blue, the way a Pokédex has always shaded a stat.</summary>
     public IBrush Brush => Base switch
