@@ -20,13 +20,19 @@ public sealed class RomSpriteSourceTests
     /// <summary>Bulbasaur: national and internal agree, so no conversion is in the way.</summary>
     private const int Species = 1;
 
+    private static readonly GameIdentity Ruby =
+        new("AXVE", "POKEMON RUBY", 0, PokemonGeneration.Gen3);
+
+    private static readonly GameIdentity FireRed =
+        new("BPRE", "POKEMON FIRE", 0, PokemonGeneration.Gen3);
+
     [Fact]
     public async Task ASpriteIsDecodedThroughTheReader()
     {
         var reader = new FakeReader(BuildRom());
         var source = new RomSpriteSource(reader);
 
-        DecodedSprite? sprite = await source.TryGetAsync(Species, TestContext.Current.CancellationToken);
+        DecodedSprite? sprite = await source.TryGetAsync(Ruby, Species, TestContext.Current.CancellationToken);
 
         Assert.NotNull(sprite);
         Assert.Equal(64, sprite.Width);
@@ -43,11 +49,11 @@ public sealed class RomSpriteSourceTests
         var reader = new FakeReader(BuildRom()) { Offline = true };
         var source = new RomSpriteSource(reader);
 
-        Assert.Null(await source.TryGetAsync(Species, TestContext.Current.CancellationToken));
+        Assert.Null(await source.TryGetAsync(Ruby, Species, TestContext.Current.CancellationToken));
 
         reader.Offline = false;
 
-        Assert.NotNull(await source.TryGetAsync(Species, TestContext.Current.CancellationToken));
+        Assert.NotNull(await source.TryGetAsync(Ruby, Species, TestContext.Current.CancellationToken));
     }
 
     /// <summary>
@@ -62,13 +68,37 @@ public sealed class RomSpriteSourceTests
         var source = new RomSpriteSource(reader);
 
         // Let the tables be found, then cut the connection before the sprite arrives.
-        Assert.NotNull(await source.TryGetAsync(Species, TestContext.Current.CancellationToken));
+        Assert.NotNull(await source.TryGetAsync(Ruby, Species, TestContext.Current.CancellationToken));
 
         reader.Offline = true;
-        Assert.Null(await source.TryGetAsync(Species + 1, TestContext.Current.CancellationToken));
+        Assert.Null(await source.TryGetAsync(Ruby, Species + 1, TestContext.Current.CancellationToken));
 
         reader.Offline = false;
-        Assert.NotNull(await source.TryGetAsync(Species + 1, TestContext.Current.CancellationToken));
+        Assert.NotNull(await source.TryGetAsync(Ruby, Species + 1, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// Issue #17. Swapping the cartridge under a running app left the tables and the
+    /// decoded sprites of the previous game in place, so the next one was decoded with the
+    /// wrong offsets — or served someone else's sprite outright.
+    /// </summary>
+    [Fact]
+    public async Task ChangingGameThrowsAwayWhatBelongedToTheLastOne()
+    {
+        // Two ROMs holding the same species at different table offsets: the second paints
+        // the first pixel, the first leaves it transparent.
+        var reader = new SwitchableReader(BuildRom(paintFirstPixel: false), BuildRom(paintFirstPixel: true));
+        var source = new RomSpriteSource(reader);
+
+        DecodedSprite? first = await source.TryGetAsync(Ruby, Species, TestContext.Current.CancellationToken);
+        Assert.NotNull(first);
+        Assert.Equal(0, first.Rgba[7]);
+
+        reader.Swap();
+
+        DecodedSprite? second = await source.TryGetAsync(FireRed, Species, TestContext.Current.CancellationToken);
+        Assert.NotNull(second);
+        Assert.Equal(255, second.Rgba[7]);
     }
 
     [Fact]
@@ -77,7 +107,7 @@ public sealed class RomSpriteSourceTests
         var reader = new FakeReader(new byte[0x400000]);
         var source = new RomSpriteSource(reader);
 
-        Assert.Null(await source.TryGetAsync(Species, TestContext.Current.CancellationToken));
+        Assert.Null(await source.TryGetAsync(Ruby, Species, TestContext.Current.CancellationToken));
     }
 
     /// <summary>
@@ -91,7 +121,7 @@ public sealed class RomSpriteSourceTests
         byte[] rom = BuildRom(animatedFront: false);
         var source = new RomSpriteSource(new FakeReader(rom));
 
-        DecodedSprite? sprite = await source.TryGetAsync(Species, TestContext.Current.CancellationToken);
+        DecodedSprite? sprite = await source.TryGetAsync(Ruby, Species, TestContext.Current.CancellationToken);
 
         Assert.NotNull(sprite);
 
@@ -105,14 +135,16 @@ public sealed class RomSpriteSourceTests
     /// Two sprite tables and one palette table, laid out as a Gen 3 ROM lays them out. The
     /// first table is the front one; whether it animates is what the tests vary.
     /// </summary>
-    private static byte[] BuildRom(bool animatedFront = true)
+    private static byte[] BuildRom(bool animatedFront = true, bool paintFirstPixel = true)
     {
         int frontTable = TableOffset;
         int backTable = frontTable + (Entries * EntrySize);
         int paletteTable = backTable + (Entries * EntrySize);
         int blobs = paletteTable + (Entries * EntrySize);
 
-        byte[] front = Lz77Literals(new byte[animatedFront ? SpriteBytes * 2 : SpriteBytes], 0x10);
+        byte[] front = Lz77Literals(
+            new byte[animatedFront ? SpriteBytes * 2 : SpriteBytes],
+            paintFirstPixel ? (byte)0x10 : (byte)0x00);
         byte[] back = Lz77Literals(new byte[SpriteBytes], 0x00);
         byte[] palette = Lz77Literals(RedPalette(), null);
 
@@ -185,6 +217,32 @@ public sealed class RomSpriteSourceTests
         }
 
         return [.. block];
+    }
+
+    /// <summary>An emulator whose cartridge can be changed underneath.</summary>
+    private sealed class SwitchableReader(byte[] first, byte[] second) : IEmulatorMemoryReader
+    {
+        private byte[] _rom = first;
+
+        public bool CanRead => true;
+
+        public void Swap() => _rom = second;
+
+        public Task<byte[]?> ReadMemoryAsync(
+            uint address,
+            int length,
+            CancellationToken cancellationToken = default)
+        {
+            var offset = (int)(address - RomBase);
+            var slice = new byte[length];
+            for (int i = 0; i < length; i++)
+            {
+                int source = offset + i;
+                slice[i] = source >= 0 && source < _rom.Length ? _rom[source] : (byte)0;
+            }
+
+            return Task.FromResult<byte[]?>(slice);
+        }
     }
 
     /// <summary>An emulator that can be taken away and given back.</summary>

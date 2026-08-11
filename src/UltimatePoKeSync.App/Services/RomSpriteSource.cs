@@ -46,6 +46,7 @@ public sealed class RomSpriteSource
     private readonly Dictionary<int, DecodedSprite?> _cache = [];
     private readonly SemaphoreSlim _lock = new(1, 1);
 
+    private GameIdentity? _game;
     private byte[]? _rom;
     private Gen3SpriteTables? _tables;
 
@@ -81,11 +82,23 @@ public sealed class RomSpriteSource
         Never,
     }
 
+    /// <summary>
+    /// The front sprite for a national dex number in a given game.
+    /// </summary>
+    /// <remarks>
+    /// The game is a parameter rather than a constructor argument because a player can
+    /// swap the cartridge under a running app. Everything here — the ROM image, the table
+    /// offsets, the decoded sprites — belongs to one game, and keeping it across a change
+    /// means decoding FireRed with Ruby's tables. See issue #17.
+    /// </remarks>
     public async Task<DecodedSprite?> TryGetAsync(
+        GameIdentity game,
         int nationalSpeciesId,
         CancellationToken cancellationToken = default)
     {
-        if (_unavailable || !_reader.CanRead)
+        ArgumentNullException.ThrowIfNull(game);
+
+        if (!_reader.CanRead)
         {
             return null;
         }
@@ -99,6 +112,16 @@ public sealed class RomSpriteSource
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (!game.Equals(_game))
+            {
+                Forget(game);
+            }
+
+            if (_unavailable)
+            {
+                return null;
+            }
+
             if (_cache.TryGetValue(internalId, out DecodedSprite? cached))
             {
                 return cached;
@@ -125,6 +148,16 @@ public sealed class RomSpriteSource
         {
             _lock.Release();
         }
+    }
+
+    /// <summary>Drops everything belonging to the game that was here before.</summary>
+    private void Forget(GameIdentity game)
+    {
+        _game = game;
+        _rom = null;
+        _tables = null;
+        _unavailable = false;
+        _cache.Clear();
     }
 
     private async Task<Outcome> EnsureTablesAsync(CancellationToken cancellationToken)

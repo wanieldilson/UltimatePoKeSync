@@ -267,7 +267,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         // Sprites arrive later and are worth waiting for, not worth waiting on: the party
         // is on screen already, and each tile swaps its coloured box for the real thing as
         // the bytes come back.
-        _ = LoadSpritesAsync([.. Slots]);
+        _ = LoadSpritesAsync(party.Game, [.. Slots]);
     }
 
     private void ShowPartyWithoutAnalysis(PartySnapshot party)
@@ -293,7 +293,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         SelectedSlot = null;
     }
 
-    private async Task LoadSpritesAsync(IReadOnlyList<PokemonSlotViewModel> slots)
+    private async Task LoadSpritesAsync(
+        GameIdentity game,
+        IReadOnlyList<PokemonSlotViewModel> slots)
     {
         if (_sprites is null)
         {
@@ -305,7 +307,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             DecodedSprite? decoded;
             try
             {
-                decoded = await _sprites.TryGetAsync(slot.Member.SpeciesId).ConfigureAwait(false);
+                decoded = await _sprites.TryGetAsync(game, slot.Member.SpeciesId).ConfigureAwait(false);
             }
             catch (Exception)
             {
