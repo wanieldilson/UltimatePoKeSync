@@ -68,9 +68,35 @@
       <Setter Property="FontFeatures" Value="tnum" />
     </Style>
 
+    <!--
+      The default selection paints the whole row in the system accent, which buries the
+      type colour the tile exists to show. Selection is a ring instead.
+    -->
     <Style Selector="ListBoxItem">
       <Setter Property="Padding" Value="0" />
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBoxItem:selected Border.tile">
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover Border.tile">
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+    </Style>
+    <Style Selector="Border.tile">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Padding" Value="10,9" />
+      <Setter Property="Margin" Value="0,0,0,6" />
     </Style>
   </Window.Styles>
 
@@ -155,11 +181,11 @@
                    Background="Transparent" BorderThickness="0" Padding="0">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:PokemonSlotViewModel">
-                <Border Background="{Binding TileBrush}" CornerRadius="8" Padding="10,9" Margin="0,0,0,6">
+                <Border Classes="tile" Background="{Binding TileBrush}">
                   <StackPanel Spacing="7">
 
                     <Grid ColumnDefinitions="Auto,*,Auto">
-                      <Panel Width="42" Height="42">
+                      <Panel Width="52" Height="52">
                         <!-- The coloured box is the ground the sprite lands on, so a game
                              we cannot read still shows something. -->
                         <Border CornerRadius="6" Background="{Binding PrimaryBrush}"
@@ -283,23 +309,56 @@
 
           </StackPanel>
 
-          <!-- A slot is selected: everything about that Pokémon. -->
+          <!-- A slot is selected: the Pokémon, the way a Pokédex would lay it out. -->
           <ContentControl IsVisible="{Binding !ShowTeamPanel}" Content="{Binding SelectedSlot}">
             <ContentControl.ContentTemplate>
               <DataTemplate x:DataType="vm:PokemonSlotViewModel">
                 <StackPanel Spacing="14">
 
+                  <!-- Hero: the sprite at a size worth looking at, tinted with the
+                       Pokémon's own type so each one feels like its own page. -->
+                  <Border CornerRadius="12" Padding="20" Background="{Binding TileBrush}">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <Panel Width="112" Height="112" VerticalAlignment="Top">
+                        <Border CornerRadius="10" Background="{Binding PrimaryBrush}"
+                                IsVisible="{Binding !HasSprite}">
+                          <TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="Bold"
+                                     FontSize="30" HorizontalAlignment="Center"
+                                     VerticalAlignment="Center" />
+                        </Border>
+                        <Image Source="{Binding Sprite}" IsVisible="{Binding HasSprite}"
+                               RenderOptions.BitmapInterpolationMode="None" Stretch="Uniform" />
+                      </Panel>
 
-                <Border Classes="card">
-                  <StackPanel Spacing="10">
-                    <Grid ColumnDefinitions="*,Auto">
-                      <StackPanel Spacing="2">
-                        <TextBlock Text="{Binding SpeciesName}" Classes="title" />
-                        <TextBlock Text="{Binding NicknameText}" IsVisible="{Binding HasNickname}" Classes="muted" />
-                        <TextBlock Classes="muted" FontSize="12">
+                      <StackPanel Grid.Column="1" Margin="20,2,0,0" Spacing="9">
+                        <StackPanel Spacing="1">
+                          <TextBlock Text="{Binding SpeciesName}" FontSize="26" FontWeight="Bold" />
+                          <TextBlock Text="{Binding NicknameText}" IsVisible="{Binding HasNickname}"
+                                     Classes="muted" FontSize="13" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <ItemsControl ItemsSource="{Binding TypeChips}"
+                                        ItemTemplate="{StaticResource ChipTemplate}"
+                                        ItemsPanel="{StaticResource ChipPanel}" />
+                          <TextBlock Text="✦ shiny" IsVisible="{Binding IsShiny}" FontSize="11"
+                                     Foreground="#C9A227" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <Grid ColumnDefinitions="220,Auto,Auto" ColumnSpacing="10">
+                          <ProgressBar Value="{Binding HpFraction}" Maximum="1" Height="8"
+                                       VerticalAlignment="Center" Foreground="{Binding HpBrush}" />
+                          <TextBlock Grid.Column="1" Text="{Binding HpText}" FontSize="12"
+                                     Classes="numeric" VerticalAlignment="Center" />
+                          <Border Grid.Column="2" Background="{Binding StatusBrush}" CornerRadius="3"
+                                  Padding="6,1" IsVisible="{Binding HasStatus}" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding StatusText}" Foreground="White" FontSize="10"
+                                       FontWeight="SemiBold" />
+                          </Border>
+                        </Grid>
+
+                        <TextBlock Classes="caption">
                           <Run Text="{Binding LevelText}" />
-                          <Run Text="·" />
-                          <Run Text="{Binding TypeText}" />
                           <Run Text="·" />
                           <Run Text="{Binding NatureName}" />
                           <Run Text="·" />
@@ -308,139 +367,160 @@
                           <Run Text="{Binding HeldItemText}" />
                         </TextBlock>
                       </StackPanel>
-                      <Button Grid.Column="1" Content="Back to team" VerticalAlignment="Top"
+
+                      <Button Grid.Column="2" Content="Back to team" VerticalAlignment="Top"
                               Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ClearSelectionCommand}" />
                     </Grid>
-                  </StackPanel>
-                </Border>
+                  </Border>
 
-                <Border Classes="card" IsVisible="{Binding HasRecommendation}">
-                  <StackPanel Spacing="10">
-                    <Grid ColumnDefinitions="*,Auto">
-                      <TextBlock Text="Recommendation" Classes="section" VerticalAlignment="Center" />
-                      <Button Grid.Column="1" Content="Show the best set"
-                              Command="{Binding ToggleBuildCommand}" />
-                    </Grid>
+                  <Border Classes="card" IsVisible="{Binding HasRecommendation}">
+                    <StackPanel Spacing="14">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Recommendation" Classes="section" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="Show the best set"
+                                Command="{Binding ToggleBuildCommand}" />
+                      </Grid>
 
-                    <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto">
-                      <TextBlock Text="Role" FontSize="12" Classes="muted" />
-                      <StackPanel Grid.Column="1">
-                        <TextBlock Text="{Binding RoleText}" FontSize="12" />
-                        <TextBlock Text="{Binding RoleReason}" FontSize="11" Classes="muted" />
+                      <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                        <TextBlock Text="Role" Classes="caption" />
+                        <StackPanel Grid.Column="1">
+                          <TextBlock Text="{Binding RoleText}" FontSize="13" />
+                          <TextBlock Text="{Binding RoleReason}" Classes="caption" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Text="Nature" Classes="caption" />
+                        <StackPanel Grid.Row="1" Grid.Column="1">
+                          <TextBlock Text="{Binding NatureText}" FontSize="13" />
+                          <TextBlock Text="{Binding NatureNote}" Classes="caption" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="2" Text="Effort values" Classes="caption" />
+                        <StackPanel Grid.Row="2" Grid.Column="1">
+                          <TextBlock Text="{Binding EffortValueText}" FontSize="13" />
+                          <TextBlock Text="{Binding ProjectedStatsText}" Classes="caption"
+                                     IsVisible="{Binding HasProjectedStats}" />
+                        </StackPanel>
+                      </Grid>
+
+                      <StackPanel Spacing="10" IsVisible="{Binding ShowBuild}">
+                        <Border Height="1" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+                        <TextBlock Text="Best set" Classes="section" />
+
+                        <ItemsControl ItemsSource="{Binding BuildMoves}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:BuildMoveRow">
+                              <Grid ColumnDefinitions="165,95,*" RowDefinitions="Auto,Auto"
+                                    Margin="0,0,0,12" ColumnSpacing="10">
+                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" />
+                                <Border Grid.Column="1" Background="{Binding Brush}" CornerRadius="4"
+                                        Padding="7,1" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                  <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
+                                </Border>
+                                <TextBlock Grid.Column="2" Text="{Binding Role}" FontSize="11"
+                                           FontWeight="SemiBold" Opacity="0.75" />
+
+                                <!-- How to get it. Telling someone to run Dig without saying
+                                     it means finding a TM is half an answer. -->
+                                <TextBlock Grid.Row="1" Text="{Binding Source}" FontSize="11"
+                                           Foreground="#7FAAF0" Margin="0,3,0,0" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                           Text="{Binding Reason}" Classes="caption"
+                                           TextWrapping="Wrap" Margin="0,3,0,0" />
+                              </Grid>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="Also considered" Classes="section"
+                                   IsVisible="{Binding HasAlternatives}" />
+                        <ItemsControl ItemsSource="{Binding Alternatives}"
+                                      IsVisible="{Binding HasAlternatives}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="sys:String">
+                              <TextBlock Text="{Binding}" Classes="caption" />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="Held item" Classes="section" />
+                        <ItemsControl ItemsSource="{Binding Items}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="sys:String">
+                              <TextBlock Text="{Binding}" Classes="caption" />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{Binding PresetText}" IsVisible="{Binding HasPreset}"
+                                   Classes="caption" />
                       </StackPanel>
+                    </StackPanel>
+                  </Border>
 
-                      <TextBlock Grid.Row="1" Text="Nature" FontSize="12" Classes="muted" Margin="0,8,0,0" />
-                      <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,8,0,0">
-                        <TextBlock Text="{Binding NatureText}" FontSize="12" />
-                        <TextBlock Text="{Binding NatureNote}" FontSize="11" Classes="muted" />
-                      </StackPanel>
-
-                      <TextBlock Grid.Row="2" Text="Effort values" FontSize="12" Classes="muted" Margin="0,8,0,0" />
-                      <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,8,0,0">
-                        <TextBlock Text="{Binding EffortValueText}" FontSize="12" />
-                        <TextBlock Text="{Binding ProjectedStatsText}" IsVisible="{Binding HasProjectedStats}"
-                                   FontSize="11" Classes="muted" />
-                      </StackPanel>
-                    </Grid>
-
-                    <StackPanel Spacing="8" IsVisible="{Binding ShowBuild}" Margin="0,6,0,0">
-                      <TextBlock Text="Best set" Classes="section" />
-                      <ItemsControl ItemsSource="{Binding BuildMoves}">
+                  <Border Classes="card">
+                    <StackPanel Spacing="10">
+                      <TextBlock Text="Base stats" Classes="section" />
+                      <ItemsControl ItemsSource="{Binding Stats}">
                         <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="vm:BuildMoveRow">
-                            <Grid ColumnDefinitions="180,110,*" Margin="0,3">
-                              <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" />
-                              <Border Grid.Column="1" Background="{Binding Brush}" CornerRadius="4"
-                                      Padding="7,1" HorizontalAlignment="Left">
-                                <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
-                              </Border>
-                              <TextBlock Grid.Column="2" Text="{Binding Reason}" FontSize="11"
-                                         Classes="muted" TextWrapping="Wrap" />
+                          <DataTemplate x:DataType="vm:StatRow">
+                            <Grid ColumnDefinitions="110,44,*,52,44,44" ColumnSpacing="10" Margin="0,3">
+                              <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" />
+                              <TextBlock Grid.Column="1" Text="{Binding Base}" FontSize="12"
+                                         Classes="numeric" VerticalAlignment="Center" />
+                              <ProgressBar Grid.Column="2" Value="{Binding Fraction}" Maximum="1"
+                                           Height="7" VerticalAlignment="Center"
+                                           Foreground="{Binding Brush}" />
+                              <TextBlock Grid.Column="3" Text="{Binding Current}" FontSize="12"
+                                         FontWeight="SemiBold" Classes="numeric" VerticalAlignment="Center" />
+                              <TextBlock Grid.Column="4" Text="{Binding Iv}" FontSize="11"
+                                         Classes="muted numeric" VerticalAlignment="Center"
+                                         ToolTip.Tip="Individual value" />
+                              <TextBlock Grid.Column="5" Text="{Binding Ev}" FontSize="11"
+                                         Classes="muted numeric" VerticalAlignment="Center"
+                                         ToolTip.Tip="Effort value" />
                             </Grid>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
-
-                      <TextBlock Text="Also considered" Classes="section" Margin="0,8,0,0"
-                                 IsVisible="{Binding HasAlternatives}" />
-                      <ItemsControl ItemsSource="{Binding Alternatives}" IsVisible="{Binding HasAlternatives}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="sys:String">
-                            <TextBlock Text="{Binding}" FontSize="11" Classes="muted" />
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-
-                      <TextBlock Text="Held item" Classes="section" Margin="0,8,0,0" />
-                      <ItemsControl ItemsSource="{Binding Items}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="sys:String">
-                            <TextBlock Text="{Binding}" FontSize="11" Classes="muted" />
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-
-                      <TextBlock Text="{Binding PresetText}" IsVisible="{Binding HasPreset}"
-                                 FontSize="11" Classes="muted" Margin="0,8,0,0" />
+                      <Grid ColumnDefinitions="110,44,*,52,44,44" ColumnSpacing="10">
+                        <TextBlock Grid.Column="1" Text="base" Classes="caption" />
+                        <TextBlock Grid.Column="3" Text="now" Classes="caption" />
+                        <TextBlock Grid.Column="4" Text="IV" Classes="caption" />
+                        <TextBlock Grid.Column="5" Text="EV" Classes="caption" />
+                      </Grid>
                     </StackPanel>
-                  </StackPanel>
-                </Border>
+                  </Border>
 
-                <Border Classes="card">
-                  <StackPanel Spacing="6">
-                    <TextBlock Text="Stats" Classes="section" />
-                    <Grid ColumnDefinitions="120,60,50,50,*">
-                      <TextBlock Text="" />
-                      <TextBlock Grid.Column="1" Text="Base" Classes="muted" FontSize="11" />
-                      <TextBlock Grid.Column="2" Text="IV" Classes="muted" FontSize="11" />
-                      <TextBlock Grid.Column="3" Text="EV" Classes="muted" FontSize="11" />
-                      <TextBlock Grid.Column="4" Text="Now" Classes="muted" FontSize="11" />
-                    </Grid>
-                    <ItemsControl ItemsSource="{Binding Stats}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:StatRow">
-                          <Grid ColumnDefinitions="120,60,50,50,*" Margin="0,3">
-                            <TextBlock Text="{Binding Name}" FontSize="12" />
-                            <TextBlock Grid.Column="1" Text="{Binding Base}" FontSize="12" Classes="muted" />
-                            <TextBlock Grid.Column="2" Text="{Binding Iv}" FontSize="12" Classes="muted" />
-                            <TextBlock Grid.Column="3" Text="{Binding Ev}" FontSize="12" Classes="muted" />
-                            <TextBlock Grid.Column="4" Text="{Binding Current}" FontSize="12" FontWeight="SemiBold" />
-                          </Grid>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-                </Border>
+                  <Border Classes="card">
+                    <StackPanel Spacing="10">
+                      <TextBlock Text="Matchups" Classes="section" />
+                      <TextBlock Text="Weak to" Classes="caption" />
+                      <ItemsControl ItemsSource="{Binding Weaknesses}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                      <TextBlock Text="Resists or is immune to" Classes="caption" />
+                      <ItemsControl ItemsSource="{Binding Resistances}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                    </StackPanel>
+                  </Border>
 
-                <Border Classes="card">
-                  <StackPanel Spacing="10">
-                    <TextBlock Text="Matchups" Classes="section" />
-                    <TextBlock Text="Weak to" Classes="caption" />
-                    <ItemsControl ItemsSource="{Binding Weaknesses}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
-                    <TextBlock Text="Resists or is immune to" Classes="caption" />
-                    <ItemsControl ItemsSource="{Binding Resistances}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
-                  </StackPanel>
-                </Border>
-
-                <Border Classes="card">
-                  <StackPanel Spacing="10">
-                    <TextBlock Text="Known moves" Classes="section" />
-                    <ItemsControl ItemsSource="{Binding Moves}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:MoveRow">
-                          <Grid ColumnDefinitions="180,110,*" Margin="0,3">
-                            <TextBlock Text="{Binding Name}" FontSize="12" />
-                            <Border Grid.Column="1" Background="{Binding Brush}" CornerRadius="4"
-                                    Padding="7,1" HorizontalAlignment="Left">
-                              <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
-                            </Border>
-                            <TextBlock Grid.Column="2" Text="{Binding Pp}" FontSize="12" Classes="muted" />
-                          </Grid>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-                </Border>
+                  <Border Classes="card">
+                    <StackPanel Spacing="10">
+                      <TextBlock Text="Known moves" Classes="section" />
+                      <ItemsControl ItemsSource="{Binding Moves}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:MoveRow">
+                            <Grid ColumnDefinitions="180,110,*" Margin="0,3">
+                              <TextBlock Text="{Binding Name}" FontSize="12" />
+                              <Border Grid.Column="1" Background="{Binding Brush}" CornerRadius="4"
+                                      Padding="7,1" HorizontalAlignment="Left">
+                                <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
+                              </Border>
+                              <TextBlock Grid.Column="2" Text="{Binding Pp}" FontSize="12"
+                                         Classes="muted numeric" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Border>
 
                 </StackPanel>
               </DataTemplate>

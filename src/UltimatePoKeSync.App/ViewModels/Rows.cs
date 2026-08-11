@@ -4,7 +4,25 @@ using UltimatePoKeSync.Contracts;
 namespace UltimatePoKeSync.App.ViewModels;
 
 /// <summary>One stat, with everything that produced its current value.</summary>
-public sealed record StatRow(string Name, int Base, int Iv, int Ev, int Current);
+public sealed record StatRow(string Name, int Base, int Iv, int Ev, int Current)
+{
+    /// <summary>
+    /// Where the base stat sits on the scale the games themselves use. Capped at 180
+    /// rather than the theoretical 255: almost nothing reaches the top, so scaling to it
+    /// would leave every bar looking short and equally short.
+    /// </summary>
+    public double Fraction => Math.Clamp(Base / 180.0, 0, 1);
+
+    /// <summary>Red through blue, the way a Pokédex has always shaded a stat.</summary>
+    public IBrush Brush => Base switch
+    {
+        < 60 => new SolidColorBrush(Color.FromRgb(0xC0, 0x3D, 0x2E)),
+        < 90 => new SolidColorBrush(Color.FromRgb(0xD9, 0x60, 0x2E)),
+        < 120 => new SolidColorBrush(Color.FromRgb(0xC9, 0xA2, 0x27)),
+        < 150 => new SolidColorBrush(Color.FromRgb(0x4E, 0x9A, 0x3F)),
+        _ => new SolidColorBrush(Color.FromRgb(0x3E, 0x76, 0xC4)),
+    };
+}
 
 /// <summary>One move slot as shown in the detail panel.</summary>
 public sealed record MoveRow(string Name, string Type, string Pp, IBrush Brush);

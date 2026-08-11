@@ -73,6 +73,11 @@ public sealed class MainWindowViewModelTests
             viewModel.TeamWeaknesses.Count + viewModel.TeamNeutral.Count + viewModel.TeamResisted.Count);
         Assert.Equal(17, viewModel.TeamSuperEffective.Count + viewModel.TeamUnanswered.Count);
 
+        // The placeholders under the coverage headings must agree with the chips beside
+        // them: both were shown at once when the counts were read before the lists filled.
+        Assert.Equal(viewModel.TeamSuperEffective.Count > 0, viewModel.HasSuperEffective);
+        Assert.Equal(viewModel.TeamUnanswered.Count > 0, viewModel.HasUnanswered);
+
         Assert.Equal(6, viewModel.StrengthFactors.Count);
         Assert.InRange(viewModel.StrengthScore, 1, 100);
         Assert.False(string.IsNullOrWhiteSpace(viewModel.StrengthHeadline));

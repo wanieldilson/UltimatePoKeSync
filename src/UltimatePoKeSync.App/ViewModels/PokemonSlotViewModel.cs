@@ -64,6 +64,14 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
         (Weaknesses, Resistances) = BuildMatchups(member, analysis);
 
+        TypeChips =
+        [
+            TypeChip.For(member.PrimaryType, "primary type"),
+            .. member.IsDualType
+                ? new[] { TypeChip.For(member.SecondaryType, "secondary type") }
+                : [],
+        ];
+
         RoleText = recommendation is null
             ? "—"
             : Humanise(recommendation.RoleAnalysis.Role);
@@ -199,6 +207,9 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public string FriendshipText => $"{Member.Friendship}/255";
 
     public IReadOnlyList<StatRow> Stats { get; }
+
+    /// <summary>The Pokémon's own types, as chips for the detail header.</summary>
+    public IReadOnlyList<TypeChip> TypeChips { get; }
 
     public IReadOnlyList<MoveRow> Moves { get; }
 

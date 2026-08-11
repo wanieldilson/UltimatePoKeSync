@@ -334,9 +334,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             }
         }
 
-        OnPropertyChanged(nameof(HasSuperEffective));
-        OnPropertyChanged(nameof(HasUnanswered));
-
         foreach (OffensiveTypeCoverage entry in analysis.OffensiveCoverage)
         {
             if (entry.IsCovered)
@@ -351,6 +348,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 TeamUnanswered.Add(TypeChip.For(entry.DefendingType, "no super-effective move"));
             }
         }
+
+        OnPropertyChanged(nameof(HasSuperEffective));
+        OnPropertyChanged(nameof(HasUnanswered));
     }
 
     private void UpdateStrength(TeamStrength strength)
