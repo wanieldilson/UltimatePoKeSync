@@ -8,6 +8,7 @@ using UltimatePoKeSync.Analysis;
 using UltimatePoKeSync.App.Services;
 using UltimatePoKeSync.Contracts;
 using UltimatePoKeSync.GameData.Learnsets;
+using UltimatePoKeSync.GameData.Sprites;
 
 namespace UltimatePoKeSync.App.ViewModels;
 
@@ -26,6 +27,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly TeamStrengthAnalyzer _strengthAnalyzer = new();
     private readonly PokemonRecommendationEngine _engine =
         PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance);
+
+    private readonly RomSpriteSource? _sprites;
 
     private PartySnapshot? _party;
 
@@ -77,6 +80,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         RevealButtonText = SetupGuide.RevealButtonText;
         IsTranslocated = SetupGuide.IsTranslocated;
         TranslocationWarning = SetupGuide.TranslocationWarning;
+
+        _sprites = live.MemoryReader is null ? null : new RomSpriteSource(live.MemoryReader);
 
         _live.StateChanged += (_, state) => _post(() => OnStateChanged(state));
         _live.PartyChanged += (_, party) => _post(() => OnPartyChanged(party));
@@ -227,6 +232,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         UpdateCoverage(analysis);
         UpdateStrength(strength);
         SelectedSlot = Slots.FirstOrDefault(slot => slot.SlotIndex == selectedIndex);
+
+        // Sprites arrive later and are worth waiting for, not worth waiting on: the party
+        // is on screen already, and each tile swaps its coloured box for the real thing as
+        // the bytes come back.
+        _ = LoadSpritesAsync([.. Slots]);
     }
 
     private void ShowPartyWithoutAnalysis(PartySnapshot party)
@@ -249,6 +259,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         UpdateEmptySlots(party.Count);
         OnPropertyChanged(nameof(HasTeam));
         SelectedSlot = null;
+    }
+
+    private async Task LoadSpritesAsync(IReadOnlyList<PokemonSlotViewModel> slots)
+    {
+        if (_sprites is null)
+        {
+            return;
+        }
+
+        foreach (PokemonSlotViewModel slot in slots)
+        {
+            DecodedSprite? decoded;
+            try
+            {
+                decoded = await _sprites.TryGetAsync(slot.Member.SpeciesId).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // A sprite is decoration. Losing one must never take the party down with it.
+                return;
+            }
+
+            if (decoded is not null)
+            {
+                _post(() => slot.Sprite = SpriteImage.From(decoded));
+            }
+        }
     }
 
     private void UpdateEmptySlots(int filled)

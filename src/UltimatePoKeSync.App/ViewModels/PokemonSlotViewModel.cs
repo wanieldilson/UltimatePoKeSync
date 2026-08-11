@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UltimatePoKeSync.Analysis;
@@ -17,6 +18,14 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _showBuild;
+
+    /// <summary>
+    /// The sprite from the player's own cartridge, once it has been fetched. Null until
+    /// then, and null for good on a game we cannot read, which is why the coloured tile
+    /// stays underneath rather than being replaced. See D-033.
+    /// </summary>
+    [ObservableProperty]
+    private Bitmap? _sprite;
 
     public PokemonSlotViewModel(
         PokemonSnapshot member,
@@ -126,6 +135,8 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public IBrush TileBrush { get; }
 
+    public bool HasSprite => Sprite is not null;
+
     public string Initials => Member.SpeciesName.Length <= 3
         ? Member.SpeciesName.ToUpperInvariant()
         : Member.SpeciesName[..3].ToUpperInvariant();
@@ -225,6 +236,8 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     [RelayCommand]
     private void ToggleBuild() => ShowBuild = !ShowBuild;
+
+    partial void OnSpriteChanged(Bitmap? value) => OnPropertyChanged(nameof(HasSprite));
 
     private static (IReadOnlyList<TypeChip> Weak, IReadOnlyList<TypeChip> Resisted) BuildMatchups(
         PokemonSnapshot member,

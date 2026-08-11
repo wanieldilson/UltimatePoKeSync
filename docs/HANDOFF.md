@@ -75,7 +75,7 @@ and select only; the facts come from `Analysis`, so the window and the CLI canno
 GitHub Actions workflow publishes self-contained single-file binaries for Windows, Linux
 and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 
-**131 tests green** — 73 analysis, 24 parsing, 12 session, 9 learnsets, 8 app, 5 provider.
+**164 tests green** — 82 analysis, 42 parsing, 12 session, 10 app, 9 learnsets, 9 provider.
 
 ## What does not exist yet
 
@@ -85,9 +85,6 @@ and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 - Competitive usage and speed-benchmark weighting. The presets are Random Battle
   references, not standard OU statistics.
 - Egg moves, deliberately: a Pokémon already caught cannot gain one (D-030).
-- Sprites. Party members show as a tile in their primary type's colour with the species
-  name, not an image. Reading sprites from the player's own ROM is the clean route and has
-  not been started (D-028).
 - Apple notarisation. macOS downloads are signed ad-hoc, not by Apple, so the first launch
   still needs right-click → Open. Removing that needs a paid Apple Developer account.
 - The CLI has no test project of its own. `AnalysisReport` and `RawSnapshotDump.Read` are

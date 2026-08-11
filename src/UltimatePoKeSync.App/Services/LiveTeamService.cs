@@ -42,6 +42,8 @@ public sealed class LiveTeamService : ILiveTeamSource
 
     public int Port => Options.Port;
 
+    public IEmulatorMemoryReader MemoryReader => _provider;
+
     public void Start() => _loop ??= Task.Run(RunAsync);
 
     public async ValueTask DisposeAsync()

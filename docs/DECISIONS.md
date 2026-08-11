@@ -932,3 +932,57 @@ since the player is deciding whether to evolve), use the Pokémon's current leve
 competitive pool (rejected: the profile already proposes exact EV spreads that require
 training, so pretending the level is fixed is inconsistent), and rank strictly by base power
 (rejected: it would hand every Pokémon four 120-power moves and ignore what the team needs).
+
+---
+
+## D-033 — Sprites come from the player's own cartridge, so the bridge learned to answer
+
+**Status:** Accepted · 2026-08-11
+
+Pokémon sprites are Nintendo's, and a public GPLv3 repository is not the place to
+redistribute them. The player already owns a copy of every sprite they will ever see: it is
+in the ROM they are playing. Reading them from there is the one route that is both
+authentic and clean, and it needs nothing bundled.
+
+**Nothing is hard-coded, because nothing can be.** The pointer tables move with every build
+of every localisation — the Italian Emerald keeps its front-sprite table at `0x08300DDC`,
+and no other release is obliged to agree — so a table of addresses would be a table of
+guesses. They are found from the shape of the data instead: a run of eight-byte records,
+each a valid ROM pointer with a size of `0x800` and a tag counting up from zero. Nothing
+else in sixteen megabytes looks like that four hundred times over. Emerald animates its
+front sprites and not its back ones, so the front table is the one whose entries decompress
+to two frames; where that does not hold, the reader says it cannot tell rather than picking,
+and the coloured tile stays.
+
+**The bridge had to become two-way.** Scanning means reading, and the script only ever
+spoke. Protocol 2 adds one command — `read`, an address and a length, answered with base64
+bytes, capped at 256 KiB. The script still ships bytes and no meaning (D-006); it now ships
+them on request as well as on change. This revises D-003's "the app sends no commands",
+which was written when nothing needed to ask.
+
+It reads a window, not the cartridge. Sixteen megabytes over the wire would stall emulation
+for seconds; the tables sit near offset `0x300000`, so two reads normally suffice, widening
+if they do not, and sprite data is fetched per species a few kilobytes at a time — only for
+what is in the party, cached, failures included.
+
+The same command is the missing input behind every "check availability in this save" the app
+prints. The bag and the badge flags are in the same memory, and reaching them is now a
+matter of knowing where rather than of building a channel.
+
+Two things were nearly got wrong by assuming, and were caught by checking. Gen 3's internal
+species order is not the national one plus a constant: Treecko is 252 and 277, which looks
+like an offset of 25 until Pelipper turns out to be 279 and 310. The conversion comes from
+PKHeX's table, and the test names the species where arithmetic would have been plausible
+and wrong. And `StreamWriter` puts a byte-order mark in front of the first line it writes,
+which is not JSON — found by a test, not by a user.
+
+The decoder was verified the only way that really counts: six species decoded from the
+Italian Emerald and looked at. Its unit tests are entirely synthetic, because no sprite byte
+belongs in this repository.
+
+**Alternatives considered:** bundle a sprite pack (rejected: not ours to redistribute),
+have the script send the whole ROM on connect (rejected: twenty-one megabytes of base64 per
+connection to use less than one), ask the user to locate the ROM file (rejected: it makes
+someone hunt for a file already open in the emulator beside them, and it does nothing for
+the bag), and hard-code the tables per game code (rejected: they differ per localisation, so
+the constants would be wrong for most players and wrong invisibly).

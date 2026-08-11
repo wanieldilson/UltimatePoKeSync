@@ -19,5 +19,11 @@ public interface ILiveTeamSource : IAsyncDisposable
     /// <summary>The port the user has to match in the bridge script.</summary>
     int Port { get; }
 
+    /// <summary>
+    /// Reads emulator memory, when the bridge can. Null for a source that only replays
+    /// what it was given. See D-033.
+    /// </summary>
+    IEmulatorMemoryReader? MemoryReader { get; }
+
     void Start();
 }

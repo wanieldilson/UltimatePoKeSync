@@ -149,10 +149,18 @@
                   <StackPanel Spacing="7">
 
                     <Grid ColumnDefinitions="Auto,*,Auto">
-                      <Border Width="38" Height="38" CornerRadius="6" Background="{Binding PrimaryBrush}">
-                        <TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="Bold"
-                                   FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                      </Border>
+                      <Panel Width="42" Height="42">
+                        <!-- The coloured box is the ground the sprite lands on, so a game
+                             we cannot read still shows something. -->
+                        <Border CornerRadius="6" Background="{Binding PrimaryBrush}"
+                                IsVisible="{Binding !HasSprite}">
+                          <TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="Bold"
+                                     FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Image Source="{Binding Sprite}" IsVisible="{Binding HasSprite}"
+                               RenderOptions.BitmapInterpolationMode="None"
+                               Stretch="Uniform" />
+                      </Panel>
 
                       <StackPanel Grid.Column="1" Margin="9,0,0,0" Spacing="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding SpeciesName}" FontWeight="SemiBold" FontSize="13"

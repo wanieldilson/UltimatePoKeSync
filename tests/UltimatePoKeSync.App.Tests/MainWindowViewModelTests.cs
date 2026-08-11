@@ -222,6 +222,8 @@ public sealed class MainWindowViewModelTests
 
         public int Port => 8888;
 
+        public IEmulatorMemoryReader? MemoryReader => null;
+
         public bool Started { get; private set; }
 
         public void Start() => Started = true;
