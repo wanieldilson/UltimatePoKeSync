@@ -28,8 +28,17 @@ run it. Nothing else to install — the .NET runtime is inside.
 | macOS, Intel | `UltimatePoKeSync-macos-intel.zip` |
 | Linux | `UltimatePoKeSync-linux-x64.tar.gz` |
 
-On macOS the app is not signed by Apple, so the first launch has to be right-click → Open →
-Open. Every launch after that is a normal double-click.
+On macOS the app is signed ad-hoc rather than by Apple, so the first launch has to be
+right-click → Open → Open. Every launch after that is a normal double-click.
+
+If macOS says the app is **damaged and should be moved to the Trash**, the download predates
+`v0.1.1` and has no signature at all, which Apple Silicon refuses to run. Get a newer
+release, or repair the copy you have:
+
+```bash
+xattr -dr com.apple.quarantine /path/to/UltimatePoKeSync.app
+codesign --force --deep --sign - /path/to/UltimatePoKeSync.app
+```
 
 The app opens on a setup screen with the steps for your system and the path of the script
 to load into mGBA. Once the script is running, the team appears by itself.

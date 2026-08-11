@@ -742,3 +742,22 @@ score alone as a headline number (rejected: unactionable, and D-022 already sett
 have the build replace the candidate list (rejected: hides the trade-off the profiles
 exist to expose), bundle a sprite pack (rejected: not ours to redistribute), and commit
 prebuilt binaries to the repository (rejected: bloats history and still fails Gatekeeper).
+
+### Amendment, 2026-08-11 — macOS builds must be produced on macOS
+
+`v0.1.0` cross-published every runtime from one Linux runner. The Apple Silicon download
+was reported as "damaged and should be moved to the Trash". That is not the Gatekeeper
+warning it looks like: Apple Silicon requires every executable to carry a signature, at
+minimum an ad-hoc one, and the kernel `SIGKILL`s anything without one. Reproduced locally:
+stripping the signature from a working build makes it exit with 137, and re-applying
+`codesign --sign -` makes it run again. Right-click → Open cannot rescue it, because the
+problem is not the quarantine attribute.
+
+`codesign` only exists on macOS, so the macOS artifacts now build on a `macos-latest`
+runner — where the .NET SDK ad-hoc signs the apphost anyway — and the finished bundle is
+signed and verified. Packaging uses `ditto` rather than `zip`, which preserves the
+symlinks and permissions a signature covers. Verified locally end to end: sign, package,
+unpack, `codesign --verify --deep --strict`, launch.
+
+Notarising, which would remove the right-click → Open step entirely, still needs a paid
+Apple Developer account and remains a business decision.

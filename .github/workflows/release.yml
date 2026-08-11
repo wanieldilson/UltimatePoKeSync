@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 jobs:
-  publish:
+  windows-and-linux:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,10 +29,50 @@ jobs:
 
       # Self-contained: the .NET runtime travels with the app. Bigger download, but the
       # promise is "download and run", and asking for a runtime install breaks it.
-      - name: Publish every runtime
+      - name: Publish
         run: |
           set -euo pipefail
-          for rid in win-x64 linux-x64 osx-x64 osx-arm64; do
+          for rid in win-x64 linux-x64; do
+            dotnet publish src/UltimatePoKeSync.App \
+              --configuration Release \
+              --runtime "$rid" \
+              --self-contained true \
+              -p:PublishSingleFile=true \
+              -p:EnableCompressionInSingleFile=true \
+              -p:DebugType=none \
+              --output "publish/$rid"
+          done
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          (cd publish/win-x64 && zip -r ../../artifacts/UltimatePoKeSync-windows-x64.zip .)
+          (cd publish/linux-x64 && tar czf ../../artifacts/UltimatePoKeSync-linux-x64.tar.gz .)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-and-linux
+          path: artifacts/*
+
+  # macOS builds must be produced on macOS. Apple Silicon refuses to execute an unsigned
+  # binary — the kernel kills it outright, and Finder reports the app as "damaged" — and
+  # `codesign` only exists here. The .NET SDK ad-hoc signs the apphost when it publishes
+  # on macOS; the bundle is then signed as a whole.
+  macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        run: |
+          set -euo pipefail
+          for rid in osx-x64 osx-arm64; do
             dotnet publish src/UltimatePoKeSync.App \
               --configuration Release \
               --runtime "$rid" \
@@ -44,9 +84,8 @@ jobs:
           done
 
       # A bare Unix executable opens a Terminal window when double-clicked, so macOS gets
-      # a real bundle. It is unsigned: first launch needs right-click -> Open. Notarising
-      # would need a paid Apple Developer account.
-      - name: Wrap the macOS builds in an app bundle
+      # a real bundle.
+      - name: Wrap in an app bundle and sign it
         run: |
           set -euo pipefail
           for rid in osx-x64 osx-arm64; do
@@ -70,27 +109,48 @@ jobs:
           </dict>
           </plist>
           PLIST
-            sed -i 's/^          //' "$bundle/Contents/Info.plist"
+            sed -i '' 's/^          //' "$bundle/Contents/Info.plist"
+
+            # Ad-hoc, because notarising needs a paid Apple Developer account. It is
+            # enough to make the app runnable; Gatekeeper still asks for right-click ->
+            # Open the first time.
+            codesign --force --deep --sign - "$bundle"
+            codesign --verify --deep --strict --verbose=2 "$bundle"
           done
 
+      # ditto, not zip: it preserves the symlinks and permissions a signature covers.
       - name: Package
         run: |
           set -euo pipefail
           mkdir -p artifacts
-          (cd publish/win-x64 && zip -r ../../artifacts/UltimatePoKeSync-windows-x64.zip .)
-          (cd publish/linux-x64 && tar czf ../../artifacts/UltimatePoKeSync-linux-x64.tar.gz .)
-          (cd bundles/osx-x64 && zip -ry ../../artifacts/UltimatePoKeSync-macos-intel.zip UltimatePoKeSync.app)
-          (cd bundles/osx-arm64 && zip -ry ../../artifacts/UltimatePoKeSync-macos-apple-silicon.zip UltimatePoKeSync.app)
-          ls -lh artifacts
+          ditto -c -k --keepParent bundles/osx-x64/UltimatePoKeSync.app \
+            artifacts/UltimatePoKeSync-macos-intel.zip
+          ditto -c -k --keepParent bundles/osx-arm64/UltimatePoKeSync.app \
+            artifacts/UltimatePoKeSync-macos-apple-silicon.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: UltimatePoKeSync
+          name: macos
           path: artifacts/*
 
-      - name: Attach to the release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+  release:
+    needs: [windows-and-linux, macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: downloaded
+
+      - name: Collect
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          find downloaded -type f -exec mv {} artifacts/ \;
+          ls -lh artifacts
+
+      - uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
           body: |
@@ -103,7 +163,7 @@ jobs:
             | macOS, Intel | `UltimatePoKeSync-macos-intel.zip` |
             | Linux | `UltimatePoKeSync-linux-x64.tar.gz` |
 
-            **macOS:** the app is not signed by Apple, so the first launch must be
+            **macOS:** the app is signed ad-hoc, not by Apple, so the first launch must be
             right-click → Open → Open. After that it starts normally.
 
             The app tells you how to connect mGBA on your system. The bridge script it
