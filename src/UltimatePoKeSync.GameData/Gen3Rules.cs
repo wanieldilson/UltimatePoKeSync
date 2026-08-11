@@ -95,6 +95,9 @@ public sealed class Gen3Rules : IGenerationRules
         return PhysicalTypes.Contains(moveType) ? MoveCategory.Physical : MoveCategory.Special;
     }
 
+    public int GetMoveBasePower(int moveId) =>
+        moveId > 0 && moveId < _moveBasePowers.Length ? _moveBasePowers[moveId] : 0;
+
     public bool CanProvideSuperEffectiveCoverage(int moveId) =>
         moveId > 0 && moveId < _moveBasePowers.Length &&
         _moveBasePowers[moveId] > 0 && !NonCoverageMoveIds.Contains(moveId);

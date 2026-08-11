@@ -113,14 +113,19 @@ public sealed class PokemonRecommendationEngineTests
         Assert.NotNull(result.EffortValues.ProjectedStats);
     }
 
+    /// <summary>
+    /// A species with no reference set used to be left holding whatever it happened to
+    /// know, which for competitive advice is worthless. See D-032.
+    /// </summary>
     [Fact]
-    public void CompetitiveProfile_FallsBackToCurrentMovesWithoutPreset()
+    public void CompetitiveProfile_UsesTheWholeLegalPoolWhenNoPresetMatches()
     {
         PokemonSnapshot treecko = AnalysisTestData.Member(
             primaryType: PokemonType.Grass,
             speciesName: "Treecko",
-            level: 11,
+            level: 5,
             baseStats: new StatBlock(40, 45, 35, 65, 55, 70),
+            speciesId: 252,
             moves: [AnalysisTestData.Move(71, "Absorb", PokemonType.Grass)]);
 
         PokemonRecommendation result = _engine
@@ -131,10 +136,71 @@ public sealed class PokemonRecommendationEngineTests
             .Single();
 
         Assert.Null(result.MatchedPreset);
-        MoveRecommendation move = Assert.Single(result.MoveCandidates);
-        Assert.Equal("absorb", move.Move.ReferenceId);
-        Assert.Equal(MoveCandidateSource.CurrentMoveset, move.Source);
-        Assert.Equal(RecommendationAvailability.KnownAvailable, move.Availability);
+        Assert.True(result.MoveCandidates.Count > 1);
+
+        // A level 5 Pokémon is still offered what it learns much later: nobody battles
+        // with the level it was caught at.
+        Assert.Contains(
+            result.MoveCandidates,
+            move => move.LearnedAtLevel > treecko.Level);
+
+        Assert.All(
+            result.MoveCandidates,
+            move => Assert.Equal(
+                RecommendationAvailability.CompetitiveReference,
+                move.Availability));
+    }
+
+    /// <summary>
+    /// The competitive pool has to be at least as wide as the playthrough one. It used to
+    /// be narrower, which inverted the two profiles. See D-032.
+    /// </summary>
+    [Fact]
+    public void CompetitiveProfile_IsNeverNarrowerThanPlaythrough()
+    {
+        PokemonSnapshot treecko = AnalysisTestData.Member(
+            primaryType: PokemonType.Grass,
+            speciesName: "Treecko",
+            level: 5,
+            baseStats: new StatBlock(40, 45, 35, 65, 55, 70),
+            speciesId: 252,
+            moves: [AnalysisTestData.Move(33, "Pound", PokemonType.Normal)]);
+
+        PartySnapshot party = AnalysisTestData.Party(treecko);
+
+        int playthrough = _engine
+            .Recommend(party, RecommendationProfileKind.Playthrough)
+            .Members[0]
+            .MoveCandidates
+            .Count;
+        int competitive = _engine
+            .Recommend(party, RecommendationProfileKind.Competitive)
+            .Members[0]
+            .MoveCandidates
+            .Count;
+
+        Assert.True(competitive >= playthrough, $"competitive {competitive}, playthrough {playthrough}");
+    }
+
+    /// <summary>A best set does not put a 20-power move where a 120-power one fits.</summary>
+    [Fact]
+    public void Build_PrefersTheStrongerMoveWhenTheRestIsEqual()
+    {
+        PokemonSnapshot treecko = AnalysisTestData.Member(
+            primaryType: PokemonType.Grass,
+            speciesName: "Treecko",
+            level: 50,
+            baseStats: new StatBlock(40, 45, 35, 65, 55, 70),
+            speciesId: 252,
+            moves: [AnalysisTestData.Move(71, "Absorb", PokemonType.Grass)]);
+
+        RecommendedBuild build = _engine
+            .Recommend(AnalysisTestData.Party(treecko), RecommendationProfileKind.Competitive)
+            .Members
+            .Single()
+            .Build;
+
+        Assert.DoesNotContain(build.Moves, move => move.Move.Name == "Absorb");
     }
 
     [Fact]
@@ -323,19 +389,33 @@ public sealed class PokemonRecommendationEngineTests
             move => Assert.InRange(move.Move.MoveId, 1, lastGen3Move));
     }
 
+    /// <summary>
+    /// A Pokémon with an empty moveset is not out of options: its learnset is. Only a
+    /// species the learn source cannot place leaves the build genuinely empty.
+    /// </summary>
     [Fact]
-    public void Build_IsEmptyWhenNothingIsKnown()
+    public void Build_FallsBackToTheLearnsetBeforeGivingUp()
     {
-        PokemonSnapshot blank = AnalysisTestData.Member(speciesName: "Magikarp", speciesId: 129);
+        PokemonSnapshot magikarp = AnalysisTestData.Member(speciesName: "Magikarp", speciesId: 129);
 
-        RecommendedBuild build = _engine
-            .Recommend(AnalysisTestData.Party(blank), RecommendationProfileKind.Competitive)
+        RecommendedBuild fromLearnset = _engine
+            .Recommend(AnalysisTestData.Party(magikarp), RecommendationProfileKind.Competitive)
             .Members
             .Single()
             .Build;
 
-        Assert.Empty(build.Slots);
-        Assert.Empty(build.Moves);
+        Assert.NotEmpty(fromLearnset.Slots);
+
+        PokemonSnapshot unknown = AnalysisTestData.Member(speciesName: "Nothing", speciesId: 999);
+
+        RecommendedBuild empty = _engine
+            .Recommend(AnalysisTestData.Party(unknown), RecommendationProfileKind.Competitive)
+            .Members
+            .Single()
+            .Build;
+
+        Assert.Empty(empty.Slots);
+        Assert.Empty(empty.Moves);
     }
 
     [Fact]

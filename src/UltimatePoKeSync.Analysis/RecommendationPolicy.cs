@@ -153,6 +153,8 @@ internal static class RecommendationPolicy
             {
                 score += 3;
             }
+
+            score += PowerBonus(context, move);
         }
         else
         {
@@ -172,6 +174,19 @@ internal static class RecommendationPolicy
         }
 
         return score;
+    }
+
+    /// <summary>
+    /// Weak moves are not best moves. Kept small enough to break ties rather than override
+    /// coverage: Solar Beam earns four points here, Giga Drain two, Absorb none.
+    /// </summary>
+    private static int PowerBonus(RecommendationContext context, MoveReference move)
+    {
+        const int variablePower = 1;
+        const int assumedVariablePower = 60;
+
+        int power = context.Rules.GetMoveBasePower(move.MoveId);
+        return Math.Min(4, (power == variablePower ? assumedVariablePower : power) / 30);
     }
 
     private static BuildSlotRole ClassifySlot(

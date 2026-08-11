@@ -16,8 +16,18 @@ public sealed record TypeChip(string Type, string Detail, IBrush Brush)
         new(type.ToString(), detail, TypePalette.Brush(type));
 }
 
-/// <summary>One move of a recommended build: what it is for, and why it was picked.</summary>
-public sealed record BuildMoveRow(string Name, string Type, string Role, string Reason, IBrush Brush);
+/// <summary>
+/// One move of a recommended build: what it is for, how it is obtained, and why it was
+/// picked. Without <c>Source</c> a player is told to run Dig with no hint that it means
+/// finding TM28.
+/// </summary>
+public sealed record BuildMoveRow(
+    string Name,
+    string Type,
+    string Role,
+    string Source,
+    string Reason,
+    IBrush Brush);
 
 /// <summary>One contribution to the team strength score.</summary>
 public sealed record StrengthRow(string Name, int Points, int MaximumPoints, string Explanation)

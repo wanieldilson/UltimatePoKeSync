@@ -892,3 +892,43 @@ built on), let each member see the others' *candidate pools* rather than their c
 that may never happen), and simply forbid a second move of a type outright (rejected:
 sometimes a physical and a special move of the same type are both right — it should cost,
 not be banned).
+
+---
+
+## D-032 — The competitive pool is the widest one, and every move says how it is obtained
+
+**Status:** Accepted · 2026-08-11
+
+Two faults found by using the app rather than reading it.
+
+**The profiles were inverted.** The competitive profile drew its candidates *only* from the
+pinned Random Battle sets, falling back to whatever the Pokémon happened to know when no set
+matched. The playthrough profile drew from the full learn source. So a level 5 Treecko — no
+Random Battle entry, because it is unevolved — was told to run Pound and Leer competitively,
+while the playthrough profile offered it Solar Beam and Thunder Punch. Exactly backwards:
+story play is the constrained case, battling is the one where any legal move is reachable.
+
+The competitive profile now reads the whole learn source, **at level 100**, and keeps the
+reference sets as a ranking prior rather than as the pool. A competitive Pokémon is a
+trained one; nobody battles with the level it was caught at, and a move it learns at 45 is a
+move it will have. Reference-set moves the learn source does not reach — egg moves, mostly —
+are still kept, marked as coming from the set rather than from the game.
+
+**A build never said how to get the move.** The panel told a player to run Dig with no hint
+that it means finding TM28, and Thunder Punch with no hint that it means a move tutor. Every
+slot now carries its source in the player's terms: *already knows it*, *learns it at level
+16*, *from a TM or HM*, *from a move tutor*, *from a common set*.
+
+One thing followed from widening the pool: with every legal move in reach, the build picked
+Absorb over Solar Beam, because nothing in the score cared about how hard a move hits. Base
+power was in `Gen3Rules` but private, so `IGenerationRules` now exposes it and a move earns
+up to four points for it — enough to separate a 120-power move from a 20-power one, not
+enough to outweigh coverage. Gen 3's power-1 sentinel for run-time-decided moves is read as
+average rather than as almost nothing.
+
+**Alternatives considered:** keep the competitive profile preset-only and accept that
+unevolved species get nothing useful (rejected: it is the case where advice is most wanted,
+since the player is deciding whether to evolve), use the Pokémon's current level for the
+competitive pool (rejected: the profile already proposes exact EV spreads that require
+training, so pretending the level is fixed is inconsistent), and rank strictly by base power
+(rejected: it would hand every Pokémon four 120-power moves and ignore what the team needs).

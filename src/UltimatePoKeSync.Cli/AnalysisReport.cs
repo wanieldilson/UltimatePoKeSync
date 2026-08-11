@@ -136,10 +136,22 @@ internal static class AnalysisReport
         foreach (BuildSlot slot in build.Slots)
         {
             Console.WriteLine(
-                $"│      {label,-8} · {slot.Move.Move.Name,-16} {Describe(slot.Role),-13} {slot.Reason}");
+                $"│      {label,-8} · {slot.Move.Move.Name,-16} {Describe(slot.Role),-13} "
+                + $"{DescribeSource(slot.Move),-22} {slot.Reason}");
             label = string.Empty;
         }
     }
+
+    private static string DescribeSource(MoveRecommendation move) => move.Source switch
+    {
+        MoveCandidateSource.CurrentMoveset => "already knows it",
+        MoveCandidateSource.LevelUpLearnset => move.LearnedAtLevel is int level
+            ? $"learns it at level {level}"
+            : "learns it by levelling",
+        MoveCandidateSource.Machine => "from a TM or HM",
+        MoveCandidateSource.Tutor => "from a move tutor",
+        _ => "from a common set",
+    };
 
     private static string Describe(BuildSlotRole role) => role switch
     {

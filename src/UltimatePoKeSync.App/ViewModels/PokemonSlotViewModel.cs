@@ -87,6 +87,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
                     slot.Move.Move.Name,
                     slot.Move.Move.Type.ToString(),
                     Humanise(slot.Role),
+                    DescribeSource(slot.Move),
                     slot.Reason,
                     TypePalette.Brush(slot.Move.Move.Type))),
             ];
@@ -249,6 +250,18 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         PokemonRole.SpecialWall => "Special wall",
         PokemonRole.MixedWall => "Mixed wall",
         _ => "Support",
+    };
+
+    /// <summary>How the Pokémon comes by the move, in the words the game uses.</summary>
+    private static string DescribeSource(MoveRecommendation move) => move.Source switch
+    {
+        MoveCandidateSource.CurrentMoveset => "already knows it",
+        MoveCandidateSource.LevelUpLearnset => move.LearnedAtLevel is int level
+            ? $"learns it at level {level}"
+            : "learns it by levelling",
+        MoveCandidateSource.Machine => "from a TM or HM",
+        MoveCandidateSource.Tutor => "from a move tutor",
+        _ => "from a common set",
     };
 
     private static string Humanise(BuildSlotRole role) => role switch

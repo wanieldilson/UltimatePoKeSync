@@ -28,6 +28,13 @@ public interface IGenerationRules
     bool CanProvideSuperEffectiveCoverage(int moveId);
 
     /// <summary>
+    /// The move's base power, 0 for a status move. Gen 3 stores 1 for moves whose power is
+    /// decided at run time — Low Kick, Flail, Hidden Power — so 1 means "real damage, not
+    /// knowable from the table" rather than "almost none". See D-022.
+    /// </summary>
+    int GetMoveBasePower(int moveId);
+
+    /// <summary>
     /// Projects the six stats using this generation's integer formula and limits.
     /// </summary>
     StatBlock CalculateStats(
