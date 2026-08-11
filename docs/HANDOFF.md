@@ -102,7 +102,11 @@ and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 | M5 | Gen 3 type chart + team analysis | done |
 | M6 | Per-Pokémon suggestions (EVs, nature, moves, item) | done, visible from the CLI |
 | M7 | Avalonia dashboard, packaged downloads | done, verified live on Emerald |
+| M9 | Live condition, sprites from the ROM, two-way bridge | done, verified live (D-033) |
 | **M8** | **Second provider or generation, to prove the abstraction** | **next** |
+
+Known problems are on the [issue tracker](https://github.com/ringoliRob/UltimatePoKeSync/issues)
+rather than in this file, so they can be closed rather than edited away.
 
 ---
 
@@ -251,8 +255,11 @@ Checked on 2026-08-11 by replaying the Italian Emerald real-RAM capture through
 `--analyze --recommend`: the Lv.5 Treecko is read as a special attacker, five unanswered
 weaknesses and zero offensive coverage are reported for the one-Pokémon party, and the
 competitive profile falls back to the current moveset because the Random Battle catalog
-holds no unevolved Treecko. **A live mGBA session with the analysis flags has not been run
-yet** — the replay uses captured bytes, not a running emulator.
+holds no unevolved Treecko.
+
+Since then the whole chain has been run live on the Italian Emerald, dashboard included:
+party, analysis, recommendations and sprites read from the cartridge through the two-way
+bridge (D-033).
 
 The level-up source is now per game (D-027). `ILevelUpLearnsetSource` takes a
 `GameIdentity` and is backed by PKHeX, which ships one learn source per game for every

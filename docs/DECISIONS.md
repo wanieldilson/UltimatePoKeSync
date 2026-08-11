@@ -986,3 +986,28 @@ connection to use less than one), ask the user to locate the ROM file (rejected:
 someone hunt for a file already open in the emulator beside them, and it does nothing for
 the bag), and hard-code the tables per game code (rejected: they differ per localisation, so
 the constants would be wrong for most players and wrong invisibly).
+
+### Amendment, 2026-08-11 — what the first live run cost
+
+Everything above was written before the bridge had ever answered a real request. Three
+things only showed up once it did.
+
+**A socket takes what fits and tells you how much that was.** The script sent each line
+with a single `client:send` and discarded the remainder, which for a 350 KB reply is most
+of it. Two reads in twelve failed — always the first two, which are the ones the app needs
+to start. There is an outbox per client now, pushed as far as the socket allows and flushed
+on the next frame. Sixteen consecutive 256 KB reads succeed where ten of twelve did before.
+The party stream had the same latent flaw and is fixed by the same queue.
+
+**Telling the front table from the back one needs bytes the app has not fetched.** The
+reader decompresses the first entry to count frames, and that data lives elsewhere in the
+ROM — outside the window. The offline check passed for a reason the app did not have: the
+whole cartridge was in memory. The choice moved to the caller, which is the only party that
+can go and get more; the reader now reports candidates and stops there.
+
+**The script already had a base64 encoder** for the party payload. The one added for `read`
+was a second copy of it.
+
+Verified live afterwards: Treecko, Charizard and Pikachu decoded through the production
+path against the running emulator, 1.1 s for the first — a megabyte of window and the table
+identification — and about 30 ms each after that.
