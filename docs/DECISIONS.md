@@ -1078,3 +1078,44 @@ enters, and D-005 exists because of it), leave them unsupported until an externa
 lists them (rejected: the evidence is stronger than a third-party table, and it is in the
 user's own hand), and infer the address at run time by scanning for it (rejected: the scan
 needs to know what it is looking for, which is the question).
+
+---
+
+## D-035 — A game code is not always enough: revisions move things
+
+**Status:** Accepted · 2026-08-11
+
+The address table carried a comment saying that Gen 3 revisions share their addresses, and
+it named "Ruby Rev 1/2" as an example. It is wrong, and it produced the most convincing kind
+of failure: an Italian Ruby rev1 with a Mudkip in the party was reported as having an empty
+party, with no error anywhere. The bridge was connected, the game was recognised, the read
+succeeded, and the answer was zero.
+
+Reading the live memory settled it in one pass. The count byte the table pointed at held
+`00`; sixteen bytes further on it held `01`, and the party data began sixteen bytes after
+that:
+
+| | table said | rev1 actually |
+| --- | --- | --- |
+| count | `0x03004350` → `00` | `0x03004360` → `01` |
+| party | `0x03004360` | `0x03004370` |
+
+Entries may therefore carry per-revision overrides, and Ruby and Sapphire have them in every
+localisation. Revision 1 is verified on a real cartridge image; revision 2 is filed with the
+same shift and is **not** verified.
+
+Two things are worth keeping from how this was found. It was found with the app's own
+two-way bridge (D-033): thirty-two kilobytes of IWRAM read in four requests, then the real
+parser slid across every four-byte offset until `MUDKIP Lv.5 HP 21/21` appeared. A tool
+built for sprites diagnosed the parser.
+
+And it shows the limit of D-034's literal counting. That method proved these ROMs use the
+Ruby/Sapphire address family, and it was right — `0x03004360` genuinely appears fifty-seven
+times, because in this revision it is the *count*. Counting a constant tells you the game
+uses it. It cannot tell you what for.
+
+**Alternatives considered:** keep one address per game code and support only revision 0
+(rejected: revision 1 is common and fails silently), and detect the party by scanning memory
+at run time for something that parses (rejected: it works, as this investigation shows, but
+searching for data that merely looks valid is how a wrong answer becomes a confident one —
+D-005 and D-019 both exist because of that).

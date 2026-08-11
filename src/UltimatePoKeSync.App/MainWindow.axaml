@@ -214,8 +214,8 @@
       </Grid>
     </Border>
 
-    <!-- Setup: shown until a party actually arrives. -->
-    <ScrollViewer Grid.Row="1" IsVisible="{Binding !HasTeam}">
+    <!-- Setup: shown until the bridge answers, and not a moment longer. -->
+    <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowSetup}">
       <StackPanel MaxWidth="720" Margin="24,32" Spacing="18" HorizontalAlignment="Center">
         <TextBlock Text="Connect the emulator" FontSize="24" FontWeight="SemiBold" />
         <TextBlock Classes="muted"
@@ -252,6 +252,17 @@
                    Foreground="#D9602E" TextWrapping="Wrap" />
       </StackPanel>
     </ScrollViewer>
+
+    <!-- Connected, read, and carrying nothing. Distinct from not being connected, which
+         is what this used to be indistinguishable from. -->
+    <StackPanel Grid.Row="1" IsVisible="{Binding HasEmptyParty}" Spacing="10"
+                HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="460">
+      <TextBlock Text="No Pokémon in the party" FontSize="20" FontWeight="SemiBold"
+                 HorizontalAlignment="Center" />
+      <TextBlock Classes="muted" TextAlignment="Center"
+                 Text="The bridge is connected and the save was read: there is simply nothing in the team yet. Catch or withdraw one and it appears here on its own." />
+      <TextBlock Text="{Binding GameText}" Classes="caption" HorizontalAlignment="Center" />
+    </StackPanel>
 
     <!-- Dashboard. -->
     <Grid Grid.Row="1" IsVisible="{Binding HasTeam}" ColumnDefinitions="230,*" Margin="16,16,16,16">

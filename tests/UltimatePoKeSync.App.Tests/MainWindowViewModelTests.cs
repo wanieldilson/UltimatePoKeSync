@@ -41,6 +41,33 @@ public sealed class MainWindowViewModelTests
             StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A save with nothing in the party used to bring the setup steps back, which reads as
+    /// "not connected" while the header says Connected. Issue #16.
+    /// </summary>
+    [Fact]
+    public void AnEmptyPartyIsNotTheSameAsNotBeingConnected()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+
+        Assert.True(viewModel.ShowSetup);
+        Assert.False(viewModel.HasEmptyParty);
+
+        PartySnapshot party = LoadRealParty();
+        source.RaiseParty(party with { Members = [] });
+
+        Assert.False(viewModel.ShowSetup);
+        Assert.True(viewModel.HasEmptyParty);
+        Assert.False(viewModel.HasTeam);
+
+        // And a party arriving afterwards takes over from it.
+        source.RaiseParty(party);
+
+        Assert.True(viewModel.HasTeam);
+        Assert.False(viewModel.HasEmptyParty);
+        Assert.False(viewModel.ShowSetup);
+    }
+
     [Fact]
     public void ConnectionState_ReachesTheHeader()
     {

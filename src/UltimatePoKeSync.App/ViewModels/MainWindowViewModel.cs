@@ -56,6 +56,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     [ObservableProperty]
     private string _analysisError = string.Empty;
 
+    /// <summary>
+    /// Whether a party has ever arrived, empty or not. Without this an empty party looks
+    /// exactly like a bridge that is not talking: the setup steps come back and the header
+    /// says Connected, and the two contradict each other. See issue #16.
+    /// </summary>
+    [ObservableProperty]
+    private bool _hasReceivedParty;
+
     public MainWindowViewModel()
         : this(new LiveTeamService(), action => Dispatcher.UIThread.Post(action))
     {
@@ -133,6 +141,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public bool HasTeam => Slots.Count > 0;
 
+    /// <summary>Connected and read, and there is genuinely nothing in the party.</summary>
+    public bool HasEmptyParty => HasReceivedParty && Slots.Count == 0;
+
+    /// <summary>The setup steps belong on screen only until the bridge answers.</summary>
+    public bool ShowSetup => !HasReceivedParty;
+
     public bool HasEmptySlots => EmptySlots.Count > 0;
 
     public bool HasSuperEffective => TeamSuperEffective.Count > 0;
@@ -178,6 +192,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     partial void OnAnalysisErrorChanged(string value) => OnPropertyChanged(nameof(HasAnalysisError));
 
+    partial void OnHasReceivedPartyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowSetup));
+        OnPropertyChanged(nameof(HasEmptyParty));
+    }
+
     private void OnStateChanged(EmulatorConnectionState state)
     {
         IsConnected = state == EmulatorConnectionState.Streaming;
@@ -194,6 +214,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void OnPartyChanged(PartySnapshot party)
     {
         _party = party;
+        HasReceivedParty = true;
         GameText = $"{party.Game.Title} [{party.Game.GameCode}]";
 
         TeamAnalysis analysis;
@@ -238,6 +259,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         UpdateEmptySlots(party.Count);
         OnPropertyChanged(nameof(HasTeam));
+        OnPropertyChanged(nameof(HasEmptyParty));
         UpdateCoverage(analysis);
         UpdateStrength(strength);
         SelectedSlot = Slots.FirstOrDefault(slot => slot.SlotIndex == selectedIndex);
@@ -267,6 +289,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         UpdateEmptySlots(party.Count);
         OnPropertyChanged(nameof(HasTeam));
+        OnPropertyChanged(nameof(HasEmptyParty));
         SelectedSlot = null;
     }
 
