@@ -1,6 +1,6 @@
 # Emulator → app bridge protocol
 
-Current version: **1**
+Current version: **2**
 
 Every provider speaks this protocol, whatever the emulator. It is the reason adding
 BizHawk or DeSmuME costs a script rather than a refactor (D-006).
@@ -12,8 +12,8 @@ TCP over loopback. **The emulator script is the server**, the app is the client 
 - Default address: `127.0.0.1:8888`
 - One message per line, terminated by `\n`
 - UTF-8, single-line JSON (no embedded newlines)
-- The app sends no commands. The script drains its receive buffer anyway: if it did not,
-  the socket buffer would fill up and the connection would stall.
+- Since version 2 the app may send commands, one per line, same encoding. Version 1 had
+  none, and the script drained its receive buffer purely to stop the socket stalling.
 
 On connect, the script **immediately** sends the last known state, if it has one. Without
 this, an app started while the game is idle would stay empty until the player changed
@@ -64,6 +64,40 @@ stability across two reads). See D-008.
 In Gen 3 the data in RAM is encrypted with `PID xor OTID` and has its four substructures
 permuted according to the PID. The script **does not touch it**: the `data` field contains
 exactly what is in memory. Decoding is `UltimatePoKeSync.Parsing`'s job (D-007).
+
+## The `read` command  ·  since v2
+
+```json
+{"type": "read", "id": 7, "address": 137365468, "length": 262144}
+```
+
+| Field     | Type | Meaning |
+| --------- | ---- | ------- |
+| `id`      | int  | Echoed back, so a reply can be matched to its request. |
+| `address` | int  | Absolute address, as the emulator sees it. ROM starts at `0x08000000`. |
+| `length`  | int  | Bytes to read. Capped at 256 KiB per request by `UPS_MAX_READ`. |
+
+The reply, or an `error` message with the same `id`:
+
+```json
+{"v": 2, "type": "memory", "id": 7, "address": 137365468, "length": 262144, "data": "<base64>"}
+```
+
+```json
+{"v": 2, "type": "error", "id": 7, "message": "unreadable range"}
+```
+
+### Why the app is allowed to ask
+
+Sprite data lives in the ROM behind pointer tables whose addresses move with every build of
+every localisation — the Italian Emerald keeps its front-sprite table at `0x08300DDC`, and
+no other release is obliged to agree. They cannot be shipped as constants, so the app finds
+them by scanning the ROM's own structure, and to scan it has to read. The same command is
+what will later reach the bag and the badge flags, which is the missing input behind every
+"check availability in this save" the app prints today. See D-033.
+
+A read is answered from emulator memory as it stands; nothing is cached and nothing is
+interpreted. The script still ships no meaning, only bytes (D-006).
 
 ## Error handling
 

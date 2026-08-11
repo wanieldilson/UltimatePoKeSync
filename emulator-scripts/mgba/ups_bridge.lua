@@ -32,7 +32,14 @@ local UPS_PORT = 8888
 -- party, and polling at 60 Hz would burn CPU for nothing.
 local UPS_POLL_INTERVAL = 4
 
-local UPS_PROTOCOL_VERSION = 1
+local UPS_PROTOCOL_VERSION = 2
+
+--- Largest single `read` the script will answer. One call to emu:readRange, so the cost is
+--- the base64 encoding rather than the read itself.
+local UPS_MAX_READ = 1024 * 256
+
+--- A command line longer than this is a client gone wrong, not a command.
+local UPS_MAX_COMMAND = 4096
 
 --------------------------------------------------------------------------------
 -- Gen 3 memory map
@@ -71,6 +78,7 @@ local GEN3_SLOT_COUNT = 6
 
 local server = nil
 local clients = {}
+local pending = {}  -- partial command lines, per client
 local nextClientId = 1
 
 local game = nil     -- entry from GAMES for the current ROM, or nil
@@ -164,6 +172,7 @@ local function dropClient(id, reason)
 	local client = clients[id]
 	if not client then return end
 	clients[id] = nil
+	pending[id] = nil
 	pcall(function() client:close() end)
 	log("client " .. id .. " disconnected (" .. reason .. ")")
 end
@@ -177,8 +186,81 @@ local function broadcast(line)
 	end
 end
 
---- Drains the receive buffer. We accept no commands, but if we never read, the socket
---- buffer would fill up and the connection would stall.
+--- Encodes bytes as base64, the same way the party payload is encoded.
+local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+local function base64(data)
+	local parts = {}
+	local n = #data
+	local i = 1
+	while i + 2 <= n do
+		local a, b, c = data:byte(i, i + 2)
+		local v = a * 65536 + b * 256 + c
+		parts[#parts + 1] = B64:sub((v >> 18) + 1, (v >> 18) + 1)
+			.. B64:sub(((v >> 12) & 63) + 1, ((v >> 12) & 63) + 1)
+			.. B64:sub(((v >> 6) & 63) + 1, ((v >> 6) & 63) + 1)
+			.. B64:sub((v & 63) + 1, (v & 63) + 1)
+		i = i + 3
+	end
+	local left = n - i + 1
+	if left == 1 then
+		local a = data:byte(i)
+		local v = a * 16
+		parts[#parts + 1] = B64:sub((v >> 6) + 1, (v >> 6) + 1)
+			.. B64:sub((v & 63) + 1, (v & 63) + 1) .. "=="
+	elseif left == 2 then
+		local a, b = data:byte(i, i + 1)
+		local v = a * 1024 + b * 4
+		parts[#parts + 1] = B64:sub((v >> 12) + 1, (v >> 12) + 1)
+			.. B64:sub(((v >> 6) & 63) + 1, ((v >> 6) & 63) + 1)
+			.. B64:sub((v & 63) + 1, (v & 63) + 1) .. "="
+	end
+	return table.concat(parts)
+end
+
+--- Answers a `read` command with the bytes at that address.
+---
+--- The app needs this to find the sprite tables, whose addresses move with every build of
+--- every localisation and so cannot be shipped as constants. Reads are clamped: a request
+--- the emulator cannot satisfy comes back as an error rather than as whatever happened to
+--- be next in memory. See D-033.
+local function answerRead(client, id, address, length)
+	if type(address) ~= "number" or type(length) ~= "number"
+		or length <= 0 or length > UPS_MAX_READ then
+		client:send(string.format(
+			'{"v":%d,"type":"error","id":%s,"message":"bad read request"}\n',
+			UPS_PROTOCOL_VERSION, tostring(id)))
+		return
+	end
+
+	local ok, data = pcall(function() return emu:readRange(address, length) end)
+	if not ok or not data or #data ~= length then
+		client:send(string.format(
+			'{"v":%d,"type":"error","id":%s,"message":"unreadable range"}\n',
+			UPS_PROTOCOL_VERSION, tostring(id)))
+		return
+	end
+
+	client:send(string.format(
+		'{"v":%d,"type":"memory","id":%s,"address":%d,"length":%d,"data":"%s"}\n',
+		UPS_PROTOCOL_VERSION, tostring(id), address, length, base64(data)))
+end
+
+--- Minimal field lookup. The commands we accept have flat, numeric fields only, so a full
+--- JSON parser would be a liability rather than a feature.
+local function numberField(line, name)
+	return tonumber(line:match('"' .. name .. '"%s*:%s*(-?%d+)'))
+end
+
+local function handleLine(client, line)
+	if not line:match('"type"%s*:%s*"read"') then
+		return
+	end
+	answerRead(client, numberField(line, "id") or 0,
+		numberField(line, "address"), numberField(line, "length"))
+end
+
+--- Reads the client's commands. Before protocol 2 this only drained the buffer, because
+--- the app sent nothing; it still has to drain, since a socket nobody reads from stalls.
 local function drainClient(id)
 	local client = clients[id]
 	if not client then return end
@@ -188,6 +270,23 @@ local function drainClient(id)
 			if err and err ~= socket.ERRORS.AGAIN then
 				dropClient(id, tostring(err))
 			end
+			return
+		end
+
+		pending[id] = (pending[id] or "") .. data
+		while true do
+			local line, rest = pending[id]:match("^([^\n]*)\n(.*)$")
+			if not line then break end
+			pending[id] = rest
+			if #line > 0 then
+				pcall(function() handleLine(client, line) end)
+			end
+		end
+
+		-- A client that sends a very long line without a newline is misbehaving; do not
+		-- grow a buffer for it forever.
+		if #(pending[id] or "") > UPS_MAX_COMMAND then
+			dropClient(id, "command too long")
 			return
 		end
 	end
