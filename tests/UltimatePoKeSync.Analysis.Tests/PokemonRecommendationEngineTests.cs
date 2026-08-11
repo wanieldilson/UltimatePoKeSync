@@ -155,12 +155,11 @@ public sealed class PokemonRecommendationEngineTests
 
         RecommendedBuild build = result.Build;
 
-        Assert.Equal(4, build.Moves.Count);
-        Assert.Equal(build.Moves.Count, build.Reasons.Count);
-        Assert.All(build.Reasons, reason => Assert.False(string.IsNullOrWhiteSpace(reason)));
+        Assert.Equal(4, build.Slots.Count);
+        Assert.All(build.Slots, slot => Assert.False(string.IsNullOrWhiteSpace(slot.Reason)));
         Assert.Equal(
             result.MoveCandidates.Count,
-            build.Moves.Count + build.Alternatives.Count);
+            build.Slots.Count + build.Alternatives.Count);
         Assert.Empty(build.Moves.Intersect(build.Alternatives));
     }
 
@@ -185,8 +184,8 @@ public sealed class PokemonRecommendationEngineTests
             .Single()
             .Build;
 
-        Assert.Equal(PokemonType.Fighting, build.Moves[0].Move.Type);
-        Assert.Contains("same-type", build.Reasons[0], StringComparison.Ordinal);
+        Assert.Equal(PokemonType.Fighting, build.Slots[0].Move.Move.Type);
+        Assert.Equal(BuildSlotRole.SameType, build.Slots[0].Role);
     }
 
     /// <summary>
@@ -232,6 +231,98 @@ public sealed class PokemonRecommendationEngineTests
             string.Join(", ", result.Build.Moves.Select(move => $"{move.Move.Name} ({move.Move.Type})")));
     }
 
+    /// <summary>
+    /// Four attacks is not what a real set looks like, and it leaves a Pokémon helpless
+    /// against anything it cannot simply out-damage. See D-031.
+    /// </summary>
+    [Fact]
+    public void Build_KeepsOneSlotForSomethingThatIsNotAnAttack()
+    {
+        PokemonSnapshot charizard = AnalysisTestData.Member(
+            primaryType: PokemonType.Fire,
+            secondaryType: PokemonType.Flying,
+            speciesName: "Charizard",
+            level: 60,
+            baseStats: new StatBlock(78, 84, 78, 109, 85, 100),
+            speciesId: 6,
+            moves: [AnalysisTestData.Move(52, "Ember", PokemonType.Fire)]);
+
+        RecommendedBuild build = _engine
+            .Recommend(AnalysisTestData.Party(charizard), RecommendationProfileKind.Playthrough)
+            .Members
+            .Single()
+            .Build;
+
+        Assert.Equal(4, build.Slots.Count);
+        Assert.Contains(build.Slots, slot => slot.Role == BuildSlotRole.Utility);
+        Assert.Equal(3, build.Slots.Count(slot => slot.Role != BuildSlotRole.Utility));
+    }
+
+    /// <summary>
+    /// Built independently, two of the same Pokémon get the same four moves and the team
+    /// ends up no wider than one of them. See D-031.
+    /// </summary>
+    [Fact]
+    public void Build_DoesNotHandTwoTeammatesTheSameAnswerToTheSameGap()
+    {
+        PokemonSnapshot First(int slot) => AnalysisTestData.Member(
+            slot: slot,
+            primaryType: PokemonType.Fire,
+            secondaryType: PokemonType.Flying,
+            speciesName: "Charizard",
+            level: 60,
+            baseStats: new StatBlock(78, 84, 78, 109, 85, 100),
+            speciesId: 6,
+            moves: [AnalysisTestData.Move(52, "Ember", PokemonType.Fire)]);
+
+        IReadOnlyList<PokemonRecommendation> members = _engine
+            .Recommend(
+                AnalysisTestData.Party(First(0), First(1)),
+                RecommendationProfileKind.Playthrough)
+            .Members;
+
+        string[] firstBuild = [.. members[0].Build.Moves.Select(move => move.Move.ReferenceId)];
+        string[] secondBuild = [.. members[1].Build.Moves.Select(move => move.Move.ReferenceId)];
+
+        Assert.NotEqual(firstBuild, secondBuild);
+
+        // No slot may claim a hole a teammate's build already filled.
+        IReadOnlyList<string> claims =
+        [
+            .. members
+                .SelectMany(member => member.Build.Slots)
+                .Where(slot => slot.Role == BuildSlotRole.Coverage)
+                .Select(slot => slot.Reason),
+        ];
+        Assert.Equal(claims.Distinct().Count(), claims.Count);
+    }
+
+    /// <summary>Nothing from a later generation may ever be offered. See D-030.</summary>
+    [Fact]
+    public void OnlyMovesThatExistInTheRunningGenerationAreOffered()
+    {
+        const int lastGen3Move = 354;
+
+        PokemonSnapshot blaziken = AnalysisTestData.Member(
+            primaryType: PokemonType.Fire,
+            secondaryType: PokemonType.Fighting,
+            speciesName: "Blaziken",
+            level: 70,
+            baseStats: new StatBlock(80, 120, 70, 110, 70, 80),
+            speciesId: 257,
+            moves: [AnalysisTestData.Move(53, "Flamethrower", PokemonType.Fire)]);
+
+        PokemonRecommendation result = _engine
+            .Recommend(AnalysisTestData.Party(blaziken), RecommendationProfileKind.Playthrough)
+            .Members
+            .Single();
+
+        Assert.NotEmpty(result.MoveCandidates);
+        Assert.All(
+            result.MoveCandidates,
+            move => Assert.InRange(move.Move.MoveId, 1, lastGen3Move));
+    }
+
     [Fact]
     public void Build_IsEmptyWhenNothingIsKnown()
     {
@@ -243,8 +334,8 @@ public sealed class PokemonRecommendationEngineTests
             .Single()
             .Build;
 
+        Assert.Empty(build.Slots);
         Assert.Empty(build.Moves);
-        Assert.Single(build.Reasons);
     }
 
     [Fact]

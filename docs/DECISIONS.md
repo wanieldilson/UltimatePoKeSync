@@ -844,3 +844,51 @@ in — see D-013), reach into PKHeX's internal `Tutor_E` and `GetIsTM` by reflec
 mark machine moves as available since most players eventually own the TM (rejected: single
 use in Gen 3, and the label would be a guess), and cap the candidate pool by simply taking
 fewer level-up moves (rejected: hides the machines that are the whole point).
+
+---
+
+## D-031 — A build is chosen for a team, not for a Pokémon in isolation
+
+**Status:** Accepted · 2026-08-11
+
+Once machines and tutors widened the candidate pool (D-030), three faults in `SelectBuild`
+became impossible to miss. All three came from the same mistake: scoring each move on its
+own and taking the top four.
+
+**One Pokémon repeated itself.** A Treecko was handed Solar Beam, Giga Drain and Bullet
+Seed, each explaining itself as the answer to the same gap. Selection is now greedy, and a
+damaging move repeating a type the build already hits loses more than the same-type bonus is
+worth.
+
+**Six Pokémon repeated each other.** Members were built independently against one fixed
+`TeamAnalysis`, so every one of them saw the same holes and reached for the same move. The
+engine now builds in party order and threads a set of answered types through: it starts
+from what the party's current moves already cover, and grows with every build chosen. The
+same set also grows *inside* a build, which is what stops the second slot claiming a hole
+the first slot just closed — the version before this genuinely printed "nothing else hits
+Water hard" one line under a move that hits Water hard.
+
+**Every slot was an attack.** Utility scored nothing unless the Pokémon was a wall, so
+attackers got four attacks — not what a real set looks like, and helpless against anything
+it cannot out-damage. Non-damaging moves now score for everyone, more for a Pokémon whose
+bulk is the reason it is on the team, and a build takes at most three attacking moves while
+a utility candidate remains.
+
+Two smaller changes come with it. Moves that beat a type the party is *defensively* weak to
+now score: being able to knock out what threatens you is the other half of a type problem,
+and it is what "optimise against the rest of the team" means in practice. And every slot
+carries a `BuildSlotRole` — same type, coverage, team support, utility, filler — so the
+answer is scannable before it is read. The parallel `Moves`/`Reasons` lists that could drift
+out of step are gone; a slot is one object.
+
+Move candidates were already generation-correct, because the move catalog holds only the 354
+Gen 3 moves and anything outside it resolves to nothing. That was incidental rather than
+stated, so it is now pinned by a test.
+
+**Alternatives considered:** score the whole party jointly and optimise across it (rejected:
+the result stops being explainable per Pokémon, which is the property D-022 and D-028 are
+built on), let each member see the others' *candidate pools* rather than their chosen builds
+(rejected: a candidate is not a commitment, so the coordination would be based on something
+that may never happen), and simply forbid a second move of a type outright (rejected:
+sometimes a physical and a special move of the same type are both right — it should cost,
+not be banned).

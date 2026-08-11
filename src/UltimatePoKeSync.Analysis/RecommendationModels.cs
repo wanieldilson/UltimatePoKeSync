@@ -46,18 +46,42 @@ public sealed record ItemRecommendation(
     string Name,
     RecommendationAvailability Availability);
 
+/// <summary>What a move is doing in a build. The job of the slot, in the player's terms.</summary>
+public enum BuildSlotRole
+{
+    /// <summary>Damage of the Pokémon's own type, which it hits hardest with.</summary>
+    SameType = 0,
+
+    /// <summary>Reaches something the rest of the team cannot touch.</summary>
+    Coverage = 1,
+
+    /// <summary>Beats a type the team is weak to, so it answers a shared problem.</summary>
+    TeamSupport = 2,
+
+    /// <summary>Status, setup or recovery. A team of four attacks each is not a team.</summary>
+    Utility = 3,
+
+    /// <summary>Nothing better was available for the slot.</summary>
+    Filler = 4,
+}
+
+/// <summary>One move in a build, and what it is there for.</summary>
+public sealed record BuildSlot(MoveRecommendation Move, BuildSlotRole Role, string Reason);
+
 /// <summary>
 /// One concrete answer to "what should this Pokémon run", drawn from the candidate pool.
 /// </summary>
 /// <remarks>
 /// The candidate pool stays visible next to it. Picking four moves is a policy decision
-/// that depends on the rest of the party, so the build states the reason for each pick and
-/// keeps what it turned down. See D-028.
+/// that depends on the rest of the party, so every slot states its job and its reason, and
+/// the build keeps what it turned down. See D-028 and D-031.
 /// </remarks>
 public sealed record RecommendedBuild(
-    IReadOnlyList<MoveRecommendation> Moves,
-    IReadOnlyList<string> Reasons,
-    IReadOnlyList<MoveRecommendation> Alternatives);
+    IReadOnlyList<BuildSlot> Slots,
+    IReadOnlyList<MoveRecommendation> Alternatives)
+{
+    public IReadOnlyList<MoveRecommendation> Moves { get; } = [.. Slots.Select(slot => slot.Move)];
+}
 
 public sealed record PokemonRecommendation(
     PokemonSnapshot Member,

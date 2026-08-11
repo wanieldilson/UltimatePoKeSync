@@ -16,8 +16,8 @@ public sealed record TypeChip(string Type, string Detail, IBrush Brush)
         new(type.ToString(), detail, TypePalette.Brush(type));
 }
 
-/// <summary>One move of a recommended build, with the reason it was picked.</summary>
-public sealed record BuildMoveRow(string Name, string Type, string Reason, IBrush Brush);
+/// <summary>One move of a recommended build: what it is for, and why it was picked.</summary>
+public sealed record BuildMoveRow(string Name, string Type, string Role, string Reason, IBrush Brush);
 
 /// <summary>One contribution to the team strength score.</summary>
 public sealed record StrengthRow(string Name, int Points, int MaximumPoints, string Explanation)

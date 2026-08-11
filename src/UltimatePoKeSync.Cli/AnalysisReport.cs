@@ -123,23 +123,32 @@ internal static class AnalysisReport
         Console.WriteLine($"│      EVs      train {priorities}   (no exact spread outside competitive play)");
     }
 
-    /// <summary>The four moves to actually run, and why each one earned its slot.</summary>
+    /// <summary>The four moves to actually run, what each is for, and why.</summary>
     private static void PrintBuild(RecommendedBuild build)
     {
-        if (build.Moves.Count == 0)
+        if (build.Slots.Count == 0)
         {
             return;
         }
 
         string label = "Best set";
 
-        for (int index = 0; index < build.Moves.Count; index++)
+        foreach (BuildSlot slot in build.Slots)
         {
-            string reason = index < build.Reasons.Count ? build.Reasons[index] : string.Empty;
-            Console.WriteLine($"│      {label,-8} · {reason}");
+            Console.WriteLine(
+                $"│      {label,-8} · {slot.Move.Move.Name,-16} {Describe(slot.Role),-13} {slot.Reason}");
             label = string.Empty;
         }
     }
+
+    private static string Describe(BuildSlotRole role) => role switch
+    {
+        BuildSlotRole.SameType => "same type",
+        BuildSlotRole.Coverage => "coverage",
+        BuildSlotRole.TeamSupport => "team support",
+        BuildSlotRole.Utility => "utility",
+        _ => "filler",
+    };
 
     private static void PrintMoves(IReadOnlyList<MoveRecommendation> moves)
     {

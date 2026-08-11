@@ -91,22 +91,59 @@ public sealed class PokemonRecommendationEngine
             throw new ArgumentOutOfRangeException(nameof(profileKind));
         }
 
-        PokemonRecommendation[] recommendations =
-        [
-            .. party.Members.Select(member =>
-            {
-                PokemonRoleAnalysis role = _roleAnalyzer.Analyze(member, party.Game.Generation);
-                return profile.Recommend(new RecommendationContext(
-                    party.Game,
-                    teamAnalysis,
-                    role,
-                    rules,
-                    _presetCatalog,
-                    _moveCatalog,
-                    _learnsets));
-            }),
-        ];
+        // Members are built in party order rather than independently, and each one is told
+        // what the team already answers — the types its current moves cover, plus whatever
+        // the builds chosen before it added. Without this, six Pokémon each pick the same
+        // move for the same hole and the team ends up no wider than one of them. See D-031.
+        var answered = new HashSet<PokemonType>(
+            teamAnalysis.OffensiveCoverage
+                .Where(entry => entry.IsCovered)
+                .Select(entry => entry.DefendingType));
+
+        var recommendations = new List<PokemonRecommendation>(party.Count);
+
+        foreach (PokemonSnapshot member in party.Members)
+        {
+            PokemonRoleAnalysis role = _roleAnalyzer.Analyze(member, party.Game.Generation);
+            PokemonRecommendation recommendation = profile.Recommend(new RecommendationContext(
+                party.Game,
+                teamAnalysis,
+                role,
+                rules,
+                _presetCatalog,
+                _moveCatalog,
+                _learnsets,
+                answered));
+
+            recommendations.Add(recommendation);
+            RecordAnswers(recommendation, rules, answered);
+        }
 
         return new TeamRecommendation(teamAnalysis, profileKind, recommendations);
+    }
+
+    /// <summary>Marks every defending type this member's build now hits super effectively.</summary>
+    private static void RecordAnswers(
+        PokemonRecommendation recommendation,
+        IGenerationRules rules,
+        HashSet<PokemonType> answered)
+    {
+        foreach (BuildSlot slot in recommendation.Build.Slots)
+        {
+            MoveReference move = slot.Move.Move;
+            if (!rules.CanProvideSuperEffectiveCoverage(move.MoveId) ||
+                rules.GetMoveCategory(move.MoveId, move.Type) == MoveCategory.Status)
+            {
+                continue;
+            }
+
+            foreach (PokemonType defending in rules.TypeChart.Types)
+            {
+                if (rules.TypeChart.GetMultiplier(move.Type, defending) > 1)
+                {
+                    answered.Add(defending);
+                }
+            }
+        }
     }
 }

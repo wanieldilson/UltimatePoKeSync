@@ -41,7 +41,8 @@ PartySnapshot --> team + role facts --> PokemonRecommendationEngine --> selected
 It infers broad roles, calculates exact Gen 3 projected stats, proposes nature and EV
 plans, and combines those facts with pinned offline Pokémon Showdown role/movepool
 references. The two profiles share the fact engine but return different policy. Move
-candidates cover level-up, TMs and HMs, and tutors, all read per game (D-030).
+candidates cover level-up, TMs and HMs, and tutors, all read per game (D-030), and a build
+is chosen slot by slot against what the rest of the team already answers (D-031).
 
 Both analysis layers are reachable from the CLI (D-026):
 
@@ -72,7 +73,7 @@ and select only; the facts come from `Analysis`, so the window and the CLI canno
 GitHub Actions workflow publishes self-contained single-file binaries for Windows, Linux
 and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 
-**126 tests green** — 68 analysis, 24 parsing, 12 session, 9 learnsets, 8 app, 5 provider.
+**129 tests green** — 71 analysis, 24 parsing, 12 session, 9 learnsets, 8 app, 5 provider.
 
 ## What does not exist yet
 

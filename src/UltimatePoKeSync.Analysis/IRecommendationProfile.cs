@@ -17,4 +17,5 @@ public sealed record RecommendationContext(
     IGenerationRules Rules,
     IReferencePresetCatalog PresetCatalog,
     IMoveReferenceCatalog MoveCatalog,
-    IMoveLearnSource Learnsets);
+    IMoveLearnSource Learnsets,
+    IReadOnlySet<PokemonType> AnsweredTypes);

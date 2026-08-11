@@ -83,13 +83,12 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
             ? []
             :
             [
-                .. recommendation.Build.Moves.Select((move, index) => new BuildMoveRow(
-                    move.Move.Name,
-                    move.Move.Type.ToString(),
-                    index < recommendation.Build.Reasons.Count
-                        ? StripName(recommendation.Build.Reasons[index], move.Move.Name)
-                        : string.Empty,
-                    TypePalette.Brush(move.Move.Type))),
+                .. recommendation.Build.Slots.Select(slot => new BuildMoveRow(
+                    slot.Move.Move.Name,
+                    slot.Move.Move.Type.ToString(),
+                    Humanise(slot.Role),
+                    slot.Reason,
+                    TypePalette.Brush(slot.Move.Move.Type))),
             ];
 
         Alternatives = recommendation is null
@@ -252,9 +251,12 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         _ => "Support",
     };
 
-    /// <summary>The engine prefixes each reason with the move name; the UI already shows it.</summary>
-    private static string StripName(string reason, string moveName) =>
-        reason.StartsWith(moveName + ": ", StringComparison.Ordinal)
-            ? reason[(moveName.Length + 2)..]
-            : reason;
+    private static string Humanise(BuildSlotRole role) => role switch
+    {
+        BuildSlotRole.SameType => "Same type",
+        BuildSlotRole.Coverage => "Coverage",
+        BuildSlotRole.TeamSupport => "Team support",
+        BuildSlotRole.Utility => "Utility",
+        _ => "Filler",
+    };
 }
