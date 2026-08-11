@@ -304,6 +304,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         foreach (PokemonSlotViewModel slot in slots)
         {
+            // Drawing the species inside an egg would give away the one thing the game
+            // keeps from the player until it hatches. See D-036.
+            if (slot.IsEgg)
+            {
+                continue;
+            }
+
             DecodedSprite? decoded;
             try
             {

@@ -36,9 +36,11 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         Member = member;
         _recommendation = recommendation;
 
-        TypeText = member.IsDualType
-            ? $"{member.PrimaryType} / {member.SecondaryType}"
-            : member.PrimaryType.ToString();
+        TypeText = member.IsEgg
+            ? "not hatched yet"
+            : member.IsDualType
+                ? $"{member.PrimaryType} / {member.SecondaryType}"
+                : member.PrimaryType.ToString();
         PrimaryBrush = TypePalette.Brush(member.PrimaryType);
         TileBrush = TypePalette.SoftBrush(member.PrimaryType);
 
@@ -63,9 +65,13 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
                     TypePalette.Brush(move.Type))),
         ];
 
-        (Weaknesses, Resistances, Immunities) = BuildMatchups(member, analysis);
+        (Weaknesses, Resistances, Immunities) = member.IsEgg
+            ? ([], [], [])
+            : BuildMatchups(member, analysis);
 
-        TypeChips =
+        TypeChips = member.IsEgg
+            ? []
+            :
         [
             TypeChip.For(member.PrimaryType, "primary type"),
             .. member.IsDualType
@@ -127,12 +133,21 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public int SlotIndex => Member.SlotIndex;
 
-    public string SpeciesName => Member.SpeciesName;
+    /// <summary>
+    /// An egg shows as an egg. Its species is in the bytes, and the game deliberately does
+    /// not show it — telling the player what is inside would spoil the one thing hatching
+    /// is for. See D-036.
+    /// </summary>
+    public string SpeciesName => IsEgg ? "Egg" : Member.SpeciesName;
+
+    public bool IsEgg => Member.IsEgg;
+
+    public bool CanBattle => Member.CanBattle;
 
     public string LevelText => $"Lv. {Member.Level}";
 
     public string NicknameText =>
-        Member.Nickname.Equals(Member.SpeciesName, StringComparison.OrdinalIgnoreCase)
+        IsEgg || Member.Nickname.Equals(Member.SpeciesName, StringComparison.OrdinalIgnoreCase)
             ? string.Empty
             : Member.Nickname;
 
@@ -140,13 +155,18 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public string TypeText { get; }
 
+    /// <summary>The type line, the bars and the matchups are all meaningless for an egg.</summary>
+    public bool ShowsBattleData => CanBattle;
+
     public IBrush PrimaryBrush { get; }
 
     public IBrush TileBrush { get; }
 
     public bool HasSprite => Sprite is not null;
 
-    public string Initials => Member.SpeciesName.Length <= 3
+    public string Initials => IsEgg
+        ? "EGG"
+        : Member.SpeciesName.Length <= 3
         ? Member.SpeciesName.ToUpperInvariant()
         : Member.SpeciesName[..3].ToUpperInvariant();
 

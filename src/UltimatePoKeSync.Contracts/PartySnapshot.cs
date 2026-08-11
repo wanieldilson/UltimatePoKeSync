@@ -25,6 +25,14 @@ public sealed record PartySnapshot(
     public int Count => Members.Count;
 
     public bool IsEmpty => Members.Count == 0;
+
+    /// <summary>
+    /// The members that can actually fight. Every analysis wants this rather than
+    /// <see cref="Members"/>; the display wants <see cref="Members"/>, because an egg is
+    /// still something the player is carrying. See D-036.
+    /// </summary>
+    public IReadOnlyList<PokemonSnapshot> Battlers { get; } =
+        [.. Members.Where(member => member.CanBattle)];
 }
 
 /// <param name="SlotIndex">Index of the rejected slot.</param>

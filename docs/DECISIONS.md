@@ -1127,3 +1127,50 @@ uses it. It cannot tell you what for.
 run time by scanning memory for something that parses (rejected: it works, as this
 investigation shows, but searching for data that merely looks valid is how a wrong answer
 becomes a confident one — D-005 and D-019 both exist because of that).
+
+## D-036 — An egg fills a slot, not a place on the team
+
+An egg in the party is a full Pokémon record on disk. It has a species, a personality value,
+IVs, EVs, a nature, base stats and a level, and the parser reads every one of them. So every
+layer above the parser treated it as a team member: its types were counted towards the
+party's resistances, its moves towards the party's coverage, its level towards the team's
+cohesion, and it was handed a role, a nature, an EV spread and a best moveset.
+
+None of that is true of an egg. It cannot be sent out, cannot attack, cannot be taught a
+move and cannot be given an item. A party of five Pokémon and an egg is a party of five.
+Counting the egg credits the team with a switch-in it does not have, which is the worst kind
+of wrong answer here: it is wrong in the player's favour, and it hides a real gap.
+
+The contracts now draw the line once, and everything above reads it:
+
+```csharp
+public bool CanBattle => !IsEgg;                       // PokemonSnapshot
+public IReadOnlyList<PokemonSnapshot> Battlers { get; } // PartySnapshot, the ones that can
+```
+
+`TeamAnalyzer`, `TeamStrengthAnalyzer` and `PokemonRecommendationEngine` iterate `Battlers`.
+`Members` still exists and still holds all six slots, because the window has to draw the egg
+— it is in the party and the player can see it there.
+
+The second half is what the tile is allowed to say. The species inside an egg is in the
+bytes, and the game deliberately does not show it: not knowing is the whole point of
+hatching one. The window therefore shows an egg as **Egg** with no nickname, no types, no HP
+bar, no stats, no matchups, no moves and no sprite, and one line saying why it is not part
+of the team's numbers. The recommendation card is simply absent, because the engine produced
+nothing for that slot; slots are paired to recommendations by `SlotIndex`, so a shorter list
+lines up correctly rather than shifting everyone by one.
+
+The strength panel says what it left out rather than staying quiet about it — *"5 of 6 able
+to battle; one slot holds an egg"* — because a player looking at six occupied slots and a
+five-Pokémon score deserves to know which of the two the app believes.
+
+The CLI keeps printing everything, egg included. It is the diagnostic surface of D-026, its
+audience is whoever is debugging a capture, and hiding data there would remove the one place
+the raw truth can be checked.
+
+**Alternatives considered:** count the egg but weight it down (rejected: a fraction of a
+resistance is not a thing that exists in a battle; either it can switch in or it cannot),
+show the species with a spoiler warning (rejected: the app's job is to reflect the game, and
+the game hides it), and drop eggs from `Members` entirely so they never reach the window
+(rejected: the slot is occupied, and a party that shows five tiles when the game shows six
+looks like the bug this fixed rather than the fix).

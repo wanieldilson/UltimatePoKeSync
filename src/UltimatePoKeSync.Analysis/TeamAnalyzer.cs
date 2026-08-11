@@ -32,7 +32,7 @@ public sealed class TeamAnalyzer
 
         foreach (PokemonType attackingType in rules.TypeChart.Types)
         {
-            DefensiveMatchup[] matchups = [.. party.Members.Select(member =>
+            DefensiveMatchup[] matchups = [.. party.Battlers.Select(member =>
                 new DefensiveMatchup(
                     member,
                     rules.GetDefensiveMultiplier(
@@ -48,7 +48,7 @@ public sealed class TeamAnalyzer
         {
             var answers = new List<OffensiveAnswer>();
 
-            foreach (PokemonSnapshot member in party.Members)
+            foreach (PokemonSnapshot member in party.Battlers)
             {
                 foreach (MoveSlot move in member.Moves)
                 {

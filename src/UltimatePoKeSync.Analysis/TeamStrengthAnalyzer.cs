@@ -50,7 +50,7 @@ public sealed class TeamStrengthAnalyzer
 
         PokemonRoleAnalysis[] roles =
         [
-            .. party.Members.Select(member => _roleAnalyzer.Analyze(member, party.Game.Generation)),
+            .. party.Battlers.Select(member => _roleAnalyzer.Analyze(member, party.Game.Generation)),
         ];
 
         return new TeamStrength(
@@ -67,22 +67,27 @@ public sealed class TeamStrengthAnalyzer
     private static TeamStrengthFactor EvaluatePartySize(PartySnapshot party)
     {
         const int maximum = 15;
-        int points = Math.Min(party.Count, FullParty) * maximum / FullParty;
+        int fighters = party.Battlers.Count;
+        int eggs = party.Count - fighters;
+        int points = Math.Min(fighters, FullParty) * maximum / FullParty;
 
-        return new TeamStrengthFactor(
-            TeamStrengthKind.PartySize,
-            points,
-            maximum,
-            party.Count >= FullParty
-                ? "A full party of six."
-                : $"{party.Count} of {FullParty} slots filled.",
-            []);
+        // An egg fills a slot without filling a place on the team, and saying so is more
+        // use than counting it either way in silence.
+        string explanation = eggs switch
+        {
+            0 when fighters >= FullParty => "A full party of six.",
+            0 => $"{fighters} of {FullParty} slots filled.",
+            1 => $"{fighters} of {FullParty} able to battle; one slot holds an egg.",
+            _ => $"{fighters} of {FullParty} able to battle; {eggs} slots hold eggs.",
+        };
+
+        return new TeamStrengthFactor(TeamStrengthKind.PartySize, points, maximum, explanation, []);
     }
 
     private static TeamStrengthFactor EvaluateLevelCohesion(PartySnapshot party)
     {
         const int maximum = 15;
-        if (party.Count < 2)
+        if (party.Battlers.Count < 2)
         {
             return new TeamStrengthFactor(
                 TeamStrengthKind.LevelCohesion,
@@ -92,15 +97,15 @@ public sealed class TeamStrengthAnalyzer
                 []);
         }
 
-        int highest = party.Members.Max(member => member.Level);
-        int lowest = party.Members.Min(member => member.Level);
+        int highest = party.Battlers.Max(member => member.Level);
+        int lowest = party.Battlers.Min(member => member.Level);
         int spread = highest - lowest;
         int excess = Math.Max(0, spread - ToleratedLevelSpread);
         int points = Math.Max(0, maximum - (excess * 2));
 
         PokemonSnapshot[] laggards =
         [
-            .. party.Members
+            .. party.Battlers
                 .Where(member => member.Level < highest - ToleratedLevelSpread)
                 .OrderBy(member => member.Level),
         ];

@@ -19,6 +19,7 @@ internal static class AnalysisTestData
         int level = 50,
         StatBlock? baseStats = null,
         int? speciesId = null,
+        bool isEgg = false,
         params MoveSlot[] moves) => new()
         {
             SlotIndex = slot,
@@ -39,7 +40,7 @@ internal static class AnalysisTestData
             HeldItemId = 0,
             HeldItemName = "-",
             Moves = moves,
-            IsEgg = false,
+            IsEgg = isEgg,
             IsShiny = false,
             PersonalityValue = (uint)slot,
             CurrentHp = 100,

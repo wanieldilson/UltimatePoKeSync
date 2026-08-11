@@ -102,7 +102,8 @@ public sealed class PokemonRecommendationEngine
 
         var recommendations = new List<PokemonRecommendation>(party.Count);
 
-        foreach (PokemonSnapshot member in party.Members)
+        // An egg gets no advice: it has no moves to change and cannot be sent out.
+        foreach (PokemonSnapshot member in party.Battlers)
         {
             PokemonRoleAnalysis role = _roleAnalyzer.Analyze(member, party.Game.Generation);
             PokemonRecommendation recommendation = profile.Recommend(new RecommendationContext(
