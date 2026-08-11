@@ -11,14 +11,14 @@ public sealed class PokemonRecommendationEngine
     private readonly IGenerationRulesResolver _rulesResolver;
     private readonly IReferencePresetCatalog _presetCatalog;
     private readonly IMoveReferenceCatalog _moveCatalog;
-    private readonly ILevelUpLearnsetSource _learnsets;
+    private readonly IMoveLearnSource _learnsets;
     private readonly IReadOnlyDictionary<RecommendationProfileKind, IRecommendationProfile> _profiles;
 
     /// <summary>
     /// The usual composition. The learnset source is injected because it is per game and
     /// PKHeX-backed, and Analysis must not depend on PKHeX. See D-007 and D-027.
     /// </summary>
-    public static PokemonRecommendationEngine CreateDefault(ILevelUpLearnsetSource learnsets) =>
+    public static PokemonRecommendationEngine CreateDefault(IMoveLearnSource learnsets) =>
         new(
             new TeamAnalyzer(),
             new PokemonRoleAnalyzer(),
@@ -34,7 +34,7 @@ public sealed class PokemonRecommendationEngine
         IGenerationRulesResolver rulesResolver,
         IReferencePresetCatalog presetCatalog,
         IMoveReferenceCatalog moveCatalog,
-        ILevelUpLearnsetSource learnsets,
+        IMoveLearnSource learnsets,
         IEnumerable<IRecommendationProfile> profiles)
     {
         ArgumentNullException.ThrowIfNull(teamAnalyzer);
@@ -82,7 +82,7 @@ public sealed class PokemonRecommendationEngine
         // the same move at different levels. See D-027.
         if (!_learnsets.Supports(party.Game))
         {
-            throw new NotSupportedException($"No level-up learnsets are available for {party.Game}.");
+            throw new NotSupportedException($"No move data is available for {party.Game}.");
         }
 
         TeamAnalysis teamAnalysis = _teamAnalyzer.Analyze(party);

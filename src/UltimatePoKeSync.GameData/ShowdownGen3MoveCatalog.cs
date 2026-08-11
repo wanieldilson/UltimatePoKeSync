@@ -5,7 +5,7 @@ namespace UltimatePoKeSync.GameData;
 /// <summary>English Gen 3 move metadata, pinned for offline recommendations.</summary>
 /// <remarks>
 /// Move identity only. Level-up learnsets used to live here too, merged across the Gen 3
-/// games; they now come per game from <see cref="ILevelUpLearnsetSource"/>. See D-027.
+/// games; they now come per game from <see cref="IMoveLearnSource"/>. See D-027.
 /// </remarks>
 public sealed class ShowdownGen3MoveCatalog : IMoveReferenceCatalog
 {

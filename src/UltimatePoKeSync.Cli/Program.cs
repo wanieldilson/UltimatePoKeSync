@@ -89,7 +89,7 @@ internal static class Program
 
             var teamAnalyzer = new TeamAnalyzer();
             PokemonRecommendationEngine recommendationEngine =
-                PokemonRecommendationEngine.CreateDefault(PKHeXGen3LevelUpLearnsets.Instance);
+                PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance);
 
             try
             {
@@ -142,7 +142,7 @@ internal static class Program
             analyze,
             profileKind,
             new TeamAnalyzer(),
-            PokemonRecommendationEngine.CreateDefault(PKHeXGen3LevelUpLearnsets.Instance));
+            PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance));
         Console.WriteLine("└─");
         return 0;
     }

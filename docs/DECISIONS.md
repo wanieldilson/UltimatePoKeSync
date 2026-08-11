@@ -798,3 +798,49 @@ app first (rejected: the instruction arrives after the broken path is already on
 write next to the ROM (rejected: the app does not know where the ROM is, and that folder is
 the user's, not ours), and embed the script and write it to a temporary file on demand
 (rejected: a temporary path is exactly the problem being fixed).
+
+---
+
+## D-030 — Machines and tutors are move sources, and a build is chosen one slot at a time
+
+**Status:** Accepted · 2026-08-11
+
+Recommendations only ever proposed level-up moves. In Gen 3 that is close to useless for a
+playthrough: the coverage a team is actually short of arrives on a TM. A Charizard was
+being told to consider what it learns by levelling while Flamethrower, Earthquake and Fire
+Blast sat in the machine list, unmentioned.
+
+PKHeX answers this through the learn sources already in use. `ILearnSource.GetAllMoves`
+takes a `MoveSourceType` and is public, so machines and tutors need no new bundled data,
+and — crucially — the answer is per game. Charizard has twenty tutor moves in Emerald and
+one in FireRed. Merging that would have repeated exactly the mistake D-027 fixed, on a much
+larger scale than levels ever did.
+
+`ILevelUpLearnsetSource` therefore becomes `IMoveLearnSource`, returning level-up moves at
+or below the current level, then machines, then tutors, each tagged with how it is obtained.
+Level-up entries still come from `GetLearnset` rather than the flag scan, because it is the
+only source that carries the level, and the level is what a player acts on.
+
+**Egg moves are deliberately excluded.** A Pokémon already in the party cannot acquire one:
+it had to hatch with it. Listing them would be the false certainty D-025 exists to prevent.
+
+Everything that is not already on the Pokémon keeps
+`RecommendationAvailability.RequiresAvailabilityCheck`. That stays honest for machines for a
+reason particular to this generation: a Gen 3 TM is consumed when used, so even owning one
+is not a guarantee.
+
+Widening the pool immediately exposed a flaw in `SelectBuild`. Ranking every candidate in
+isolation and taking the top four gave a Treecko three Grass moves, each explaining itself
+as "the only Grass damage the party has for a type nothing else answers" — three times, for
+one gap. Selection is now greedy: after each pick, damaging candidates repeating a type the
+build already hits lose more than the same-type bonus is worth, and only the first move of a
+type may claim the gap. A second same-type move can still win a slot, but it says plainly
+that it is there because nothing else scored higher.
+
+**Alternatives considered:** embed a TM/HM and tutor table of our own (rejected: PKHeX
+already has one that is correct per game, and hand-entered tables are how invented data gets
+in — see D-013), reach into PKHeX's internal `Tutor_E` and `GetIsTM` by reflection
+(rejected: silently breaks on upgrade, which is the failure mode D-014 exists to prevent),
+mark machine moves as available since most players eventually own the TM (rejected: single
+use in Gen 3, and the label would be a guess), and cap the candidate pool by simply taking
+fewer level-up moves (rejected: hides the machines that are the whole point).

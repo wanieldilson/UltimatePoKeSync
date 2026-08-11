@@ -21,6 +21,8 @@ public enum MoveCandidateSource
     CurrentMoveset = 0,
     LevelUpLearnset = 1,
     ReferencePreset = 2,
+    Machine = 3,
+    Tutor = 4,
 }
 
 public sealed record NatureRecommendation(

@@ -41,7 +41,13 @@ internal static class AnalysisReport
 
         if (analysis.OffensiveGaps.Count > 0)
         {
-            Console.WriteLine($"│    no answer to {string.Join(", ", analysis.OffensiveGaps)}");
+            // Seventeen type names on one line wrap into a mess. The chips in the UI show
+            // the full set; here the first few and a count carry the point.
+            IEnumerable<PokemonType> shown = analysis.OffensiveGaps.Take(6);
+            string more = analysis.OffensiveGaps.Count > 6
+                ? $" and {analysis.OffensiveGaps.Count - 6} more"
+                : string.Empty;
+            Console.WriteLine($"│    no answer to {string.Join(", ", shown)}{more}");
         }
     }
 
@@ -151,6 +157,8 @@ internal static class AnalysisReport
             {
                 MoveCandidateSource.CurrentMoveset => "known",
                 MoveCandidateSource.LevelUpLearnset => $"level-up @{move.LearnedAtLevel}",
+                MoveCandidateSource.Machine => "TM or HM",
+                MoveCandidateSource.Tutor => "move tutor",
                 _ => "reference set",
             };
 

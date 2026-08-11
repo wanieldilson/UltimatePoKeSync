@@ -17,4 +17,4 @@ public sealed record RecommendationContext(
     IGenerationRules Rules,
     IReferencePresetCatalog PresetCatalog,
     IMoveReferenceCatalog MoveCatalog,
-    ILevelUpLearnsetSource Learnsets);
+    IMoveLearnSource Learnsets);

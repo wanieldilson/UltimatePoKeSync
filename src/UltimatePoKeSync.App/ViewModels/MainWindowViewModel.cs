@@ -25,7 +25,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly TeamAnalyzer _teamAnalyzer = new();
     private readonly TeamStrengthAnalyzer _strengthAnalyzer = new();
     private readonly PokemonRecommendationEngine _engine =
-        PokemonRecommendationEngine.CreateDefault(PKHeXGen3LevelUpLearnsets.Instance);
+        PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance);
 
     private PartySnapshot? _party;
 

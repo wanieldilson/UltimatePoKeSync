@@ -40,7 +40,8 @@ PartySnapshot --> team + role facts --> PokemonRecommendationEngine --> selected
 
 It infers broad roles, calculates exact Gen 3 projected stats, proposes nature and EV
 plans, and combines those facts with pinned offline Pokémon Showdown role/movepool
-references. The two profiles share the fact engine but return different policy.
+references. The two profiles share the fact engine but return different policy. Move
+candidates cover level-up, TMs and HMs, and tutors, all read per game (D-030).
 
 Both analysis layers are reachable from the CLI (D-026):
 
@@ -71,7 +72,7 @@ and select only; the facts come from `Analysis`, so the window and the CLI canno
 GitHub Actions workflow publishes self-contained single-file binaries for Windows, Linux
 and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 
-**122 tests green** — 67 analysis, 24 parsing, 12 session, 8 app, 6 learnsets, 5 provider.
+**126 tests green** — 68 analysis, 24 parsing, 12 session, 9 learnsets, 8 app, 5 provider.
 
 ## What does not exist yet
 
@@ -80,8 +81,9 @@ and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
   as requiring an availability check (D-025).
 - Competitive usage and speed-benchmark weighting. The presets are Random Battle
   references, not standard OU statistics.
-- TM/HM, tutor and egg moves. Only level-up moves are proposed, even though PKHeX exposes
-  the other sources through the same learn sources. **This is the next piece of work.**
+- Egg moves, deliberately: a Pokémon already caught cannot gain one (D-030).
+- Real per-save availability. Machine and tutor moves are offered but labelled as needing a
+  check, because party RAM shows no bag and no badges (D-025).
 - Sprites. Party members show as a tile in their primary type's colour with the species
   name, not an image. Reading sprites from the player's own ROM is the clean route and has
   not been started (D-028).

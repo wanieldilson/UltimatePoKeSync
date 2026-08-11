@@ -47,25 +47,67 @@ internal static class RecommendationPolicy
 
         HashSet<string> presetMoves = [.. MatchPreset(context)?.MovePool ?? []];
 
-        var scored = candidates
-            .Select((candidate, index) => new
-            {
-                Candidate = candidate,
-                Index = index,
-                Score = ScoreMove(context, candidate, presetMoves),
-                Reason = ReasonFor(context, candidate, presetMoves),
-            })
-            .OrderByDescending(entry => entry.Score)
-            .ThenBy(entry => entry.Index)
-            .ToArray();
+        // Chosen one at a time rather than by taking the top four at once. Ranking the pool
+        // in isolation gives a Pokémon three moves of the same type, each claiming to be the
+        // answer to the same gap; a slot is only worth what it adds to the slots already
+        // filled. See D-030.
+        List<(MoveRecommendation Candidate, int Index)> remaining =
+            [.. candidates.Select((candidate, index) => (candidate, index))];
+        var chosen = new List<MoveRecommendation>(moveSlots);
+        var reasons = new List<string>(moveSlots);
+        var covered = new HashSet<PokemonType>();
 
-        var chosen = scored.Take(moveSlots).ToArray();
+        while (chosen.Count < moveSlots && remaining.Count > 0)
+        {
+            var best = remaining
+                .Select(entry => new
+                {
+                    entry.Candidate,
+                    entry.Index,
+                    Score = ScoreMove(context, entry.Candidate, presetMoves)
+                        - RedundancyPenalty(context, entry.Candidate, covered),
+                })
+                .OrderByDescending(entry => entry.Score)
+                .ThenBy(entry => entry.Index)
+                .First();
+
+            chosen.Add(best.Candidate);
+            reasons.Add(
+                $"{best.Candidate.Move.Name}: {ReasonFor(context, best.Candidate, presetMoves, covered)}");
+
+            if (IsDamaging(context, best.Candidate.Move))
+            {
+                covered.Add(best.Candidate.Move.Type);
+            }
+
+            remaining.RemoveAll(entry => entry.Index == best.Index);
+        }
 
         return new RecommendedBuild(
-            [.. chosen.Select(entry => entry.Candidate)],
-            [.. chosen.Select(entry => $"{entry.Candidate.Move.Name}: {entry.Reason}")],
-            [.. scored.Skip(moveSlots).Select(entry => entry.Candidate)]);
+            chosen,
+            reasons,
+            [
+                .. remaining
+                    .OrderByDescending(entry => ScoreMove(context, entry.Candidate, presetMoves))
+                    .ThenBy(entry => entry.Index)
+                    .Select(entry => entry.Candidate),
+            ]);
     }
+
+    /// <summary>
+    /// What a candidate loses for repeating a type the build already hits with. Set above
+    /// the same-type bonus, so a second move of the same type has to be better on its own
+    /// merits rather than winning on the type it shares.
+    /// </summary>
+    private static int RedundancyPenalty(
+        RecommendationContext context,
+        MoveRecommendation candidate,
+        IReadOnlySet<PokemonType> covered) =>
+        IsDamaging(context, candidate.Move) && covered.Contains(candidate.Move.Type) ? 7 : 0;
+
+    private static bool IsDamaging(RecommendationContext context, MoveReference move) =>
+        context.Rules.GetMoveCategory(move.MoveId, move.Type) != MoveCategory.Status &&
+        context.Rules.CanProvideSuperEffectiveCoverage(move.MoveId);
 
     public static NatureRecommendation RecommendNature(
         PokemonRoleAnalysis role,
@@ -268,7 +310,8 @@ internal static class RecommendationPolicy
     private static string ReasonFor(
         RecommendationContext context,
         MoveRecommendation candidate,
-        IReadOnlySet<string> presetMoves)
+        IReadOnlySet<string> presetMoves,
+        IReadOnlySet<PokemonType> covered)
     {
         PokemonSnapshot member = context.RoleAnalysis.Member;
         MoveReference move = candidate.Move;
@@ -276,13 +319,20 @@ internal static class RecommendationPolicy
         bool damaging = category != MoveCategory.Status &&
             context.Rules.CanProvideSuperEffectiveCoverage(move.MoveId);
 
-        if (damaging && ClosesTeamGap(context, move.Type))
+        // Only the first move of a type gets to claim the gap; the ones after it are no
+        // longer closing anything the build has not already closed.
+        if (damaging && !covered.Contains(move.Type) && ClosesTeamGap(context, move.Type))
         {
-            return $"the only {move.Type} damage the party has for a type nothing else answers";
+            return $"{move.Type} damage for a type nothing else on the team answers";
         }
 
         if (damaging && (move.Type == member.PrimaryType || move.Type == member.SecondaryType))
         {
+            if (covered.Contains(move.Type))
+            {
+                return "a second same-type option, kept because nothing else scored higher";
+            }
+
             return MatchesRoleCategory(context.RoleAnalysis.Role, category)
                 ? $"same-type damage on the {category.ToString().ToLowerInvariant()} side this Pokémon hits hardest with"
                 : "same-type damage";
@@ -300,9 +350,17 @@ internal static class RecommendationPolicy
                 : "utility";
         }
 
-        return presetMoves.Contains(move.ReferenceId)
-            ? "part of the matched reference set"
-            : "the best of what is left";
+        if (presetMoves.Contains(move.ReferenceId))
+        {
+            return "part of the matched reference set";
+        }
+
+        return candidate.Source switch
+        {
+            MoveCandidateSource.Machine => "the best coverage a TM can add here",
+            MoveCandidateSource.Tutor => "the best coverage a tutor can add here",
+            _ => "the best of what is left",
+        };
     }
 
     private static bool MatchesRoleCategory(PokemonRole role, MoveCategory category) => role switch

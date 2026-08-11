@@ -5,6 +5,12 @@ namespace UltimatePoKeSync.Analysis;
 
 public sealed class PlaythroughRecommendationProfile : IRecommendationProfile
 {
+    /// <summary>
+    /// How many candidates to keep. A Gen 3 Pokémon can often learn fifty or more once
+    /// machines and tutors are counted; the panel has to stay readable.
+    /// </summary>
+    private const int MoveCandidateLimit = 14;
+
     public RecommendationProfileKind Kind => RecommendationProfileKind.Playthrough;
 
     public PokemonRecommendation Recommend(RecommendationContext context)
@@ -29,9 +35,13 @@ public sealed class PlaythroughRecommendationProfile : IRecommendationProfile
                     null)),
         ];
 
-        MoveRecommendation[] levelUp =
+        // Level-up alone is a poor answer for a playthrough: in Gen 3 the coverage a team
+        // actually needs arrives on TMs. Machines and tutors are ranked alongside, and the
+        // pool stays bounded because the build only ever picks four. See D-030.
+        MoveRecommendation[] learnable =
         [
-            .. context.Learnsets.FindLevelUpMoves(context.Game, member.SpeciesId, member.Level)
+            .. context.Learnsets
+                .FindLearnableMoves(context.Game, member.SpeciesId, member.Level)
                 .Where(candidate => current.All(
                     existing => existing.Move.ReferenceId != candidate.Move.ReferenceId))
                 .OrderByDescending(candidate => presetMoves.Contains(candidate.Move.ReferenceId))
@@ -42,16 +52,17 @@ public sealed class PlaythroughRecommendationProfile : IRecommendationProfile
                 .ThenByDescending(candidate =>
                     candidate.Move.Type == member.PrimaryType ||
                     candidate.Move.Type == member.SecondaryType)
-                .ThenByDescending(candidate => candidate.LearnedAtLevel)
-                .Take(Math.Max(0, 8 - current.Length))
+                .ThenBy(candidate => candidate.Method)
+                .ThenByDescending(candidate => candidate.LearnedAtLevel ?? 0)
+                .Take(Math.Max(0, MoveCandidateLimit - current.Length))
                 .Select(candidate => new MoveRecommendation(
                     candidate.Move,
-                    MoveCandidateSource.LevelUpLearnset,
+                    Describe(candidate.Method),
                     RecommendationAvailability.RequiresAvailabilityCheck,
                     candidate.LearnedAtLevel)),
         ];
 
-        MoveRecommendation[] candidates = [.. current, .. levelUp];
+        MoveRecommendation[] candidates = [.. current, .. learnable];
 
         return new PokemonRecommendation(
             member,
@@ -64,6 +75,13 @@ public sealed class PlaythroughRecommendationProfile : IRecommendationProfile
             preset,
             RecommendationPolicy.SelectBuild(context, candidates));
     }
+
+    private static MoveCandidateSource Describe(MoveLearnMethod method) => method switch
+    {
+        MoveLearnMethod.Machine => MoveCandidateSource.Machine,
+        MoveLearnMethod.Tutor => MoveCandidateSource.Tutor,
+        _ => MoveCandidateSource.LevelUpLearnset,
+    };
 
     private static bool IsRoleAligned(
         MoveReference move,

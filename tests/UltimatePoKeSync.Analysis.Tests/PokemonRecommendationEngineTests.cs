@@ -8,7 +8,7 @@ namespace UltimatePoKeSync.Analysis.Tests;
 public sealed class PokemonRecommendationEngineTests
 {
     private readonly PokemonRecommendationEngine _engine =
-        PokemonRecommendationEngine.CreateDefault(PKHeXGen3LevelUpLearnsets.Instance);
+        PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance);
 
     [Fact]
     public void CompetitiveProfile_CombinesLiveRoleWithMatchedPreset()
@@ -187,6 +187,49 @@ public sealed class PokemonRecommendationEngineTests
 
         Assert.Equal(PokemonType.Fighting, build.Moves[0].Move.Type);
         Assert.Contains("same-type", build.Reasons[0], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The point of reading machines at all: in Gen 3 the coverage a playthrough team is
+    /// missing usually arrives on a TM, not from levelling. See D-030.
+    /// </summary>
+    [Fact]
+    public void Playthrough_OffersMachineAndTutorMovesAlongsideLevelUp()
+    {
+        PokemonSnapshot charizard = AnalysisTestData.Member(
+            primaryType: PokemonType.Fire,
+            secondaryType: PokemonType.Flying,
+            speciesName: "Charizard",
+            level: 50,
+            baseStats: new StatBlock(78, 84, 78, 109, 85, 100),
+            speciesId: 6,
+            moves: [AnalysisTestData.Move(52, "Ember", PokemonType.Fire)]);
+
+        PokemonRecommendation result = _engine
+            .Recommend(AnalysisTestData.Party(charizard), RecommendationProfileKind.Playthrough)
+            .Members
+            .Single();
+
+        Assert.Contains(result.MoveCandidates, move => move.Source == MoveCandidateSource.Machine);
+        Assert.Contains(result.MoveCandidates, move => move.Source == MoveCandidateSource.Tutor);
+
+        // Everything that is not already on the Pokémon has to be checked against the save.
+        Assert.All(
+            result.MoveCandidates.Where(move => move.Source != MoveCandidateSource.CurrentMoveset),
+            move => Assert.Equal(
+                RecommendationAvailability.RequiresAvailabilityCheck,
+                move.Availability));
+
+        // And a machine move is good enough to take a slot away from Ember.
+        Assert.Contains(
+            result.Build.Moves,
+            move => move.Source is MoveCandidateSource.Machine or MoveCandidateSource.Tutor);
+
+        // A wide pool must not collapse into one type: each slot is judged against the
+        // slots already filled, so four moves cover at least three types.
+        Assert.True(
+            result.Build.Moves.Select(move => move.Move.Type).Distinct().Count() >= 3,
+            string.Join(", ", result.Build.Moves.Select(move => $"{move.Move.Name} ({move.Move.Type})")));
     }
 
     [Fact]
