@@ -134,6 +134,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public bool HasEmptySlots => EmptySlots.Count > 0;
 
+    public bool HasSuperEffective => TeamSuperEffective.Count > 0;
+
+    public bool HasUnanswered => TeamUnanswered.Count > 0;
+
     public bool ShowTeamPanel => SelectedSlot is null;
 
     public bool HasAnalysisError => AnalysisError.Length > 0;
@@ -329,6 +333,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 TeamNeutral.Add(TypeChip.For(entry.AttackingType, "no weakness, no resistance"));
             }
         }
+
+        OnPropertyChanged(nameof(HasSuperEffective));
+        OnPropertyChanged(nameof(HasUnanswered));
 
         foreach (OffensiveTypeCoverage entry in analysis.OffensiveCoverage)
         {

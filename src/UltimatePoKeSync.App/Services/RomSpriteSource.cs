@@ -109,6 +109,15 @@ public sealed class RomSpriteSource
 
         _rom ??= new byte[RomSize];
 
+        // One unanswered read is enough to know: an older script drains commands without
+        // replying, and waiting out the timeout on every chunk of every window would take
+        // minutes to reach the same conclusion.
+        if (await _reader.ReadMemoryAsync(RomBase, 4, cancellationToken).ConfigureAwait(false) is null)
+        {
+            _unavailable = true;
+            return false;
+        }
+
         foreach ((int start, int length) in SearchWindows)
         {
             if (!await FetchAsync(start, length, cancellationToken).ConfigureAwait(false))

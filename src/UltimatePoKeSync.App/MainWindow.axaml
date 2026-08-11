@@ -261,8 +261,12 @@
               <StackPanel Spacing="12">
                 <TextBlock Text="Attacking" Classes="section" />
                 <TextBlock Text="Hit super effectively" Classes="caption" />
+                <TextBlock Text="nothing yet" Classes="muted" FontSize="11" Opacity="0.4"
+                           IsVisible="{Binding !HasSuperEffective}" />
                 <ItemsControl ItemsSource="{Binding TeamSuperEffective}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
                 <TextBlock Text="No super-effective answer" Classes="caption" />
+                <TextBlock Text="every type is covered" Classes="muted" FontSize="11" Opacity="0.4"
+                           IsVisible="{Binding !HasUnanswered}" />
                 <ItemsControl ItemsSource="{Binding TeamUnanswered}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
               </StackPanel>
             </Border>
