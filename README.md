@@ -91,6 +91,11 @@ memory map it does not know rather than invent Pokémon. The supported game code
 thirteen Western Gen 3 releases — Emerald in five languages, and FireRed, LeafGreen, Ruby
 and Sapphire in English and Italian.
 
+Five of them have been run against a real cartridge: the Italian Emerald, Ruby, Sapphire,
+FireRed and LeafGreen. The other eight rest on addresses cross-checked between independent
+sources and counted in the ROMs themselves, but have never been loaded — if you own one,
+loading it and saying so is the single most useful thing you can contribute.
+
 </details>
 
 ## Requirements

@@ -20,6 +20,20 @@ Verified on 2026-08-10 with **Pokémon Emerald (Italy)** running in mGBA 0.10.5:
 appeared with correct species, level, type, ability, moves and IVs, with zero rejected
 slots. PP dropping during a battle produced exactly one snapshot per change.
 
+Five of the thirteen supported game codes have since been run against a real cartridge in
+the dashboard — party read, sprites decoded from the ROM, analysis on screen:
+
+| Game | Code | Verified | Note |
+| --- | --- | --- | --- |
+| Emerald (Italy) | `BPEI` | 2026-08-10 | the reference game of D-004 |
+| Ruby (Italy) rev 1 | `AXVI` | 2026-08-11 | party sits 16 bytes above the USA one, see D-035 |
+| Sapphire (Italy) | `AXPI` | 2026-08-11 | same shift, and the sample that disproved the revision theory |
+| FireRed (Italy) | `BPRI` | 2026-08-11 | USA addresses, unshifted |
+| LeafGreen (Italy) | `BPGI` | 2026-08-12 | USA addresses, unshifted |
+
+The remaining eight — the English and other-language releases — rest on the cross-checked
+addresses of D-013 and D-034 and have never been loaded.
+
 The M5 analysis chain is also complete:
 
 ```
