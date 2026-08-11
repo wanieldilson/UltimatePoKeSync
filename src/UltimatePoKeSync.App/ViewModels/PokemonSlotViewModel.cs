@@ -63,7 +63,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
                     TypePalette.Brush(move.Type))),
         ];
 
-        (Weaknesses, Resistances) = BuildMatchups(member, analysis);
+        (Weaknesses, Resistances, Immunities) = BuildMatchups(member, analysis);
 
         TypeChips =
         [
@@ -227,6 +227,19 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public IReadOnlyList<TypeChip> Resistances { get; }
 
+    /// <summary>
+    /// Kept apart from the resistances. Taking a quarter of the damage and taking none of
+    /// it are different plans: one is a Pokémon that survives the hit, the other is a
+    /// Pokémon the attack cannot touch at all, which is what a free switch-in is made of.
+    /// </summary>
+    public IReadOnlyList<TypeChip> Immunities { get; }
+
+    public bool HasWeaknesses => Weaknesses.Count > 0;
+
+    public bool HasResistances => Resistances.Count > 0;
+
+    public bool HasImmunities => Immunities.Count > 0;
+
     public string RoleText { get; }
 
     public string RoleReason { get; }
@@ -260,12 +273,15 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     partial void OnSpriteChanged(Bitmap? value) => OnPropertyChanged(nameof(HasSprite));
 
-    private static (IReadOnlyList<TypeChip> Weak, IReadOnlyList<TypeChip> Resisted) BuildMatchups(
+    private static (IReadOnlyList<TypeChip> Weak,
+        IReadOnlyList<TypeChip> Resisted,
+        IReadOnlyList<TypeChip> Immune) BuildMatchups(
         PokemonSnapshot member,
         TeamAnalysis analysis)
     {
         var weak = new List<TypeChip>();
         var resisted = new List<TypeChip>();
+        var immune = new List<TypeChip>();
 
         foreach (DefensiveTypeCoverage entry in analysis.DefensiveCoverage)
         {
@@ -276,11 +292,17 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
                 continue;
             }
 
+            if (matchup.Multiplier == 0)
+            {
+                immune.Add(TypeChip.For(entry.AttackingType, "no damage at all"));
+                continue;
+            }
+
             string label = "×" + matchup.Multiplier.ToString("0.##", CultureInfo.InvariantCulture);
             (matchup.Multiplier > 1 ? weak : resisted).Add(TypeChip.For(entry.AttackingType, label));
         }
 
-        return (weak, resisted);
+        return (weak, resisted, immune);
     }
 
     private static string DescribeEffortValues(PokemonRecommendation? recommendation)

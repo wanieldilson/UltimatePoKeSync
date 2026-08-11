@@ -130,6 +130,13 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(6, slot.Stats.Count);
         Assert.Equal(["Pound", "Leer"], slot.Moves.Select(move => move.Name));
         Assert.Contains(slot.Weaknesses, chip => chip.Type == "Fire");
+
+        // Grass resists Water and is immune to nothing, so the two lists must not be one:
+        // taking a quarter of a hit and taking none of it are different plans.
+        Assert.Contains(slot.Resistances, chip => chip.Type == "Water");
+        Assert.Empty(slot.Immunities);
+        Assert.False(slot.HasImmunities);
+        Assert.Empty(slot.Resistances.Intersect(slot.Immunities));
         Assert.True(slot.HasRecommendation);
 
         viewModel.ClearSelectionCommand.Execute(null);
