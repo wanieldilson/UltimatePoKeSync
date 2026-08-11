@@ -299,10 +299,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 factor.Explanation));
         }
 
+        // Name the area and what it costs. Repeating the factor's own explanation here
+        // would print the same sentence twice, once above the list and once inside it.
         TeamStrengthFactor? worst = strength.WeakestFactors.FirstOrDefault();
         StrengthHeadline = worst is null
             ? "Nothing is holding this party back."
-            : worst.Explanation;
+            : $"{Humanise(worst.Kind)} is costing the most: "
+                + $"{worst.MaximumPoints - worst.Points} of {worst.MaximumPoints} points.";
     }
 
     private static string Humanise(TeamStrengthKind kind) => kind switch

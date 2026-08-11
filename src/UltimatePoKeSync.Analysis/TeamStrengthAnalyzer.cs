@@ -138,7 +138,7 @@ public sealed class TeamStrengthAnalyzer
             maximum,
             gaps.Count == 0
                 ? "Every attacking type meets a resistance or an immunity."
-                : $"No switch-in resists {string.Join(", ", gaps)}.",
+                : $"No switch-in resists {Summarise(gaps)}.",
             exposed);
     }
 
@@ -156,7 +156,7 @@ public sealed class TeamStrengthAnalyzer
             analysis.OffensiveGaps.Count == 0
                 ? $"Known moves hit all {total} types super effectively."
                 : $"{covered} of {total} types hit super effectively; nothing answers "
-                    + string.Join(", ", analysis.OffensiveGaps),
+                    + Summarise(analysis.OffensiveGaps),
             []);
     }
 
@@ -249,4 +249,19 @@ public sealed class TeamStrengthAnalyzer
 
     private static string Names(IReadOnlyList<PokemonSnapshot> members) =>
         string.Join(", ", members.Select(member => member.SpeciesName));
+
+    /// <summary>
+    /// Names the first few types and counts the rest. A party with no offensive moves at
+    /// all is missing seventeen of them, and spelling every one out turns an explanation
+    /// into a wall that pushes the rest of the panel around.
+    /// </summary>
+    private static string Summarise(IReadOnlyList<PokemonType> types, int shown = 4)
+    {
+        if (types.Count <= shown)
+        {
+            return string.Join(", ", types);
+        }
+
+        return string.Join(", ", types.Take(shown)) + $" and {types.Count - shown} more";
+    }
 }

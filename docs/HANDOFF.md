@@ -81,7 +81,7 @@ and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 - Competitive usage and speed-benchmark weighting. The presets are Random Battle
   references, not standard OU statistics.
 - TM/HM, tutor and egg moves. Only level-up moves are proposed, even though PKHeX exposes
-  the other sources through the same learn sources.
+  the other sources through the same learn sources. **This is the next piece of work.**
 - Sprites. Party members show as a tile in their primary type's colour with the species
   name, not an image. Reading sprites from the player's own ROM is the clean route and has
   not been started (D-028).
@@ -89,9 +89,6 @@ and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
   still needs right-click → Open. Removing that needs a paid Apple Developer account.
 - The CLI has no test project of its own. `AnalysisReport` and `RawSnapshotDump.Read` are
   covered only by running `--replay` against a fixture by hand.
-- Nobody has run the dashboard against a live emulator yet. Its logic is covered by tests
-  driven from the real-RAM capture, and the published binary was launched and shut down
-  cleanly, but no one has watched a real party appear in the window.
 
 ## Milestones
 
@@ -104,7 +101,7 @@ and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 | M4 | Party tracking, change suppression, real-RAM fixtures | done |
 | M5 | Gen 3 type chart + team analysis | done |
 | M6 | Per-Pokémon suggestions (EVs, nature, moves, item) | done, visible from the CLI |
-| M7 | Avalonia dashboard, packaged downloads | done, not yet run live |
+| M7 | Avalonia dashboard, packaged downloads | done, verified live on Emerald |
 | **M8** | **Second provider or generation, to prove the abstraction** | **next** |
 
 ---
