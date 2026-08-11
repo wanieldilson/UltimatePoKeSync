@@ -37,6 +37,13 @@ public sealed class EggSlotTests
         Assert.DoesNotContain("Fire", slot.TypeText, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>The one number an egg does have. See D-036.</summary>
+    [Fact]
+    public void WhatIsShownInsteadOfStatsIsHowFarThereIsLeftToWalk()
+    {
+        Assert.Equal("About 2,560 steps to go (10 cycles).", EggSlot().EggProgressText);
+    }
+
     private static PokemonSlotViewModel EggSlot()
     {
         PokemonSnapshot egg = Egg();

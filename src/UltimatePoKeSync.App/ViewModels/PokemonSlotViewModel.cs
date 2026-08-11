@@ -144,6 +144,22 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public bool CanBattle => Member.CanBattle;
 
+    /// <summary>
+    /// How much walking is left. For an egg the friendship byte is not friendship at all:
+    /// it is the number of cycles still to run, one of which is taken off every 256 steps.
+    /// It is the only progress an egg has, and it is what the issue behind D-036 asked for
+    /// in place of stats.
+    /// </summary>
+    /// <remarks>
+    /// Formatted invariantly, like the English sentence around it: on an Italian machine
+    /// the current culture turns 2,560 into 2.560 in the middle of an English line.
+    /// </remarks>
+    public string EggProgressText => Member.Friendship == 0
+        ? "Ready to hatch."
+        : string.Create(
+            CultureInfo.InvariantCulture,
+            $"About {Member.Friendship * 256:N0} steps to go ({Member.Friendship} cycles).");
+
     public string LevelText => $"Lv. {Member.Level}";
 
     public string NicknameText =>

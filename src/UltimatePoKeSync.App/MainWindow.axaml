@@ -484,6 +484,7 @@
                   <Border Classes="card" IsVisible="{Binding IsEgg}">
                     <StackPanel Spacing="6">
                       <TextBlock Text="Still an egg" Classes="section" />
+                      <TextBlock Text="{Binding EggProgressText}" FontSize="15" />
                       <TextBlock Classes="muted" TextWrapping="Wrap"
                                  Text="It takes up a party slot but cannot battle, so it is left out of the team's coverage and strength. Its species, moves and stats stay hidden until it hatches — same as in the game." />
                     </StackPanel>

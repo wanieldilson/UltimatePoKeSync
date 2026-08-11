@@ -1160,6 +1160,10 @@ of the team's numbers. The recommendation card is simply absent, because the eng
 nothing for that slot; slots are paired to recommendations by `SlotIndex`, so a shorter list
 lines up correctly rather than shifting everyone by one.
 
+In place of the stats it does not have, the egg card shows the one number it does: for an
+egg the friendship byte is the count of cycles still to run, one taken off every 256 steps,
+so the card says how far there is left to walk.
+
 The strength panel says what it left out rather than staying quiet about it — *"5 of 6 able
 to battle; one slot holds an egg"* — because a player looking at six occupied slots and a
 five-Pokémon score deserves to know which of the two the app believes.
