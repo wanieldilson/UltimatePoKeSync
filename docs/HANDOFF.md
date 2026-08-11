@@ -85,8 +85,8 @@ and both macOS architectures on a `v*` tag. About 62 MB, verified locally.
 - Sprites. Party members show as a tile in their primary type's colour with the species
   name, not an image. Reading sprites from the player's own ROM is the clean route and has
   not been started (D-028).
-- Apple notarisation. macOS downloads are unsigned, so the first launch needs
-  right-click → Open. Fixing it needs a paid Apple Developer account.
+- Apple notarisation. macOS downloads are signed ad-hoc, not by Apple, so the first launch
+  still needs right-click → Open. Removing that needs a paid Apple Developer account.
 - The CLI has no test project of its own. `AnalysisReport` and `RawSnapshotDump.Read` are
   covered only by running `--replay` against a fixture by hand.
 - Nobody has run the dashboard against a live emulator yet. Its logic is covered by tests
