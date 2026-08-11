@@ -48,6 +48,13 @@ public sealed class RomSpriteSource
 
     private byte[]? _rom;
     private Gen3SpriteTables? _tables;
+
+    /// <summary>
+    /// Set only once the ROM has been read through and found to hold nothing we can use.
+    /// A read that simply went unanswered must not land here: the emulator being closed
+    /// for a moment is not the same as a game having no sprites, and treating it as such
+    /// left the tiles blank for the rest of the session. See issue #1.
+    /// </summary>
     private bool _unavailable;
 
     public RomSpriteSource(IEmulatorMemoryReader reader)
@@ -61,6 +68,19 @@ public sealed class RomSpriteSource
     /// cannot give one. Cached, including the failures: a species that could not be decoded
     /// once will not decode on the next party either.
     /// </summary>
+    /// <summary>What came of an attempt, and whether it is worth trying again.</summary>
+    private enum Outcome
+    {
+        /// <summary>It worked.</summary>
+        Ok,
+
+        /// <summary>The emulator did not answer. Nothing is settled; ask again later.</summary>
+        NotNow,
+
+        /// <summary>Asked and answered: there is nothing here. Stop asking.</summary>
+        Never,
+    }
+
     public async Task<DecodedSprite?> TryGetAsync(
         int nationalSpeciesId,
         CancellationToken cancellationToken = default)
@@ -84,14 +104,21 @@ public sealed class RomSpriteSource
                 return cached;
             }
 
-            if (!await EnsureTablesAsync(cancellationToken).ConfigureAwait(false))
+            if (await EnsureTablesAsync(cancellationToken).ConfigureAwait(false) != Outcome.Ok)
             {
                 return null;
             }
 
-            DecodedSprite? sprite = await DecodeAsync(internalId, cancellationToken)
-                .ConfigureAwait(false);
-            _cache[internalId] = sprite;
+            (DecodedSprite? sprite, Outcome outcome) =
+                await DecodeAsync(internalId, cancellationToken).ConfigureAwait(false);
+
+            // Only a settled answer is worth remembering. Caching a read that never came
+            // back would retire the species for good over a hiccup. See issue #2.
+            if (outcome != Outcome.NotNow)
+            {
+                _cache[internalId] = sprite;
+            }
+
             return sprite;
         }
         finally
@@ -100,41 +127,55 @@ public sealed class RomSpriteSource
         }
     }
 
-    private async Task<bool> EnsureTablesAsync(CancellationToken cancellationToken)
+    private async Task<Outcome> EnsureTablesAsync(CancellationToken cancellationToken)
     {
         if (_tables is not null)
         {
-            return true;
+            return Outcome.Ok;
         }
 
         _rom ??= new byte[RomSize];
 
-        // One unanswered read is enough to know: an older script drains commands without
+        // One unanswered read settles it quickly: an older script drains commands without
         // replying, and waiting out the timeout on every chunk of every window would take
-        // minutes to reach the same conclusion.
+        // minutes to reach the same conclusion. It settles *when to retry*, though, not
+        // whether the game has sprites.
         if (await _reader.ReadMemoryAsync(RomBase, 4, cancellationToken).ConfigureAwait(false) is null)
         {
-            _unavailable = true;
-            return false;
+            return Outcome.NotNow;
         }
+
+        bool searchedEverything = true;
 
         foreach ((int start, int length) in SearchWindows)
         {
             if (!await FetchAsync(start, length, cancellationToken).ConfigureAwait(false))
             {
+                // A window we never received is a window we cannot rule out.
+                searchedEverything = false;
                 continue;
             }
 
-            if (await TryIdentifyAsync(cancellationToken).ConfigureAwait(false))
+            Outcome identified = await TryIdentifyAsync(cancellationToken).ConfigureAwait(false);
+            if (identified == Outcome.Ok)
             {
-                return true;
+                return Outcome.Ok;
+            }
+
+            if (identified == Outcome.NotNow)
+            {
+                searchedEverything = false;
             }
         }
 
-        // Nothing that looks like a sprite table. Say so once and stop asking: a game we
-        // cannot read sprites from will not start being readable later.
+        if (!searchedEverything)
+        {
+            return Outcome.NotNow;
+        }
+
+        // The whole ROM was read and holds nothing we recognise. That will not change.
         _unavailable = true;
-        return false;
+        return Outcome.Never;
     }
 
     /// <summary>
@@ -144,47 +185,76 @@ public sealed class RomSpriteSource
     /// judged. This is the step that cannot happen inside the reader, which only ever sees
     /// the bytes it was handed. See D-033.
     /// </summary>
-    private async Task<bool> TryIdentifyAsync(CancellationToken cancellationToken)
+    private async Task<Outcome> TryIdentifyAsync(CancellationToken cancellationToken)
     {
         if (_rom is null)
         {
-            return false;
+            return Outcome.Never;
         }
 
         Gen3TableCandidates candidates = Gen3SpriteReader.FindCandidates(_rom);
-        if (candidates.PaletteTable == 0)
+        if (candidates.PaletteTable == 0 || candidates.SpriteTables.Count == 0)
         {
-            return false;
+            return Outcome.Never;
         }
+
+        bool sawEveryCandidate = true;
+        Gen3TableCandidate? firstReadable = null;
 
         foreach (Gen3TableCandidate candidate in candidates.SpriteTables)
         {
             int first = Gen3SpriteReader.GetEntryTarget(_rom, candidate.Offset, 0);
-            if (first <= 0 ||
-                !await FetchAsync(first, SpriteBlockSize, cancellationToken).ConfigureAwait(false))
+            if (first <= 0)
+            {
+                continue;
+            }
+
+            if (!await FetchAsync(first, SpriteBlockSize, cancellationToken).ConfigureAwait(false))
+            {
+                sawEveryCandidate = false;
+                continue;
+            }
+
+            if (!Lz77.TryDecompress(_rom, first, out byte[] frames))
             {
                 continue;
             }
 
             // Emerald animates its front sprites and not its back ones, so two frames
-            // means front.
-            if (Lz77.TryDecompress(_rom, first, out byte[] frames) &&
-                frames.Length == Gen3SpriteReader.AnimatedFrameBytes)
+            // means front, unambiguously.
+            if (frames.Length == Gen3SpriteReader.AnimatedFrameBytes)
             {
-                _tables = new Gen3SpriteTables(
-                    candidate.Offset, candidates.PaletteTable, candidate.EntryCount);
-                return true;
+                Remember(candidate, candidates.PaletteTable);
+                return Outcome.Ok;
             }
+
+            firstReadable ??= candidate;
         }
 
-        return false;
+        // Ruby, Sapphire, FireRed and LeafGreen do not animate, so every candidate holds
+        // one frame and the test above decides nothing. The tables are emitted in
+        // declaration order and the front one is declared first, so the lowest address is
+        // it — which also picks Emerald's still-front table when the animated one is
+        // missed. Verified on Emerald only; the other four remain unchecked. See issue #3.
+        if (firstReadable is not null)
+        {
+            Remember(firstReadable, candidates.PaletteTable);
+            return Outcome.Ok;
+        }
+
+        return sawEveryCandidate ? Outcome.Never : Outcome.NotNow;
     }
 
-    private async Task<DecodedSprite?> DecodeAsync(int internalId, CancellationToken cancellationToken)
+    private void Remember(Gen3TableCandidate candidate, int paletteTable) =>
+        _tables = new Gen3SpriteTables(candidate.Offset, paletteTable, candidate.EntryCount);
+
+    private async Task<(DecodedSprite? Sprite, Outcome Outcome)> DecodeAsync(
+        int internalId,
+        CancellationToken cancellationToken)
     {
         if (_rom is null || _tables is not Gen3SpriteTables tables)
         {
-            return null;
+            return (null, Outcome.Never);
         }
 
         // The table entries are in the window already; the data they point at is not.
@@ -193,18 +263,18 @@ public sealed class RomSpriteSource
 
         if (spritePointer <= 0 || palettePointer <= 0)
         {
-            return null;
+            return (null, Outcome.Never);
         }
 
         if (!await FetchAsync(spritePointer, SpriteBlockSize, cancellationToken).ConfigureAwait(false) ||
             !await FetchAsync(palettePointer, PaletteBlockSize, cancellationToken).ConfigureAwait(false))
         {
-            return null;
+            return (null, Outcome.NotNow);
         }
 
         return Gen3SpriteReader.TryReadFrontSprite(_rom, tables, internalId, out DecodedSprite sprite)
-            ? sprite
-            : null;
+            ? (sprite, Outcome.Ok)
+            : (null, Outcome.Never);
     }
 
     private int ReadPointer(int offset)

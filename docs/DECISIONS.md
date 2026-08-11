@@ -1011,3 +1011,21 @@ was a second copy of it.
 Verified live afterwards: Treecko, Charizard and Pikachu decoded through the production
 path against the running emulator, 1.1 s for the first — a megabyte of window and the table
 identification — and about 30 ms each after that.
+
+### Amendment, 2026-08-11 — three things the first day of use found
+
+**An unanswered read is not an answer.** The source treated a failed probe as "this game
+has no sprites" and latched it, so closing the emulator for a moment left the tiles blank
+for the rest of the session. Failure now says either *not now* or *never*, and only the
+second is remembered — reached when the ROM has been read through and holds nothing we
+recognise. The per-species cache follows the same rule: a decode that never received its
+bytes is not recorded as a species without a sprite.
+
+**The frame count only works where there are frames to count.** Emerald animates its front
+sprites, so two frames means front; Ruby, Sapphire, FireRed and LeafGreen do not, and there
+every candidate holds one frame. The tables are emitted in declaration order with the front
+one first, so the lowest address is taken when the frame count decides nothing. That also
+picks Emerald's still-front table if the animated one is ever missed, which is a fine
+sprite. Verified on Emerald; the other four games remain unverified, and a wrong guess
+there shows a back sprite rather than nothing — a visible, reportable failure rather than a
+silent one.
