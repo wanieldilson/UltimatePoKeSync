@@ -10,13 +10,28 @@
         MinWidth="900" MinHeight="600">
 
   <Window.Resources>
+    <!--
+      A palette rather than Fluent's defaults. Three surface levels instead of one flat
+      grey, all biased slightly to blue so the neutrals read as chosen; the accent is the
+      same blue the type chart gives Water, which keeps the app and its subject in one
+      family. Per-Pokémon colour comes from the type and is applied at the tile, so the
+      chrome never competes with it.
+    -->
+    <Color x:Key="Surface0Color">#0E1116</Color>
+    <SolidColorBrush x:Key="Surface0" Color="#0E1116" />
+    <SolidColorBrush x:Key="Surface1" Color="#161A21" />
+    <SolidColorBrush x:Key="Surface2" Color="#1E242C" />
+    <SolidColorBrush x:Key="Surface3" Color="#28303A" />
+    <SolidColorBrush x:Key="Line" Color="#262E39" />
+    <SolidColorBrush x:Key="Ink" Color="#E9EDF3" />
+    <SolidColorBrush x:Key="InkMuted" Color="#94A0B0" />
+    <SolidColorBrush x:Key="Accent" Color="#4C8DF6" />
+    <SolidColorBrush x:Key="AccentSoft" Color="#1B2B45" />
 
-    <!-- One chip shape reused by every coverage list: colour plus the type name, never
-         colour alone, so the panel still reads without colour vision. -->
     <DataTemplate x:Key="ChipTemplate" x:DataType="vm:TypeChip">
-      <Border Background="{Binding Brush}" CornerRadius="5" Padding="8,3" Margin="0,0,6,6"
+      <Border Background="{Binding Brush}" CornerRadius="999" Padding="10,3" Margin="0,0,6,6"
               ToolTip.Tip="{Binding Detail}">
-        <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" />
+        <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11" FontWeight="SemiBold" />
       </Border>
     </DataTemplate>
     <ItemsPanelTemplate x:Key="ChipPanel">
@@ -25,25 +40,25 @@
   </Window.Resources>
 
   <Window.Styles>
-    <!--
-      A small design system rather than Fluent's defaults. Two type sizes carry the
-      hierarchy (a title and a section label), everything else is one body size and one
-      caption size, so a panel reads as a panel and not as six competing headings. Spacing
-      comes from layout gaps, never from per-element margins that collapse or double.
-    -->
-
-    <Style Selector="Border.card">
-      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
-      <Setter Property="CornerRadius" Value="10" />
-      <Setter Property="Padding" Value="18" />
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{StaticResource Surface0}" />
+      <Setter Property="Foreground" Value="{StaticResource Ink}" />
     </Style>
 
-    <!-- The label above a block of content. Uppercase and tracked out, so it reads as a
-         label at a glance and never competes with the content underneath. -->
+    <!-- Cards sit one level above the ground and carry a hairline, which is what stops a
+         dark interface reading as one undifferentiated sheet. -->
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource Surface1}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="20" />
+    </Style>
+
     <Style Selector="TextBlock.section">
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Opacity" Value="0.55" />
+      <Setter Property="Foreground" Value="{StaticResource InkMuted}" />
       <Setter Property="LetterSpacing" Value="0.09" />
     </Style>
 
@@ -53,28 +68,76 @@
     </Style>
 
     <Style Selector="TextBlock.muted">
-      <Setter Property="Opacity" Value="0.62" />
+      <Setter Property="Foreground" Value="{StaticResource InkMuted}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
     <Style Selector="TextBlock.caption">
       <Setter Property="FontSize" Value="11" />
-      <Setter Property="Opacity" Value="0.62" />
+      <Setter Property="Foreground" Value="{StaticResource InkMuted}" />
     </Style>
 
-    <!-- Digits that line up in a column, so scanning a stat table is reading and not
-         hunting. -->
     <Style Selector="TextBlock.numeric">
       <Setter Property="FontFeatures" Value="tnum" />
     </Style>
 
-    <!--
-      The default selection paints the whole row in the system accent, which buries the
-      type colour the tile exists to show. Selection is a ring instead.
-    -->
+    <!-- Buttons: a quiet pill by default, filled only where the action is the point of
+         the panel it sits in. -->
+    <Style Selector="Button">
+      <Setter Property="Background" Value="{StaticResource Surface2}" />
+      <Setter Property="Foreground" Value="{StaticResource Ink}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="14,7" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource Surface3}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+      <Setter Property="Foreground" Value="{StaticResource Ink}" />
+    </Style>
+    <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource Surface1}" />
+    </Style>
+
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="{StaticResource Accent}" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#5F9BF8" />
+      <Setter Property="BorderBrush" Value="#5F9BF8" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <!-- The profile is two named modes, not an on/off state, so it reads as a segmented
+         control rather than as a switch whose meaning depends on which way it points. -->
+    <Style Selector="Button.segment">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{StaticResource InkMuted}" />
+      <Setter Property="Padding" Value="14,6" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.segment.on">
+      <Setter Property="Background" Value="{StaticResource Accent}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.segment:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource Surface3}" />
+      <Setter Property="Foreground" Value="{StaticResource Ink}" />
+    </Style>
+    <Style Selector="Button.segment.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#5F9BF8" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+
     <Style Selector="ListBoxItem">
       <Setter Property="Padding" Value="0" />
-      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="CornerRadius" Value="14" />
       <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
@@ -84,19 +147,24 @@
       <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="ListBoxItem:selected Border.tile">
-      <Setter Property="BorderThickness" Value="2" />
-      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
     </Style>
     <Style Selector="ListBoxItem:pointerover Border.tile">
-      <Setter Property="BorderThickness" Value="2" />
-      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Surface3}" />
     </Style>
     <Style Selector="Border.tile">
-      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="CornerRadius" Value="14" />
       <Setter Property="BorderThickness" Value="2" />
       <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="Padding" Value="10,9" />
-      <Setter Property="Margin" Value="0,0,0,6" />
+      <Setter Property="Padding" Value="12,11" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style Selector="ProgressBar">
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Foreground" Value="{StaticResource Accent}" />
+      <Setter Property="Background" Value="{StaticResource Surface2}" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
   </Window.Styles>
 
@@ -110,25 +178,33 @@
           <TextBlock Text="{Binding GameText}" Classes="caption" />
         </StackPanel>
 
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="18" VerticalAlignment="Center">
-          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-            <Ellipse Width="9" Height="9" VerticalAlignment="Center"
-                     Fill="{Binding ConnectionBrush}" />
-            <TextBlock Text="{Binding ConnectionText}" VerticalAlignment="Center" FontSize="12" />
-          </StackPanel>
-          <!-- Reachable after connecting too: reloading the script into mGBA is exactly
-               when the path is wanted, and the setup screen is gone by then. -->
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <Button Content="Bridge script" Command="{Binding RevealScriptCommand}"
-                    ToolTip.Tip="{Binding ScriptPath}" />
-            <!-- mGBA's file dialog is Qt's, which ignores the macOS go-to-folder shortcut,
-                 so the path has to be pasteable into its name field. -->
-            <Button Name="CopyHeaderPathButton" Content="Copy path"
-                    ToolTip.Tip="{Binding ScriptPath}" />
-          </StackPanel>
-          <ToggleSwitch IsChecked="{Binding IsCompetitive}"
-                        OffContent="Playthrough" OnContent="Competitive"
-                        ToolTip.Tip="Playthrough answers for the story; Competitive answers for battling." />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+
+          <!-- State as a pill: a dot alone is a decoration, a dot in a chip is a status. -->
+          <Border Background="{StaticResource Surface1}" BorderBrush="{StaticResource Line}"
+                  BorderThickness="1" CornerRadius="999" Padding="12,6" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding ConnectionBrush}" />
+              <TextBlock Text="{Binding ConnectionText}" FontSize="12" VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
+
+          <Button Content="Bridge script" Command="{Binding RevealScriptCommand}"
+                  ToolTip.Tip="{Binding ScriptPath}" />
+          <Button Name="CopyHeaderPathButton" Content="Copy path"
+                  ToolTip.Tip="{Binding ScriptPath}" />
+
+          <Border Background="{StaticResource Surface1}" BorderBrush="{StaticResource Line}"
+                  BorderThickness="1" CornerRadius="999" Padding="3">
+            <StackPanel Orientation="Horizontal" Spacing="2">
+              <Button Content="Playthrough" Classes="segment" Classes.on="{Binding !IsCompetitive}"
+                      Command="{Binding ChooseProfileCommand}" CommandParameter="playthrough"
+                      ToolTip.Tip="Answers for the story: what this Pokémon can reach now." />
+              <Button Content="Competitive" Classes="segment" Classes.on="{Binding IsCompetitive}"
+                      Command="{Binding ChooseProfileCommand}" CommandParameter="competitive"
+                      ToolTip.Tip="Answers for battling: every move it can legally end up with." />
+            </StackPanel>
+          </Border>
         </StackPanel>
       </Grid>
     </Border>
@@ -244,10 +320,11 @@
           <ItemsControl ItemsSource="{Binding EmptySlots}" IsVisible="{Binding HasEmptySlots}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="sys:Int32">
-                <Border CornerRadius="8" Padding="10" Margin="0,0,0,6" Height="58"
-                        BorderThickness="1" BorderBrush="{DynamicResource SystemControlBackgroundBaseLowBrush}">
-                  <TextBlock Text="empty slot" Classes="muted" FontSize="11" Opacity="0.45"
-                             VerticalAlignment="Center" />
+                <Border CornerRadius="14" Padding="12" Margin="0,0,0,8" Height="72"
+                        BorderThickness="1" BorderBrush="{StaticResource Line}"
+                        Background="#0B0E12">
+                  <TextBlock Text="empty" Classes="caption" Opacity="0.5"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -390,7 +467,7 @@
                     <StackPanel Spacing="14">
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Text="Recommendation" Classes="section" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="Show the best set"
+                        <Button Grid.Column="1" Content="Show the best set" Classes="primary"
                                 Command="{Binding ToggleBuildCommand}" />
                       </Grid>
 

@@ -125,6 +125,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public string ProfileText => IsCompetitive ? "Competitive" : "Playthrough";
 
+
     /// <summary>Green once bytes are actually arriving, amber while they are not.</summary>
     public IBrush ConnectionBrush => IsConnected
         ? new SolidColorBrush(Color.FromRgb(0x4E, 0x9A, 0x3F))
@@ -161,6 +162,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         OnPropertyChanged(nameof(ShowTeamPanel));
 
     partial void OnIsConnectedChanged(bool value) => OnPropertyChanged(nameof(ConnectionBrush));
+
+    [RelayCommand]
+    private void ChooseProfile(string? profile) =>
+        IsCompetitive = string.Equals(profile, "competitive", StringComparison.OrdinalIgnoreCase);
 
     partial void OnIsCompetitiveChanged(bool value)
     {
