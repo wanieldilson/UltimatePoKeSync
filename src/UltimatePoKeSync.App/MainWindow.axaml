@@ -174,9 +174,13 @@
     <!-- Header: what it is, what it is connected to, and which profile is answering. -->
     <Border Grid.Row="0" Padding="20,14" Background="{DynamicResource SystemControlBackgroundListLowBrush}">
       <Grid ColumnDefinitions="*,Auto">
-        <StackPanel Spacing="2">
-          <TextBlock Text="UltimatePoKeSync" Classes="title" />
-          <TextBlock Text="{Binding GameText}" Classes="caption" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Image Source="avares://UltimatePoKeSync/Assets/app-icon.png" Width="40" Height="40"
+                 VerticalAlignment="Center" />
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="UltimatePoKeSync" Classes="title" />
+            <TextBlock Text="{Binding GameText}" Classes="caption" />
+          </StackPanel>
         </StackPanel>
 
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
