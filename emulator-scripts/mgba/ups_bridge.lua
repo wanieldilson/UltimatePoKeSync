@@ -51,33 +51,24 @@ local UPS_MAX_OUTBOX = 8 * 1024 * 1024
 -- GameSettings.lua from 40Cakes/pokebot-bizhawk, and res/scripts/pokemon.lua shipped
 -- by mGBA itself. See D-004 and D-013.
 --
--- The game code alone is not always enough: Ruby and Sapphire move the party by 0x10
--- from revision 1 onwards. Verified on an Italian Ruby rev1, where the count byte the
--- table pointed at read 00 while the real one, sixteen bytes later, read 01 — so the app
--- reported an empty party for a save that had a Mudkip in it. Entries may therefore carry
--- per-revision overrides. See D-035.
+-- Every entry is per game code, and that is the whole key: the Italian Ruby and Sapphire
+-- keep their party sixteen bytes above the USA ones, so a localisation can move it where a
+-- revision does not. Both Italian addresses are verified against live memory; the USA ones
+-- come from the three sources of D-013 and have never been run. See D-035.
 --------------------------------------------------------------------------------
 
 local GAMES = {
-	["AXVE"] = { name = "Ruby (USA)", gen = 3, party = 0x03004360, count = 0x03004350,
-		revisions = { [1] = { party = 0x03004370, count = 0x03004360 },
-		               [2] = { party = 0x03004370, count = 0x03004360 } } },
-	["AXPE"] = { name = "Sapphire (USA)", gen = 3, party = 0x03004360, count = 0x03004350,
-		revisions = { [1] = { party = 0x03004370, count = 0x03004360 },
-		               [2] = { party = 0x03004370, count = 0x03004360 } } },
+	["AXVE"] = { name = "Ruby (USA)",        gen = 3, party = 0x03004360, count = 0x03004350 },
+	["AXPE"] = { name = "Sapphire (USA)",    gen = 3, party = 0x03004360, count = 0x03004350 },
 	["BPRE"] = { name = "FireRed (USA)",    gen = 3, party = 0x02024284, count = 0x02024029 },
 	["BPGE"] = { name = "LeafGreen (USA)",  gen = 3, party = 0x02024284, count = 0x02024029 },
 
-	-- Italian releases of the same four. The addresses are the USA ones, confirmed by
-	-- counting how often each appears as a literal inside the ROM: the value the game
-	-- uses turns up hundreds of times and the others never. tools/check-gen3-addresses.py
-	-- reproduces it. See D-034.
-	["AXVI"] = { name = "Ruby (Italy)", gen = 3, party = 0x03004360, count = 0x03004350,
-		revisions = { [1] = { party = 0x03004370, count = 0x03004360 },
-		               [2] = { party = 0x03004370, count = 0x03004360 } } },
-	["AXPI"] = { name = "Sapphire (Italy)", gen = 3, party = 0x03004360, count = 0x03004350,
-		revisions = { [1] = { party = 0x03004370, count = 0x03004360 },
-		               [2] = { party = 0x03004370, count = 0x03004360 } } },
+	-- Italian releases of the same four. FireRed and LeafGreen keep the USA addresses,
+	-- confirmed by counting how often each appears as a literal inside the ROM
+	-- (tools/check-gen3-addresses.py, D-034). Ruby and Sapphire do not: their party sits
+	-- sixteen bytes higher, found by reading live memory and verified on both. See D-035.
+	["AXVI"] = { name = "Ruby (Italy)",      gen = 3, party = 0x03004370, count = 0x03004360 },
+	["AXPI"] = { name = "Sapphire (Italy)",  gen = 3, party = 0x03004370, count = 0x03004360 },
 	["BPRI"] = { name = "FireRed (Italy)",  gen = 3, party = 0x02024284, count = 0x02024029 },
 	["BPGI"] = { name = "LeafGreen (Italy)",gen = 3, party = 0x02024284, count = 0x02024029 },
 
@@ -401,15 +392,6 @@ local function detectGame()
 		logError("unsupported game: " .. tostring(raw) .. " (\"" .. gameTitle .. "\"). "
 			.. "No reads will be performed.")
 		return
-	end
-
-	-- A revision can move the party. Copy the entry before overriding, so the table keeps
-	-- describing revision 0 and a later detection is not poisoned by an earlier one.
-	local override = game.revisions and game.revisions[gameRevision]
-	if override then
-		game = { name = game.name, gen = game.gen,
-			party = override.party, count = override.count }
-		log("revision " .. gameRevision .. " moves the party; using its own addresses")
 	end
 
 	log("game recognised: " .. game.name .. " [" .. gameCode .. "] rev" .. gameRevision)
