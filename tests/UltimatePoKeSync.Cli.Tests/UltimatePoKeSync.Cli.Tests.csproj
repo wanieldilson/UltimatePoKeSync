@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UltimatePoKeSync.Cli\UltimatePoKeSync.Cli.csproj" />
+    <ProjectReference Include="..\..\src\UltimatePoKeSync.Parsing\UltimatePoKeSync.Parsing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The same real-RAM capture the parser is pinned against. -->
+    <None Include="..\UltimatePoKeSync.Parsing.Tests\Fixtures\emerald-it-treecko.json"
+          Link="Fixtures\emerald-it-treecko.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

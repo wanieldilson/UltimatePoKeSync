@@ -13,6 +13,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/UltimatePoKeSync.Analysis.Tests/UltimatePoKeSync.Analysis.Tests.csproj" />
     <Project Path="tests/UltimatePoKeSync.App.Tests/UltimatePoKeSync.App.Tests.csproj" />
+    <Project Path="tests/UltimatePoKeSync.Cli.Tests/UltimatePoKeSync.Cli.Tests.csproj" />
     <Project Path="tests/UltimatePoKeSync.GameData.Learnsets.Tests/UltimatePoKeSync.GameData.Learnsets.Tests.csproj" />
     <Project Path="tests/UltimatePoKeSync.Parsing.Tests/UltimatePoKeSync.Parsing.Tests.csproj" />
     <Project Path="tests/UltimatePoKeSync.Providers.MGba.Tests/UltimatePoKeSync.Providers.MGba.Tests.csproj" />

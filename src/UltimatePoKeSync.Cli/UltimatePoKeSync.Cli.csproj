@@ -13,6 +13,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The console is an executable, so its types are internal: the tests are the only
+         thing outside it that has any business reaching in. -->
+    <InternalsVisibleTo Include="UltimatePoKeSync.Cli.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\UltimatePoKeSync.Analysis\UltimatePoKeSync.Analysis.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.GameData\UltimatePoKeSync.GameData.csproj" />
