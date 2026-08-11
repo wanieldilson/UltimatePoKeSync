@@ -131,8 +131,35 @@ public sealed class Gen3PartyParser : IPartyParser
             IsEgg = pk.IsEgg,
             IsShiny = pk.IsShiny,
             PersonalityValue = pk.PID,
+            CurrentHp = pk.Stat_HPCurrent,
+            Status = ReadStatus(pk.Status_Condition),
+            Friendship = pk.CurrentFriendship,
+            Experience = pk.EXP,
         };
     }
+
+    /// <summary>
+    /// Decodes the Gen 3 status byte. Sleep occupies the low three bits as a turn counter,
+    /// so it is present whenever any of them is set rather than at a value of its own; the
+    /// remaining conditions are one flag each. Badly poisoned is checked before poisoned,
+    /// because the game sets both.
+    /// </summary>
+    /// <remarks>
+    /// Cross-checked against PKHeX's own <c>StatusCondition</c>, which lays the byte out
+    /// identically — Sleep1 to Sleep7, Poison 8, Burn 16, Freeze 32, Paralysis 64,
+    /// PoisonBad 128. Ours is separate because Contracts must not depend on PKHeX (D-007),
+    /// and pinned by a test for the same reason as D-014.
+    /// </remarks>
+    private static Contracts.StatusCondition ReadStatus(int condition) => condition switch
+    {
+        _ when (condition & 0b0000_0111) != 0 => Contracts.StatusCondition.Sleep,
+        _ when (condition & 0b1000_0000) != 0 => Contracts.StatusCondition.BadPoison,
+        _ when (condition & 0b0000_1000) != 0 => Contracts.StatusCondition.Poison,
+        _ when (condition & 0b0001_0000) != 0 => Contracts.StatusCondition.Burn,
+        _ when (condition & 0b0010_0000) != 0 => Contracts.StatusCondition.Freeze,
+        _ when (condition & 0b0100_0000) != 0 => Contracts.StatusCondition.Paralysis,
+        _ => Contracts.StatusCondition.None,
+    };
 
     private IReadOnlyList<MoveSlot> ReadMoves(PK3 pk)
     {

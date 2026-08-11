@@ -165,6 +165,9 @@ internal static class Program
 
             Console.WriteLine($"│");
             Console.WriteLine($"│  [{mon.SlotIndex}] {mon.SpeciesName}{nickname}  Lv.{mon.Level}  {types}"
+                + $"  HP {mon.CurrentHp}/{mon.MaximumHp}"
+                + (mon.Status == StatusCondition.None ? string.Empty : $"  [{mon.Status}]")
+                + (mon.IsFainted ? "  fainted" : string.Empty)
                 + (mon.IsShiny ? "  ✦shiny" : string.Empty)
                 + (mon.IsEgg ? "  (egg)" : string.Empty));
             Console.WriteLine($"│      Nature {mon.NatureName} · Ability {mon.AbilityName} · Item {mon.HeldItemName}");

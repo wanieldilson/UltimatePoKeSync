@@ -42,6 +42,10 @@ internal static class AnalysisTestData
             IsEgg = false,
             IsShiny = false,
             PersonalityValue = (uint)slot,
+            CurrentHp = 100,
+            Status = StatusCondition.None,
+            Friendship = 70,
+            Experience = 0,
         };
 
     public static MoveSlot Move(int id, string name, PokemonType type) =>

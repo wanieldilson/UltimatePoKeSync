@@ -54,12 +54,35 @@ public sealed record PokemonSnapshot
     public required uint PersonalityValue { get; init; }
 
     /// <summary>
+    /// Hit points left right now, not the maximum. <see cref="StatBlock.Hp"/> in
+    /// <see cref="CurrentStats"/> is the maximum; this is what is left of it.
+    /// </summary>
+    public required int CurrentHp { get; init; }
+
+    /// <summary>What is ailing it, if anything. Cleared by healing, so it moves live.</summary>
+    public required StatusCondition Status { get; init; }
+
+    /// <summary>0 to 255. Drives Return, Frustration and some evolutions.</summary>
+    public required int Friendship { get; init; }
+
+    public required uint Experience { get; init; }
+
+    /// <summary>
     /// Sum of the EVs. In Gen 3 the limit is 510 total and 255 per stat; 252 is merely
     /// the point beyond which EVs stop yielding stat points. See D-009.
     /// </summary>
     public int TotalEffortValues => EffortValues.Total;
 
     public bool IsDualType => SecondaryType != PokemonType.None;
+
+    public int MaximumHp => CurrentStats.Hp;
+
+    /// <summary>Hit points left as a fraction, for a bar. 0 when fainted.</summary>
+    public double HpFraction => MaximumHp <= 0
+        ? 0
+        : Math.Clamp((double)CurrentHp / MaximumHp, 0, 1);
+
+    public bool IsFainted => CurrentHp <= 0 && MaximumHp > 0;
 
     public override string ToString() =>
         $"#{SlotIndex} {SpeciesName} Lv.{Level} ({PrimaryType}{(IsDualType ? "/" + SecondaryType : "")})";
@@ -75,4 +98,23 @@ public sealed record MoveSlot(int MoveId, string Name, PokemonType Type, int Cur
     public static MoveSlot Empty { get; } = new(0, "-", PokemonType.None, 0, 0);
 
     public bool IsEmpty => MoveId == 0;
+}
+
+/// <summary>
+/// A non-volatile status condition: the kind that survives leaving battle.
+/// </summary>
+/// <remarks>
+/// Confusion and the like are volatile and live in battle memory, not in the Pokémon, so
+/// they are deliberately absent. Sleep also carries a turn counter in the same byte, which
+/// is why the raw value is not an enum in itself.
+/// </remarks>
+public enum StatusCondition
+{
+    None = 0,
+    Sleep = 1,
+    Poison = 2,
+    Burn = 3,
+    Freeze = 4,
+    Paralysis = 5,
+    BadPoison = 6,
 }

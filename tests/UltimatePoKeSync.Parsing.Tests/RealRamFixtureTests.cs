@@ -39,6 +39,51 @@ public sealed class RealRamFixtureTests
         Assert.Equal(["Pound", "Leer"], treecko.Moves.Where(m => !m.IsEmpty).Select(m => m.Name));
     }
 
+    /// <summary>
+    /// The live condition, which the computed stats do not carry: a Pokémon at full health
+    /// and one at one hit point have identical stats.
+    /// </summary>
+    [Fact]
+    public void ItalianEmerald_LiveConditionIsReadFromTheSameBytes()
+    {
+        PokemonSnapshot treecko = Assert.Single(_parser.Parse(LoadFixture("emerald-it-treecko.json")).Members);
+
+        Assert.Equal(19, treecko.MaximumHp);
+        Assert.InRange(treecko.CurrentHp, 0, treecko.MaximumHp);
+        Assert.Equal(StatusCondition.None, treecko.Status);
+        Assert.InRange(treecko.Friendship, 0, 255);
+        Assert.True(treecko.Experience > 0);
+    }
+
+    /// <summary>
+    /// Gen 3 packs sleep into the low three bits as a turn counter and gives every other
+    /// condition a flag of its own. Pinned because getting it wrong shows a healthy
+    /// Pokémon as asleep, with nothing to hint that the reading is off.
+    /// </summary>
+    [Theory]
+    [InlineData(0b0000_0000, StatusCondition.None)]
+    [InlineData(0b0000_0001, StatusCondition.Sleep)]
+    [InlineData(0b0000_0111, StatusCondition.Sleep)]
+    [InlineData(0b0000_1000, StatusCondition.Poison)]
+    [InlineData(0b0001_0000, StatusCondition.Burn)]
+    [InlineData(0b0010_0000, StatusCondition.Freeze)]
+    [InlineData(0b0100_0000, StatusCondition.Paralysis)]
+    [InlineData(0b1000_0000, StatusCondition.BadPoison)]
+    public void TheStatusByteIsDecodedTheWayTheGameWritesIt(int raw, StatusCondition expected)
+    {
+        RawPartySnapshot fixture = LoadFixture("emerald-it-treecko.json");
+        byte[] bytes = fixture.PartyData.ToArray();
+
+        // Offset 80 of the 100-byte party slot: the first of the twenty battle-stat bytes.
+        bytes[80] = (byte)raw;
+
+        PokemonSnapshot treecko = Assert.Single(_parser
+            .Parse(fixture with { PartyData = bytes })
+            .Members);
+
+        Assert.Equal(expected, treecko.Status);
+    }
+
     [Fact]
     public void ItalianEmerald_LeftoverBytesBeyondThePartyCountAreNotRead()
     {
