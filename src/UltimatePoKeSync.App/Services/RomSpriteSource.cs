@@ -24,7 +24,7 @@ public sealed class RomSpriteSource
 {
     private const uint RomBase = 0x08000000;
     private const int RomSize = 32 * 1024 * 1024;
-    private const int ChunkSize = 256 * 1024;
+    private const int ChunkSize = 64 * 1024;
 
     /// <summary>Enough for one compressed sprite; LZ77 stops at its own declared size.</summary>
     private const int SpriteBlockSize = 8 * 1024;
@@ -125,9 +125,8 @@ public sealed class RomSpriteSource
                 continue;
             }
 
-            if (Gen3SpriteReader.TryFindTables(_rom, out Gen3SpriteTables tables))
+            if (await TryIdentifyAsync(cancellationToken).ConfigureAwait(false))
             {
-                _tables = tables;
                 return true;
             }
         }
@@ -135,6 +134,49 @@ public sealed class RomSpriteSource
         // Nothing that looks like a sprite table. Say so once and stop asking: a game we
         // cannot read sprites from will not start being readable later.
         _unavailable = true;
+        return false;
+    }
+
+    /// <summary>
+    /// Picks the front table out of the candidates the scan found. Front and back tables
+    /// are identical in shape; only their data tells them apart, and the data is elsewhere
+    /// in the ROM — so each candidate's first sprite has to be fetched before it can be
+    /// judged. This is the step that cannot happen inside the reader, which only ever sees
+    /// the bytes it was handed. See D-033.
+    /// </summary>
+    private async Task<bool> TryIdentifyAsync(CancellationToken cancellationToken)
+    {
+        if (_rom is null)
+        {
+            return false;
+        }
+
+        Gen3TableCandidates candidates = Gen3SpriteReader.FindCandidates(_rom);
+        if (candidates.PaletteTable == 0)
+        {
+            return false;
+        }
+
+        foreach (Gen3TableCandidate candidate in candidates.SpriteTables)
+        {
+            int first = Gen3SpriteReader.GetEntryTarget(_rom, candidate.Offset, 0);
+            if (first <= 0 ||
+                !await FetchAsync(first, SpriteBlockSize, cancellationToken).ConfigureAwait(false))
+            {
+                continue;
+            }
+
+            // Emerald animates its front sprites and not its back ones, so two frames
+            // means front.
+            if (Lz77.TryDecompress(_rom, first, out byte[] frames) &&
+                frames.Length == Gen3SpriteReader.AnimatedFrameBytes)
+            {
+                _tables = new Gen3SpriteTables(
+                    candidate.Offset, candidates.PaletteTable, candidate.EntryCount);
+                return true;
+            }
+        }
+
         return false;
     }
 

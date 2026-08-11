@@ -41,6 +41,9 @@ local UPS_MAX_READ = 1024 * 256
 --- A command line longer than this is a client gone wrong, not a command.
 local UPS_MAX_COMMAND = 4096
 
+--- Most that may sit waiting to be sent to one client before we give up on it.
+local UPS_MAX_OUTBOX = 8 * 1024 * 1024
+
 --------------------------------------------------------------------------------
 -- Gen 3 memory map
 --
@@ -79,6 +82,7 @@ local GEN3_SLOT_COUNT = 6
 local server = nil
 local clients = {}
 local pending = {}  -- partial command lines, per client
+local outbox = {}   -- bytes still to send, per client
 local nextClientId = 1
 
 local game = nil     -- entry from GAMES for the current ROM, or nil
@@ -173,48 +177,53 @@ local function dropClient(id, reason)
 	if not client then return end
 	clients[id] = nil
 	pending[id] = nil
+	outbox[id] = nil
 	pcall(function() client:close() end)
 	log("client " .. id .. " disconnected (" .. reason .. ")")
 end
 
-local function broadcast(line)
-	for id, client in pairs(clients) do
-		local ok, err = client:send(line)
-		if not ok and err ~= socket.ERRORS.AGAIN then
-			dropClient(id, tostring(err))
-		end
+--- Pushes whatever is queued for a client, as far as the socket will take it.
+---
+--- A socket accepts what fits in its buffer and reports how much that was. Sending a
+--- 350 KB reply in one call therefore delivers a fragment and drops the rest, which the
+--- app sees as a truncated line and then as a request that never came back. Two reads in
+--- twelve failed that way before this existed. See D-033.
+local function flushClient(id)
+	local client = clients[id]
+	local queued = outbox[id]
+	if not client or not queued or #queued == 0 then return end
+
+	local sent, err = client:send(queued)
+	if sent then
+		outbox[id] = queued:sub(sent + 1)
+	elseif err and err ~= socket.ERRORS.AGAIN then
+		dropClient(id, tostring(err))
 	end
 end
 
---- Encodes bytes as base64, the same way the party payload is encoded.
-local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-local function base64(data)
-	local parts = {}
-	local n = #data
-	local i = 1
-	while i + 2 <= n do
-		local a, b, c = data:byte(i, i + 2)
-		local v = a * 65536 + b * 256 + c
-		parts[#parts + 1] = B64:sub((v >> 18) + 1, (v >> 18) + 1)
-			.. B64:sub(((v >> 12) & 63) + 1, ((v >> 12) & 63) + 1)
-			.. B64:sub(((v >> 6) & 63) + 1, ((v >> 6) & 63) + 1)
-			.. B64:sub((v & 63) + 1, (v & 63) + 1)
-		i = i + 3
+local function enqueue(id, line)
+	local queued = (outbox[id] or "") .. line
+
+	-- A client that has stopped reading must not be allowed to grow this without limit.
+	if #queued > UPS_MAX_OUTBOX then
+		dropClient(id, "not keeping up")
+		return
 	end
-	local left = n - i + 1
-	if left == 1 then
-		local a = data:byte(i)
-		local v = a * 16
-		parts[#parts + 1] = B64:sub((v >> 6) + 1, (v >> 6) + 1)
-			.. B64:sub((v & 63) + 1, (v & 63) + 1) .. "=="
-	elseif left == 2 then
-		local a, b = data:byte(i, i + 1)
-		local v = a * 1024 + b * 4
-		parts[#parts + 1] = B64:sub((v >> 12) + 1, (v >> 12) + 1)
-			.. B64:sub(((v >> 6) & 63) + 1, ((v >> 6) & 63) + 1)
-			.. B64:sub((v & 63) + 1, (v & 63) + 1) .. "="
+
+	outbox[id] = queued
+	flushClient(id)
+end
+
+local function flushAll()
+	for id in pairs(clients) do
+		flushClient(id)
 	end
-	return table.concat(parts)
+end
+
+local function broadcast(line)
+	for id in pairs(clients) do
+		enqueue(id, line)
+	end
 end
 
 --- Answers a `read` command with the bytes at that address.
@@ -223,10 +232,10 @@ end
 --- every localisation and so cannot be shipped as constants. Reads are clamped: a request
 --- the emulator cannot satisfy comes back as an error rather than as whatever happened to
 --- be next in memory. See D-033.
-local function answerRead(client, id, address, length)
+local function answerRead(clientId, id, address, length)
 	if type(address) ~= "number" or type(length) ~= "number"
 		or length <= 0 or length > UPS_MAX_READ then
-		client:send(string.format(
+		enqueue(clientId, string.format(
 			'{"v":%d,"type":"error","id":%s,"message":"bad read request"}\n',
 			UPS_PROTOCOL_VERSION, tostring(id)))
 		return
@@ -234,13 +243,13 @@ local function answerRead(client, id, address, length)
 
 	local ok, data = pcall(function() return emu:readRange(address, length) end)
 	if not ok or not data or #data ~= length then
-		client:send(string.format(
+		enqueue(clientId, string.format(
 			'{"v":%d,"type":"error","id":%s,"message":"unreadable range"}\n',
 			UPS_PROTOCOL_VERSION, tostring(id)))
 		return
 	end
 
-	client:send(string.format(
+	enqueue(clientId, string.format(
 		'{"v":%d,"type":"memory","id":%s,"address":%d,"length":%d,"data":"%s"}\n',
 		UPS_PROTOCOL_VERSION, tostring(id), address, length, base64(data)))
 end
@@ -251,11 +260,11 @@ local function numberField(line, name)
 	return tonumber(line:match('"' .. name .. '"%s*:%s*(-?%d+)'))
 end
 
-local function handleLine(client, line)
+local function handleLine(id, line)
 	if not line:match('"type"%s*:%s*"read"') then
 		return
 	end
-	answerRead(client, numberField(line, "id") or 0,
+	answerRead(id, numberField(line, "id") or 0,
 		numberField(line, "address"), numberField(line, "length"))
 end
 
@@ -279,7 +288,7 @@ local function drainClient(id)
 			if not line then break end
 			pending[id] = rest
 			if #line > 0 then
-				pcall(function() handleLine(client, line) end)
+				pcall(function() handleLine(id, line) end)
 			end
 		end
 
@@ -401,6 +410,8 @@ local function buildPayload(count, data)
 end
 
 local function pollParty()
+	flushAll()
+
 	frameCounter = frameCounter + 1
 	if frameCounter % UPS_POLL_INTERVAL ~= 0 then return end
 	if not game or not emu then return end

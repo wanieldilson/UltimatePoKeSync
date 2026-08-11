@@ -3,6 +3,14 @@ namespace UltimatePoKeSync.GameData.Sprites;
 /// <summary>A decoded sprite: straight RGBA, ready for whatever draws it.</summary>
 public sealed record DecodedSprite(int Width, int Height, byte[] Rgba);
 
+/// <summary>One table that has the shape of a sprite table.</summary>
+public sealed record Gen3TableCandidate(int Offset, int EntryCount);
+
+/// <summary>What a structural scan can say on its own.</summary>
+public sealed record Gen3TableCandidates(
+    IReadOnlyList<Gen3TableCandidate> SpriteTables,
+    int PaletteTable);
+
 /// <summary>
 /// Where a Gen 3 ROM keeps its sprite tables. Found by scanning, never hard-coded.
 /// </summary>
@@ -43,35 +51,59 @@ public static class Gen3SpriteReader
     private const int SpriteSide = TileSize * TilesPerRow;
     private const int PaletteColours = 16;
 
+    /// <summary>How many frames a front sprite holds where they are animated.</summary>
+    public const int AnimatedFrameBytes = SpriteBytes * 2;
+
     /// <summary>
-    /// Finds the sprite tables in a ROM image, or returns <see langword="false"/> when the
-    /// shapes it expects are not there.
+    /// The candidate sprite tables and the palette table, by structure alone.
+    /// </summary>
+    /// <remarks>
+    /// Structure cannot say which candidate holds the front sprites: front and back tables
+    /// look identical until their data is decompressed, and the data lives elsewhere in the
+    /// ROM. A caller reading the whole image can use <see cref="TryFindTables"/>; a caller
+    /// fetching windows over a wire has to pick between these itself, because it is the one
+    /// that can go and get the bytes. See D-033.
+    /// </remarks>
+    public static Gen3TableCandidates FindCandidates(ReadOnlySpan<byte> rom)
+    {
+        List<(int Offset, int Count)> spriteTables = FindTables(rom, expectSizeField: true);
+        List<(int Offset, int Count)> paletteTables = FindTables(rom, expectSizeField: false);
+
+        return new Gen3TableCandidates(
+            [.. spriteTables.Select(table => new Gen3TableCandidate(table.Offset, table.Count))],
+            paletteTables.Count == 0 ? 0 : paletteTables[0].Offset);
+    }
+
+    /// <summary>The ROM offset an entry of a table points at, or 0.</summary>
+    public static int GetEntryTarget(ReadOnlySpan<byte> rom, int table, int index) =>
+        TryReadPointer(rom, table + (index * EntrySize), out int target) ? target : 0;
+
+    /// <summary>
+    /// Finds the tables in a complete ROM image. Needs the whole thing, because telling the
+    /// front table from the back one means decompressing a sprite.
     /// </summary>
     public static bool TryFindTables(ReadOnlySpan<byte> rom, out Gen3SpriteTables tables)
     {
         tables = new Gen3SpriteTables(0, 0, 0);
+        Gen3TableCandidates candidates = FindCandidates(rom);
 
-        List<(int Offset, int Count)> spriteTables = FindTables(rom, expectSizeField: true);
-        List<(int Offset, int Count)> paletteTables = FindTables(rom, expectSizeField: false);
-
-        if (spriteTables.Count == 0 || paletteTables.Count == 0)
+        if (candidates.SpriteTables.Count == 0 || candidates.PaletteTable == 0)
         {
             return false;
         }
 
         // Animated front sprites decompress to two frames; back sprites to one.
-        int front = -1;
-        foreach ((int offset, int count) in spriteTables)
+        foreach (Gen3TableCandidate candidate in candidates.SpriteTables)
         {
-            if (DecompressedSizeOfFirstEntry(rom, offset) == SpriteBytes * 2)
+            if (DecompressedSizeOfFirstEntry(rom, candidate.Offset) == AnimatedFrameBytes)
             {
-                front = offset;
-                tables = new Gen3SpriteTables(offset, paletteTables[0].Offset, count);
-                break;
+                tables = new Gen3SpriteTables(
+                    candidate.Offset, candidates.PaletteTable, candidate.EntryCount);
+                return true;
             }
         }
 
-        return front >= 0;
+        return false;
     }
 
     /// <summary>
