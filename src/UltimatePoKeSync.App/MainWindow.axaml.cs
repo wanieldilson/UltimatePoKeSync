@@ -21,6 +21,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
 
         this.FindControl<Button>("CopyPathButton")!.Click += CopyScriptPath;
+        this.FindControl<Button>("CopyHeaderPathButton")!.Click += CopyScriptPath;
         _viewModel.Start();
     }
 

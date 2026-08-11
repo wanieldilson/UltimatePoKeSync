@@ -92,8 +92,14 @@
           </StackPanel>
           <!-- Reachable after connecting too: reloading the script into mGBA is exactly
                when the path is wanted, and the setup screen is gone by then. -->
-          <Button Content="Bridge script" Command="{Binding RevealScriptCommand}"
-                  ToolTip.Tip="{Binding ScriptPath}" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Content="Bridge script" Command="{Binding RevealScriptCommand}"
+                    ToolTip.Tip="{Binding ScriptPath}" />
+            <!-- mGBA's file dialog is Qt's, which ignores the macOS go-to-folder shortcut,
+                 so the path has to be pasteable into its name field. -->
+            <Button Name="CopyHeaderPathButton" Content="Copy path"
+                    ToolTip.Tip="{Binding ScriptPath}" />
+          </StackPanel>
           <ToggleSwitch IsChecked="{Binding IsCompetitive}"
                         OffContent="Playthrough" OnContent="Competitive"
                         ToolTip.Tip="Playthrough answers for the story; Competitive answers for battling." />
