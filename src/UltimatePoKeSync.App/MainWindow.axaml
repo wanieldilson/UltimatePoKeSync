@@ -245,6 +245,27 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
 
+
+        <!-- Sprites are optional and the app never ships them, so this is an offer rather
+             than a step: without it the team shows coloured tiles. See D-046. -->
+        <Border Classes="card" IsVisible="{Binding CanOfferSprites}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Sprites" Classes="section" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Animated Black and White sprites for every generation, about 27 MB, downloaded to this app's own folder. Everything works without them." />
+            <Button Content="Download sprites" Command="{Binding DownloadSpritesCommand}"
+                    HorizontalAlignment="Left" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card" IsVisible="{Binding IsDownloadingSprites}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Downloading sprites" Classes="section" />
+            <ProgressBar Value="{Binding SpriteProgress}" Maximum="1" Height="6" />
+            <TextBlock Text="{Binding SpriteStatus}" Classes="caption" />
+          </StackPanel>
+        </Border>
+
         <Border Classes="card" Background="#33D9602E" IsVisible="{Binding IsTranslocated}">
           <TextBlock Text="{Binding TranslocationWarning}" TextWrapping="Wrap" />
         </Border>
@@ -403,6 +424,24 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding CanOfferSprites}">
+              <StackPanel Spacing="8">
+                <TextBlock Text="No sprites yet" Classes="section" />
+                <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12.5"
+                           Text="About 27 MB, animated, every generation. The team works without them." />
+                <Button Content="Download sprites" Command="{Binding DownloadSpritesCommand}"
+                        HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding IsDownloadingSprites}">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Downloading sprites" Classes="section" />
+                <ProgressBar Value="{Binding SpriteProgress}" Maximum="1" Height="6" />
+                <TextBlock Text="{Binding SpriteStatus}" Classes="caption" />
               </StackPanel>
             </Border>
 

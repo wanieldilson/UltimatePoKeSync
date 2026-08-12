@@ -39,7 +39,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly RomSpriteSource? _sprites;
 
     /// <summary>The player's own sprite folder, when they have one. See D-045.</summary>
-    private readonly SpritePackSource _pack = new();
+    private SpritePackSource _pack = new();
+
+    private readonly Lazy<HttpClient> _http = new(() => new HttpClient
+    {
+        Timeout = TimeSpan.FromSeconds(30),
+    });
 
     /// <summary>Stops the running animations when the window closes.</summary>
     private readonly CancellationTokenSource _animations = new();
@@ -48,6 +53,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     [ObservableProperty]
     private bool _isConnected;
+
+    [ObservableProperty]
+    private bool _isDownloadingSprites;
+
+    /// <summary>0 to 1 while sprites are arriving, for the bar.</summary>
+    [ObservableProperty]
+    private double _spriteProgress;
+
+    [ObservableProperty]
+    private string _spriteStatus = string.Empty;
 
     [ObservableProperty]
     private string _connectionText = "Waiting for mGBA…";
@@ -150,6 +165,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// <summary>Which emulator is feeding the window, once one is.</summary>
     public string ConnectedVia => _live.ActiveEmulator ?? string.Empty;
 
+    /// <summary>
+    /// Whether the sprite folder has anything in it. Everything works without it, so this
+    /// only decides whether to offer the download. See D-046.
+    /// </summary>
+    public bool HasSprites => _pack.Exists;
+
+    public bool CanOfferSprites => !HasSprites && !IsDownloadingSprites;
+
     public string ScriptPath { get; }
 
     public string PlatformName { get; }
@@ -223,6 +246,75 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// </summary>
     [RelayCommand]
     private static void RevealScript() => SetupGuide.RevealScript();
+
+    /// <summary>
+    /// Fetches the sprite folder. The app's only network call, made because somebody pressed
+    /// this, and nothing waits on it: without sprites the team shows coloured tiles and
+    /// everything else is identical. See D-046.
+    /// </summary>
+    [RelayCommand]
+    private async Task DownloadSprites()
+    {
+        if (IsDownloadingSprites)
+        {
+            return;
+        }
+
+        IsDownloadingSprites = true;
+        SpriteProgress = 0;
+        SpriteStatus = "Starting…";
+        RaiseSpriteState();
+
+        var progress = new Progress<SpriteDownloader.Progress>(step => _post(() =>
+        {
+            SpriteProgress = step.Fraction;
+            SpriteStatus = $"{step.Done} of {step.Total}";
+        }));
+
+        try
+        {
+            var downloader = new SpriteDownloader(_http.Value);
+            SpriteDownloader.Result result = await downloader
+                .DownloadAsync(progress, _animations.Token)
+                .ConfigureAwait(false);
+
+            _post(() =>
+            {
+                // A fresh source, because the old one cached the absence of every sprite
+                // it was asked for before the folder existed.
+                _pack = new SpritePackSource();
+
+                SpriteStatus = result.AnyArrived
+                    ? $"{result.Fetched} sprites ready"
+                    : "Could not reach the sprite archive. The team still works without it.";
+
+                IsDownloadingSprites = false;
+                RaiseSpriteState();
+
+                // Draw the team that is already on screen, rather than waiting for it to
+                // change on its own.
+                if (_party is not null)
+                {
+                    _ = LoadSpritesAsync(_party.Game, [.. Slots]);
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            _post(() =>
+            {
+                IsDownloadingSprites = false;
+                SpriteStatus = string.Empty;
+                RaiseSpriteState();
+            });
+        }
+    }
+
+    private void RaiseSpriteState()
+    {
+        OnPropertyChanged(nameof(HasSprites));
+        OnPropertyChanged(nameof(CanOfferSprites));
+    }
 
     partial void OnSelectedSlotChanged(PokemonSlotViewModel? value) =>
         OnPropertyChanged(nameof(ShowTeamPanel));

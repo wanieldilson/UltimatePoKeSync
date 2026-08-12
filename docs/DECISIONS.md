@@ -1594,3 +1594,34 @@ hundred kilobytes against a one-off 27 MB), finish the NARC decoder first (rejec
 format archaeology for one generation, when a folder solves five), and ship static PNGs
 instead of animations (rejected: they are the same size, and the animation is the reason to
 have them).
+
+## D-046 — The sprites download from a button, not a terminal
+
+**Status:** Accepted · 2026-08-12
+
+D-045 put the artwork on the player's disk and left them a Python script to put it there.
+That works for anyone with a clone of the repository and works for nobody else: a release
+carries the executable and no `tools` folder, so there was no script to run — and running it
+would have needed Python and a terminal, which is the opposite of the promise this app was
+built on.
+
+So the app fetches them itself, from a button, with a progress bar, into the folder it
+already reads. The script stays for people working on the repository.
+
+This is the app's **only** network call. It happens because somebody pressed it, nothing
+waits on it, and an app with no network behaves exactly as before: coloured tiles, and every
+other feature identical. That is not in tension with D-024's "no runtime network call" — that
+rule exists so recommendations stay deterministic and reproducible offline, not because
+reaching the network is forbidden. A download the player asked for is not a hidden dependency.
+
+Two details that decide whether a 27 MB download is pleasant or infuriating. Each file is
+written beside its destination and moved into place, so an interrupted download never leaves
+half a sprite that the next attempt would count as finished. And a second run skips what is
+already there rather than re-fetching 27 MB to discover it has it, so resuming costs only
+what is missing.
+
+**Alternatives considered:** ship the script in the release (rejected: it still needs Python
+and a terminal, and most people have neither), bundle the sprites (rejected for the reason
+D-045 gives, which has not changed), and fetch each sprite the first time it is needed
+(rejected: it would make every party update a potential network call, and the saving is a few
+hundred kilobytes against a one-off 27 MB).
