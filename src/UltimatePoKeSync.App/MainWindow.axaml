@@ -9,7 +9,7 @@
         Width="1180" Height="760"
         MinWidth="900" MinHeight="600"
         Background="{StaticResource Ink}"
-        ExtendClientAreaToDecorationsHint="True">
+        WindowDecorations="BorderOnly">
 
   <Window.Resources>
     <!--

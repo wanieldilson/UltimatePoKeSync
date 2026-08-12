@@ -1647,8 +1647,12 @@ lamps had to stop being a drawing of window buttons and become the buttons: clos
 and zoom, left to right, where a Mac user's hand already goes. The bar drags the window,
 because the thing that used to do that is gone.
 
-Avalonia 12 no longer has `ExtendClientAreaChromeHints`, which the design's note assumed from
-Avalonia 11; the remaining hint is enough on macOS.
+Extending the client area was the wrong tool: on macOS the system still draws its traffic
+lights, so the design's lamps landed on top of them and there were six buttons where there
+should be three. Avalonia 12 renamed `SystemDecorations` to **`WindowDecorations`**, and
+`BorderOnly` is the right setting — the frame and its resize edges stay, the system title bar
+and its buttons do not. It behaves the same on Windows and Linux, so one bar serves all three
+rather than macOS getting a special case.
 
 **Fonts are the one new dependency**, and the only files here somebody else wrote: Bungee,
 Nunito and DM Mono, under the Open Font License, which permits shipping them. 484 KB, listed
