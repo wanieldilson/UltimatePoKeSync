@@ -1226,3 +1226,53 @@ with different moves at different levels, and merging the two is how a player en
 waiting for a move that never comes — worth revisiting as a separate "after it evolves"
 section), and put this in the recommendation engine (rejected: it is a fact about a
 Pokémon, not a judgement about a build, and it must show for a game with no reference data).
+
+## D-038 — Four small window decisions, taken together
+
+**Status:** Accepted · 2026-08-12
+
+Issues #12 to #15 were all about the same surface, so they were done as one pass. Each one
+is small; what they have in common is worth writing down.
+
+**The whole candidate pool is shown, not the four that won (#12).** The console printed every
+candidate with how it is obtained and whether it needs checking; the window showed the four
+chosen moves and the bare names of the rest. That is the half that cannot be argued with. A
+player judges a recommendation by what it turned down — a set that skips Thunderbolt reads
+very differently once you can see Thunderbolt was on the table and comes from a TM. The pool
+now lists every candidate with its type, its source and its availability, with the four that
+made the build ticked and fully lit while the rest stay legible but dimmer.
+
+What is still missing is a stated *reason* for each rejection. The engine ranks candidates
+and keeps the top four; it does not record a sentence per loser. Inventing one after the fact
+would be a plausible story rather than the real cause, so the pool shows the facts it has.
+
+**Immunities are their own list in the team panel (#13).** The per-Pokémon view already
+separated them; the team view said "Resisted or immune". Both readings were defensible, but
+the two views of the same fact disagreed, and disagreement is what a reader notices. A type
+with an immunity is now filed under Immune even when others merely resist, because the
+immunity is the better switch-in, and the detail counts both. The weakness line splits them
+too: "2 weak, 1 immune, 1 resist" says something "2 safe" does not.
+
+**Empty slots say the same thing in a tenth of the space (#15).** Five placeholders at 72 px
+each filled the strip for a party of one, repeating "empty" five times. One bordered line
+with a small marker per slot and "5 slots free" carries the same information without
+implying the free slots are as interesting as the Pokémon.
+
+**The window remembers where it was, and which profile was chosen (#14).** Size, position and
+profile are stored in `settings.json`, beside the Lua script in the folder of D-029 that
+survives updates and is never translocated. Three details are deliberate: a stored size below
+the minimum is ignored, because a window saved at 40×20 by a crash reopens with no way out of
+it; a maximised window stores the *pre-maximise* bounds and a flag, because saving the screen
+bounds leaves no size to un-maximise back to; and every read and write failure ends in
+defaults rather than a dialog, because a settings file is not worth a crash on startup.
+
+The profile is restored because it is a statement about how the player wants to be advised,
+not about one session — someone who plays competitively is still playing competitively
+tomorrow.
+
+**Alternatives considered:** make the candidate pool collapsible behind another toggle
+(rejected: it already sits behind the best-set toggle, and a second one would hide the
+honest part twice), keep one "safe" list and only fix the wording (rejected: it leaves the
+two views phrased differently for no reason), drop the empty slots entirely (rejected: a
+party of one is worth seeing as a party of one), and remember the layout in the OS-native
+way per platform (rejected: three implementations of a file with five numbers in it).

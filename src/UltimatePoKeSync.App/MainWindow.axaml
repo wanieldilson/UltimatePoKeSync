@@ -334,18 +334,29 @@
             </ListBox.ItemTemplate>
           </ListBox>
 
-          <ItemsControl ItemsSource="{Binding EmptySlots}" IsVisible="{Binding HasEmptySlots}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="sys:Int32">
-                <Border CornerRadius="14" Padding="12" Margin="0,0,0,8" Height="72"
-                        BorderThickness="1" BorderBrush="{StaticResource Line}"
-                        Background="#0B0E12">
-                  <TextBlock Text="empty" Classes="caption" Opacity="0.5"
-                             HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+          <!-- One line for the free slots. Five empty cards at 72 px each filled the
+               strip for a party of one and said nothing five times. -->
+          <Border CornerRadius="10" Padding="12,7" Margin="0,2,0,0"
+                  BorderThickness="1" BorderBrush="{StaticResource Line}"
+                  Background="#0B0E12" IsVisible="{Binding HasEmptySlots}">
+            <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
+              <ItemsControl ItemsSource="{Binding EmptySlots}" VerticalAlignment="Center">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="5" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="sys:Int32">
+                    <Border Width="13" Height="13" CornerRadius="3" BorderThickness="1"
+                            BorderBrush="{StaticResource Line}" Opacity="0.7" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="{Binding EmptySlotsText}" Classes="caption" Opacity="0.6"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
         </StackPanel>
       </ScrollViewer>
 
@@ -388,8 +399,11 @@
                 <ItemsControl ItemsSource="{Binding TeamWeaknesses}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
                 <TextBlock Text="Neutral" Classes="caption" />
                 <ItemsControl ItemsSource="{Binding TeamNeutral}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
-                <TextBlock Text="Resisted or immune" Classes="caption" />
+                <TextBlock Text="Resisted" Classes="caption" />
                 <ItemsControl ItemsSource="{Binding TeamResisted}" ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
+                <TextBlock Text="Immune" Classes="caption" IsVisible="{Binding HasTeamImmunities}" />
+                <ItemsControl ItemsSource="{Binding TeamImmune}" IsVisible="{Binding HasTeamImmunities}"
+                              ItemTemplate="{StaticResource ChipTemplate}" ItemsPanel="{StaticResource ChipPanel}" />
               </StackPanel>
             </Border>
 
@@ -584,13 +598,29 @@
                           </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <TextBlock Text="Also considered" Classes="section"
-                                   IsVisible="{Binding HasAlternatives}" />
-                        <ItemsControl ItemsSource="{Binding Alternatives}"
-                                      IsVisible="{Binding HasAlternatives}">
+                        <!-- The whole pool the four were picked from. A chosen move is
+                             ticked and fully lit; the rest stay legible but dimmer. -->
+                        <TextBlock Text="{Binding CandidatesHeading}" Classes="section"
+                                   IsVisible="{Binding HasCandidates}" />
+                        <ItemsControl ItemsSource="{Binding Candidates}"
+                                      IsVisible="{Binding HasCandidates}">
                           <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="sys:String">
-                              <TextBlock Text="{Binding}" Classes="caption" />
+                            <DataTemplate x:DataType="vm:CandidateMoveRow">
+                              <Grid ColumnDefinitions="18,150,88,*,auto" ColumnSpacing="9"
+                                    Margin="0,0,0,5" Opacity="{Binding Fade}">
+                                <TextBlock Text="{Binding Marker}" FontSize="12.5"
+                                           Foreground="#4E9A3F" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13.5"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="2" Background="{Binding Brush}" CornerRadius="4"
+                                        Padding="6,0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                  <TextBlock Text="{Binding Type}" Foreground="White" FontSize="11.5" />
+                                </Border>
+                                <TextBlock Grid.Column="3" Text="{Binding Source}" FontSize="12.5"
+                                           Foreground="#7FAAF0" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="4" Text="{Binding Availability}"
+                                           Classes="caption" VerticalAlignment="Center" />
+                              </Grid>
                             </DataTemplate>
                           </ItemsControl.ItemTemplate>
                         </ItemsControl>

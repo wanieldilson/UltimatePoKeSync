@@ -63,6 +63,23 @@ public sealed record UpcomingMoveRow(
     string Distance,
     IBrush Brush);
 
+/// <summary>
+/// One move from the candidate pool. <c>Chosen</c> marks the four that made the build, so
+/// the pool reads as a decision with its reasons rather than a list of names.
+/// </summary>
+public sealed record CandidateMoveRow(
+    string Name,
+    string Type,
+    string Source,
+    string Availability,
+    bool Chosen,
+    IBrush Brush)
+{
+    public double Fade => Chosen ? 1 : 0.62;
+
+    public string Marker => Chosen ? "✓" : string.Empty;
+}
+
 /// <summary>One contribution to the team strength score.</summary>
 public sealed record StrengthRow(string Name, int Points, int MaximumPoints, string Explanation)
 {

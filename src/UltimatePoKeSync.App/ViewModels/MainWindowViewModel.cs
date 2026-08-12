@@ -99,6 +99,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         _sprites = live.MemoryReader is null ? null : new RomSpriteSource(live.MemoryReader);
 
+        // The profile is a choice about how the app should advise, not about one session,
+        // so it outlives the run that made it. See D-038.
+        IsCompetitive = AppSettings.Load().CompetitiveProfile;
+
         _live.StateChanged += (_, state) => _post(() => OnStateChanged(state));
         _live.PartyChanged += (_, party) => _post(() => OnPartyChanged(party));
     }
@@ -117,6 +121,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public ObservableCollection<TypeChip> TeamNeutral { get; } = [];
 
     public ObservableCollection<TypeChip> TeamResisted { get; } = [];
+
+    /// <summary>
+    /// Kept apart from the resisted list, as it already is in the per-Pokémon view. Taking a
+    /// quarter of a hit and taking none of it are different plans, and until now the two
+    /// views of the same fact disagreed with each other. See D-038.
+    /// </summary>
+    public ObservableCollection<TypeChip> TeamImmune { get; } = [];
 
     public ObservableCollection<TypeChip> TeamSuperEffective { get; } = [];
 
@@ -157,7 +168,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public bool HasEmptySlots => EmptySlots.Count > 0;
 
+    /// <summary>
+    /// One line instead of five cards. The free slots are worth stating — a party of one is
+    /// a party of one — but they were taking as much of the strip as the Pokémon in it.
+    /// See D-038.
+    /// </summary>
+    public string EmptySlotsText => EmptySlots.Count == 1
+        ? "1 slot free"
+        : $"{EmptySlots.Count} slots free";
+
     public bool HasSuperEffective => TeamSuperEffective.Count > 0;
+
+    /// <summary>A team with no immunity at all should not be shown an empty heading.</summary>
+    public bool HasTeamImmunities => TeamImmune.Count > 0;
 
     public bool HasUnanswered => TeamUnanswered.Count > 0;
 
@@ -292,6 +315,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         TeamWeaknesses.Clear();
         TeamNeutral.Clear();
         TeamResisted.Clear();
+        TeamImmune.Clear();
         TeamSuperEffective.Clear();
         TeamUnanswered.Clear();
         StrengthFactors.Clear();
@@ -349,13 +373,39 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         OnPropertyChanged(nameof(HasEmptySlots));
+        OnPropertyChanged(nameof(EmptySlotsText));
     }
+
+    /// <summary>
+    /// A weakness reads differently depending on whether anything can come in for it, and
+    /// an immunity is worth naming separately from a resistance even here.
+    /// </summary>
+    private static string DescribeWeakness(DefensiveTypeCoverage entry)
+    {
+        if (entry.IsGap)
+        {
+            return $"{entry.WeakCount} weak, nothing resists";
+        }
+
+        string safe = (entry.ImmuneCount, entry.ResistantCount) switch
+        {
+            (0, int resist) => $"{resist} resist",
+            (int immune, 0) => $"{immune} immune",
+            (int immune, int resist) => $"{immune} immune, {resist} resist",
+        };
+
+        return $"{entry.WeakCount} weak, {safe}";
+    }
+
+    private static string Plural(int count, string singular, string plural) =>
+        count == 1 ? $"1 {singular}" : $"{count} {plural}";
 
     private void UpdateCoverage(TeamAnalysis analysis)
     {
         TeamWeaknesses.Clear();
         TeamNeutral.Clear();
         TeamResisted.Clear();
+        TeamImmune.Clear();
         TeamSuperEffective.Clear();
         TeamUnanswered.Clear();
 
@@ -363,16 +413,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         {
             if (entry.WeakCount > 0)
             {
-                string detail = entry.IsGap
-                    ? $"{entry.WeakCount} weak, nothing resists"
-                    : $"{entry.WeakCount} weak, {entry.ResistantCount + entry.ImmuneCount} safe";
-                TeamWeaknesses.Add(TypeChip.For(entry.AttackingType, detail));
+                TeamWeaknesses.Add(TypeChip.For(entry.AttackingType, DescribeWeakness(entry)));
             }
-            else if (entry.HasDefensiveAnswer)
+            else if (entry.ImmuneCount > 0)
+            {
+                // An immunity is the better switch-in, so the type is filed under it even
+                // when others merely resist. The detail still counts both.
+                string detail = entry.ResistantCount > 0
+                    ? $"{entry.ImmuneCount} take nothing, {entry.ResistantCount} resist"
+                    : Plural(entry.ImmuneCount, "takes", "take") + " nothing";
+                TeamImmune.Add(TypeChip.For(entry.AttackingType, detail));
+            }
+            else if (entry.ResistantCount > 0)
             {
                 TeamResisted.Add(TypeChip.For(
                     entry.AttackingType,
-                    $"{entry.ResistantCount + entry.ImmuneCount} resist or are immune"));
+                    Plural(entry.ResistantCount, "resists", "resist")));
             }
             else
             {
@@ -397,6 +453,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         OnPropertyChanged(nameof(HasSuperEffective));
         OnPropertyChanged(nameof(HasUnanswered));
+        OnPropertyChanged(nameof(HasTeamImmunities));
     }
 
     private void UpdateStrength(TeamStrength strength)

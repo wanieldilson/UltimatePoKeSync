@@ -119,9 +119,25 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
                     TypePalette.Brush(slot.Move.Move.Type))),
             ];
 
-        Alternatives = recommendation is null
+        // The whole pool, not only the four that won. Which moves were on the table is
+        // how a player judges whether the four are right, and until now only the console
+        // showed it. See D-038.
+        HashSet<int> chosen = recommendation is null
             ? []
-            : [.. recommendation.Build.Alternatives.Select(move => move.Move.Name)];
+            : [.. recommendation.Build.Slots.Select(slot => slot.Move.Move.MoveId)];
+
+        Candidates = recommendation is null
+            ? []
+            :
+            [
+                .. recommendation.MoveCandidates.Select(move => new CandidateMoveRow(
+                    move.Move.Name,
+                    move.Move.Type.ToString(),
+                    DescribeSource(move),
+                    Describe(move.Availability),
+                    chosen.Contains(move.Move.MoveId),
+                    TypePalette.Brush(move.Move.Type))),
+            ];
 
         Items = recommendation is null
             ? []
@@ -314,9 +330,12 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public IReadOnlyList<BuildMoveRow> BuildMoves { get; }
 
-    public IReadOnlyList<string> Alternatives { get; }
+    /// <summary>Every move that was on the table, with the four that made it marked.</summary>
+    public IReadOnlyList<CandidateMoveRow> Candidates { get; }
 
-    public bool HasAlternatives => Alternatives.Count > 0;
+    public bool HasCandidates => Candidates.Count > 0;
+
+    public string CandidatesHeading => $"All {Candidates.Count} candidates";
 
     public IReadOnlyList<string> Items { get; }
 

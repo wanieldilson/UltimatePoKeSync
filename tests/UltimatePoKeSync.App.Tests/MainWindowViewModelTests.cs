@@ -97,7 +97,14 @@ public sealed class MainWindowViewModelTests
         // 17 attacking types must be accounted for exactly once across the three buckets.
         Assert.Equal(
             17,
-            viewModel.TeamWeaknesses.Count + viewModel.TeamNeutral.Count + viewModel.TeamResisted.Count);
+            viewModel.TeamWeaknesses.Count + viewModel.TeamNeutral.Count
+                + viewModel.TeamResisted.Count + viewModel.TeamImmune.Count);
+
+        // Resistances and immunities are two lists here as well as in the detail panel:
+        // a lone Grass starter resists three types and is immune to none. See D-038.
+        Assert.NotEmpty(viewModel.TeamResisted);
+        Assert.Empty(viewModel.TeamImmune);
+        Assert.False(viewModel.HasTeamImmunities);
         Assert.Equal(17, viewModel.TeamSuperEffective.Count + viewModel.TeamUnanswered.Count);
 
         // The placeholders under the coverage headings must agree with the chips beside
