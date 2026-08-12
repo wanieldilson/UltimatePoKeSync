@@ -40,6 +40,12 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         _recommendation = recommendation;
         progress ??= PokemonProgress.Nothing;
 
+        // The rules of the game this Pokémon came from: what makes a move physical, and how
+        // hard it hits. Null for a generation the app cannot judge, in which case the move
+        // line says less rather than saying something invented.
+        IGenerationRules? rules = GenerationRulesResolver.Default.Resolve(
+            analysis.Party.Game.Generation);
+
         TypeText = member.IsEgg
             ? "not hatched yet"
             : member.IsDualType
@@ -58,20 +64,34 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
             new StatRow("Speed", member.BaseStats.Speed, member.IndividualValues.Speed, member.EffortValues.Speed, member.CurrentStats.Speed),
         ];
 
-        Moves =
+        string emptyMoveHint = progress.Moves.FirstOrDefault() is UpcomingMove nextMove
+            ? $"{nextMove.Move.Name} is {DescribeDistance(nextMove.LevelsAway)}"
+            : "ready for the next move";
+
+        MoveSlots =
         [
-            .. member.Moves
-                .Where(move => !move.IsEmpty)
-                .Select(move => new MoveRow(
+            .. member.Moves.Select(move => move.IsEmpty
+                ? new MoveRow(
+                    "empty slot",
+                    string.Empty,
+                    string.Empty,
+                    emptyMoveHint,
+                    TypePalette.Brush(PokemonType.None),
+                    true)
+                : new MoveRow(
                     move.Name,
                     move.Type.ToString(),
                     $"{move.CurrentPp}/{move.MaxPp}",
+                    DescribeMove(move, rules),
                     TypePalette.Brush(move.Type))),
         ];
+
+        Moves = [.. MoveSlots.Where(move => !move.IsEmpty)];
 
         (Weaknesses, Resistances, Immunities) = member.IsEgg
             ? ([], [], [])
             : BuildMatchups(member, analysis);
+        MatchupNote = member.IsEgg ? string.Empty : BuildMatchupNote(member, analysis);
 
         TypeChips = member.IsEgg
             ? []
@@ -159,6 +179,10 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         ];
 
         (EvolutionText, EvolutionNote) = DescribeEvolution(progress, member.Level);
+        EvolutionSpeciesName = progress.NextEvolution?.IntoSpeciesName ?? string.Empty;
+        EvolutionCountdown = progress.NextEvolution?.Level is int evolutionLevel
+            ? DescribeDistance(Math.Max(1, evolutionLevel - member.Level))
+            : progress.NextEvolution?.Requirement ?? string.Empty;
         OtherEvolutionsText = progress.OtherEvolutions.Count == 0
             ? string.Empty
             : "Or " + string.Join(
@@ -224,7 +248,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
             CultureInfo.InvariantCulture,
             $"About {Member.Friendship * 256:N0} steps to go ({Member.Friendship} cycles).");
 
-    public string LevelText => $"Lv. {Member.Level}";
+    public string LevelText => $"Lv.{Member.Level}";
 
     public string NicknameText =>
         IsEgg || Member.Nickname.Equals(Member.SpeciesName, StringComparison.OrdinalIgnoreCase)
@@ -237,6 +261,34 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     /// <summary>The type line, the bars and the matchups are all meaningless for an egg.</summary>
     public bool ShowsBattleData => CanBattle;
+
+    /// <summary>Fainted cards stay readable, but visibly step back from battlers.</summary>
+    public double CardOpacity => Member.IsFainted ? 0.60 : 1;
+
+    /// <summary>Where it sits and which species it is: "SLOT 1 · #495".</summary>
+    public string SlotAndDexText => $"SLOT {SlotNumber} · #{Member.SpeciesId}";
+
+    /// <summary>
+    /// The personality value, the closest thing a Pokémon has to a serial number: two Snivy
+    /// identical in everything else still differ here.
+    /// </summary>
+    public string PidText => $"PID 0x{Member.PersonalityValue:X8}";
+
+    public string HeldItemOrNone => Member.HeldItemId == 0 ? "none" : Member.HeldItemName;
+
+    public string UpperSpeciesName => SpeciesName.ToUpperInvariant();
+
+    /// <summary>"LV 6", the tilted badge beside the name.</summary>
+    public string LevelBadge => $"LV {Member.Level}";
+
+    /// <summary>The four facts under the HP bar.</summary>
+    public IReadOnlyList<FactChip> Facts =>
+    [
+        new("Nature", Member.NatureName),
+        new("Ability", Member.AbilityName),
+        new("Item", HeldItemOrNone),
+        new("Friendship", Member.Friendship.ToString(CultureInfo.InvariantCulture)),
+    ];
 
     public IBrush PrimaryBrush { get; }
 
@@ -278,12 +330,16 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public IBrush HpBrush => Member.HpFraction switch
     {
         <= 0 => new SolidColorBrush(Color.FromRgb(0x8A, 0x8A, 0x8A)),
-        <= 0.20 => new SolidColorBrush(Color.FromRgb(0xC0, 0x3D, 0x2E)),
-        <= 0.50 => new SolidColorBrush(Color.FromRgb(0xC9, 0xA2, 0x27)),
-        _ => new SolidColorBrush(Color.FromRgb(0x4E, 0x9A, 0x3F)),
+        < 0.20 => new SolidColorBrush(Color.FromRgb(0xFF, 0x5B, 0x4A)),
+        <= 0.50 => new SolidColorBrush(Color.FromRgb(0xFF, 0xD2, 0x3F)),
+        _ => new SolidColorBrush(Color.FromRgb(0x7F, 0xF0, 0x9A)),
     };
 
     public bool HasStatus => Member.Status != StatusCondition.None || Member.IsFainted;
+
+    public bool HasRailBadge => IsEgg || HasStatus;
+
+    public string RailBadgeText => IsEgg ? "EGG" : StatusText;
 
     /// <summary>Three letters, as the games abbreviate them on the party screen.</summary>
     public string StatusText => Member.IsFainted
@@ -300,17 +356,21 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         };
 
     public IBrush StatusBrush => Member.IsFainted
-        ? new SolidColorBrush(Color.FromRgb(0x5A, 0x4C, 0x45))
+        ? new SolidColorBrush(Color.FromRgb(0xFF, 0x5B, 0x4A))
         : Member.Status switch
         {
             StatusCondition.Sleep => new SolidColorBrush(Color.FromRgb(0x6B, 0x6B, 0x7B)),
             StatusCondition.Poison or StatusCondition.BadPoison =>
-                new SolidColorBrush(Color.FromRgb(0x92, 0x4A, 0x96)),
-            StatusCondition.Burn => new SolidColorBrush(Color.FromRgb(0xD9, 0x60, 0x2E)),
-            StatusCondition.Freeze => new SolidColorBrush(Color.FromRgb(0x59, 0x9F, 0xB0)),
-            StatusCondition.Paralysis => new SolidColorBrush(Color.FromRgb(0xC9, 0xA2, 0x27)),
+                new SolidColorBrush(Color.FromRgb(0xB0, 0x6B, 0xE0)),
+            StatusCondition.Burn => new SolidColorBrush(Color.FromRgb(0xE0, 0x6A, 0x2E)),
+            StatusCondition.Freeze => new SolidColorBrush(Color.FromRgb(0x5D, 0xB3, 0xC4)),
+            StatusCondition.Paralysis => new SolidColorBrush(Color.FromRgb(0xFF, 0xD2, 0x3F)),
             _ => new SolidColorBrush(Colors.Transparent),
         };
+
+    public IBrush RailBadgeBrush => IsEgg
+        ? new SolidColorBrush(Color.FromRgb(0x45, 0xD0, 0xE0))
+        : StatusBrush;
 
     public bool HasHeldItem => Member.HeldItemId > 0 && Member.HeldItemName != "-";
 
@@ -322,6 +382,9 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public IReadOnlyList<TypeChip> TypeChips { get; }
 
     public IReadOnlyList<MoveRow> Moves { get; }
+
+    /// <summary>All four cartridge slots, including the empty ones the design teaches from.</summary>
+    public IReadOnlyList<MoveRow> MoveSlots { get; }
 
     public IReadOnlyList<TypeChip> Weaknesses { get; }
 
@@ -339,6 +402,10 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public bool HasResistances => Resistances.Count > 0;
 
     public bool HasImmunities => Immunities.Count > 0;
+
+    public string MatchupNote { get; }
+
+    public bool HasMatchupNote => MatchupNote.Length > 0;
 
     public string RoleText { get; }
 
@@ -379,6 +446,10 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public string EvolutionText { get; }
 
     public bool HasEvolution => EvolutionText.Length > 0;
+
+    public string EvolutionSpeciesName { get; }
+
+    public string EvolutionCountdown { get; }
 
     /// <summary>The caveat under the evolution line, when there is one worth making.</summary>
     public string EvolutionNote { get; }
@@ -506,6 +577,41 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         return (weak, resisted, immune);
     }
 
+    private static string BuildMatchupNote(PokemonSnapshot member, TeamAnalysis analysis)
+    {
+        DefensiveTypeCoverage? worst = analysis.DefensiveCoverage
+            .Where(entry => entry.Matchups.Any(matchup =>
+                matchup.Member.SlotIndex == member.SlotIndex && matchup.Multiplier > 1))
+            .OrderByDescending(entry => entry.IsGap)
+            .ThenByDescending(entry => entry.WeakCount)
+            .FirstOrDefault();
+
+        if (worst is null)
+        {
+            return "No doubled weakness needs a switch plan.";
+        }
+
+        string type = worst.AttackingType.ToString();
+        string[] answers =
+        [
+            .. worst.Matchups
+                .Where(matchup => matchup.Member.SlotIndex != member.SlotIndex
+                    && matchup.Multiplier < 1)
+                .Select(matchup => matchup.Member.SpeciesName),
+        ];
+
+        if (answers.Length == 0)
+        {
+            return $"Team gap. Nothing else in the party resists {type}.";
+        }
+
+        return $"Switch plan. {string.Join(" or ", answers)} can take the {type} hit instead.";
+    }
+
+    private static string DescribeDistance(int levelsAway) => levelsAway == 1
+        ? "1 level away"
+        : $"{levelsAway} levels away";
+
     private static string DescribeEffortValues(PokemonRecommendation? recommendation)
     {
         if (recommendation is null)
@@ -528,6 +634,33 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         return effortValues.PriorityStats.Count == 0
             ? "no priority"
             : "train " + string.Join(", ", effortValues.PriorityStats.Select(Abbreviate));
+    }
+
+    /// <summary>
+    /// "Grass · special · 20 pow". Category comes from the generation's rules because from
+    /// Gen 4 it belongs to the move rather than to its type (D-041); power is omitted for a
+    /// status move, which has none, rather than printed as a zero.
+    /// </summary>
+    private static string DescribeMove(MoveSlot move, IGenerationRules? rules)
+    {
+        if (rules is null)
+        {
+            return move.Type.ToString();
+        }
+
+        MoveCategory category = rules.GetMoveCategory(move.MoveId, move.Type);
+        int power = rules.GetMoveBasePower(move.MoveId);
+
+        string kind = category switch
+        {
+            MoveCategory.Physical => "physical",
+            MoveCategory.Special => "special",
+            _ => "status",
+        };
+
+        return category == MoveCategory.Status || power <= 0
+            ? $"{move.Type} · {kind}"
+            : $"{move.Type} · {kind} · {power} pow";
     }
 
     private static string Abbreviate(Stat stat) => stat switch

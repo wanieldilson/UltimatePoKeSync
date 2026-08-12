@@ -181,12 +181,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// <summary>The three factors costing the most, which is what the rail prints.</summary>
     public ObservableCollection<StrengthRow> WeakestRailFactors { get; } = [];
 
-    public GridLength StrengthFilled => new(Math.Clamp(StrengthScore, 0, 100), GridUnitType.Star);
+    public GridLength StrengthFilled =>
+        new(Math.Clamp(StrengthScore, 0, StrengthMaximum), GridUnitType.Star);
 
     public GridLength StrengthRemaining =>
-        new(Math.Clamp(100 - StrengthScore, 0, 100), GridUnitType.Star);
+        new(Math.Clamp(StrengthMaximum - StrengthScore, 0, StrengthMaximum), GridUnitType.Star);
 
     public bool IsPokemonTab => SelectedTab == DashboardTab.Pokemon;
+
+    /// <summary>
+    /// The screens still waiting to be rebuilt keep showing the previous dashboard, so the
+    /// app stays usable between one screen and the next.
+    /// </summary>
+    public bool ShowsOldPanels => HasTeam && !IsPokemonTab;
 
     public bool IsStatsTab => SelectedTab == DashboardTab.Stats;
 
@@ -262,8 +269,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// See D-038.
     /// </summary>
     public string EmptySlotsText => EmptySlots.Count == 1
-        ? "1 slot free"
-        : $"{EmptySlots.Count} slots free";
+        ? "1 SLOT FREE"
+        : $"{EmptySlots.Count} SLOTS FREE";
 
     public bool HasSuperEffective => TeamSuperEffective.Count > 0;
 
@@ -273,6 +280,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public bool HasUnanswered => TeamUnanswered.Count > 0;
 
     public bool ShowTeamPanel => SelectedSlot is null;
+
+    /// <summary>
+    /// The Pokémon screen always has a subject. Keeping the explicit selection nullable
+    /// preserves the existing whole-team state while the first rail card supplies the
+    /// default detail view.
+    /// </summary>
+    public PokemonSlotViewModel? CurrentSlot => SelectedSlot ?? Slots.FirstOrDefault();
 
     public bool HasAnalysisError => AnalysisError.Length > 0;
 
@@ -313,6 +327,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                  {
                      nameof(IsPokemonTab), nameof(IsStatsTab), nameof(IsBuildTab),
                      nameof(IsLearnsetTab), nameof(IsTeamTab), nameof(IsBridgeTab),
+                     nameof(ShowsOldPanels),
                  })
         {
             OnPropertyChanged(name);
@@ -398,11 +413,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     partial void OnSelectedSlotChanged(PokemonSlotViewModel? value)
     {
         OnPropertyChanged(nameof(ShowTeamPanel));
+        OnPropertyChanged(nameof(CurrentSlot));
 
         // The rail badge follows the selection, so each card has to be told.
         foreach (PokemonSlotViewModel slot in Slots)
         {
-            slot.IsSelected = ReferenceEquals(slot, value);
+            slot.IsSelected = ReferenceEquals(slot, CurrentSlot);
         }
     }
 
@@ -514,11 +530,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         // The rail heading counts the cards, and the cards are rebuilt on every snapshot,
         // so the count has to be re-read rather than left at whatever it was at startup.
         OnPropertyChanged(nameof(PartyCountText));
-        OnPropertyChanged(nameof(PartyCountText));
         OnPropertyChanged(nameof(HasEmptyParty));
         UpdateCoverage(analysis);
         UpdateStrength(strength);
         SelectedSlot = Slots.FirstOrDefault(slot => slot.SlotIndex == selectedIndex);
+        OnPropertyChanged(nameof(CurrentSlot));
+        foreach (PokemonSlotViewModel slot in Slots)
+        {
+            slot.IsSelected = ReferenceEquals(slot, CurrentSlot);
+        }
 
         // Sprites arrive later and are worth waiting for, not worth waiting on: the party
         // is on screen already, and each tile swaps its coloured box for the real thing as

@@ -29,8 +29,22 @@ public sealed record StatRow(string Name, int Base, int Iv, int Ev, int Current)
     };
 }
 
-/// <summary>One move slot as shown in the detail panel.</summary>
-public sealed record MoveRow(string Name, string Type, string Pp, IBrush Brush);
+/// <summary>
+/// One move a Pokémon knows now. <c>Detail</c> is the line under the name — type, category
+/// and power — which is what says whether a move runs off Attack or Special Attack. From
+/// Gen 4 that is a property of the move rather than of its type (D-041), so it is read from
+/// the generation's rules rather than guessed from the colour.
+/// </summary>
+public sealed record MoveRow(
+    string Name,
+    string Type,
+    string Pp,
+    string Detail,
+    IBrush Brush,
+    bool IsEmpty = false)
+{
+    public double Fade => IsEmpty ? 0.58 : 1;
+}
 
 /// <summary>A type shown as a coloured chip, with the reason it is listed.</summary>
 public sealed record TypeChip(string Type, string Detail, IBrush Brush)
@@ -67,7 +81,11 @@ public sealed record UpcomingMoveRow(
     string Type,
     string Level,
     string Distance,
-    IBrush Brush);
+    IBrush Brush,
+    bool IsAfterEvolution = false)
+{
+    public double Fade => IsAfterEvolution ? 0.55 : 1;
+}
 
 /// <summary>
 /// One move from the candidate pool. <c>Chosen</c> marks the four that made the build, so
@@ -85,6 +103,12 @@ public sealed record CandidateMoveRow(
 
     public string Marker => Chosen ? "✓" : string.Empty;
 }
+
+/// <summary>
+/// One of the four facts on the hero: a label and a value. A collection rather than four
+/// copies of the same markup, so adding a fifth is a line here and nothing in the screen.
+/// </summary>
+public sealed record FactChip(string Label, string Value);
 
 /// <summary>One contribution to the team strength score.</summary>
 public sealed record StrengthRow(string Name, int Points, int MaximumPoints, string Explanation)

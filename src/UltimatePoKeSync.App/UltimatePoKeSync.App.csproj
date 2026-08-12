@@ -43,6 +43,7 @@
     <!-- Window and taskbar icon. The .ico above is the one Windows stamps on the exe,
          and the .icns is built from the same artwork by build/make-icns.sh. -->
     <AvaloniaResource Include="Assets/app-icon.png" />
+    <AvaloniaResource Include="Assets/upsync-icon.png" />
   </ItemGroup>
 
   <ItemGroup>

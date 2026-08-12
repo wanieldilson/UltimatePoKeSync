@@ -14,24 +14,24 @@ public static class TypePalette
 {
     private static readonly IReadOnlyDictionary<PokemonType, Color> Colors = new Dictionary<PokemonType, Color>
     {
-        [PokemonType.Normal] = Color.FromRgb(0x9F, 0xA1, 0x9F),
-        [PokemonType.Fighting] = Color.FromRgb(0xC0, 0x3D, 0x2E),
-        [PokemonType.Flying] = Color.FromRgb(0x7C, 0x9B, 0xE0),
-        [PokemonType.Poison] = Color.FromRgb(0x92, 0x4A, 0x96),
-        [PokemonType.Ground] = Color.FromRgb(0xB2, 0x8B, 0x4A),
-        [PokemonType.Rock] = Color.FromRgb(0x9A, 0x8A, 0x50),
-        [PokemonType.Bug] = Color.FromRgb(0x81, 0x96, 0x24),
-        [PokemonType.Ghost] = Color.FromRgb(0x64, 0x5A, 0x9B),
-        [PokemonType.Steel] = Color.FromRgb(0x77, 0x7F, 0x8C),
-        [PokemonType.Fire] = Color.FromRgb(0xD9, 0x60, 0x2E),
-        [PokemonType.Water] = Color.FromRgb(0x3E, 0x76, 0xC4),
-        [PokemonType.Grass] = Color.FromRgb(0x4E, 0x9A, 0x3F),
+        [PokemonType.Normal] = Color.FromRgb(0xA8, 0xAA, 0xA6),
+        [PokemonType.Fighting] = Color.FromRgb(0xD8, 0x50, 0x3E),
+        [PokemonType.Flying] = Color.FromRgb(0x93, 0xB1, 0xEA),
+        [PokemonType.Poison] = Color.FromRgb(0xA3, 0x55, 0xA8),
+        [PokemonType.Ground] = Color.FromRgb(0xC1, 0x9A, 0x52),
+        [PokemonType.Rock] = Color.FromRgb(0xB4, 0xA4, 0x5F),
+        [PokemonType.Bug] = Color.FromRgb(0x8F, 0xA6, 0x2B),
+        [PokemonType.Ghost] = Color.FromRgb(0x74, 0x68, 0xB4),
+        [PokemonType.Steel] = Color.FromRgb(0x8A, 0x93, 0xA1),
+        [PokemonType.Fire] = Color.FromRgb(0xE0, 0x6A, 0x2E),
+        [PokemonType.Water] = Color.FromRgb(0x4A, 0x86, 0xD8),
+        [PokemonType.Grass] = Color.FromRgb(0x5C, 0xBF, 0x4A),
         [PokemonType.Electric] = Color.FromRgb(0xC9, 0xA2, 0x27),
-        [PokemonType.Psychic] = Color.FromRgb(0xC7, 0x4B, 0x7C),
-        [PokemonType.Ice] = Color.FromRgb(0x59, 0x9F, 0xB0),
-        [PokemonType.Dragon] = Color.FromRgb(0x5B, 0x50, 0xC0),
-        [PokemonType.Dark] = Color.FromRgb(0x5A, 0x4C, 0x45),
-        [PokemonType.Fairy] = Color.FromRgb(0xC4, 0x74, 0xA8),
+        [PokemonType.Psychic] = Color.FromRgb(0xDC, 0x5A, 0x8E),
+        [PokemonType.Ice] = Color.FromRgb(0x5D, 0xB3, 0xC4),
+        [PokemonType.Dragon] = Color.FromRgb(0x6A, 0x5E, 0xDC),
+        [PokemonType.Dark] = Color.FromRgb(0x7A, 0x66, 0x59),
+        [PokemonType.Fairy] = Color.FromRgb(0xD4, 0x86, 0xBC),
         [PokemonType.None] = Color.FromRgb(0x6B, 0x6B, 0x6B),
     };
 
@@ -42,6 +42,6 @@ public static class TypePalette
     public static IBrush SoftBrush(PokemonType type)
     {
         Color color = Colors.TryGetValue(type, out Color found) ? found : Colors[PokemonType.None];
-        return new SolidColorBrush(Color.FromArgb(0x3C, color.R, color.G, color.B));
+        return new SolidColorBrush(Color.FromArgb(0x34, color.R, color.G, color.B));
     }
 }
