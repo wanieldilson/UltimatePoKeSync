@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using Avalonia.Media;
+using Avalonia.Controls;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -53,6 +54,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     [ObservableProperty]
     private bool _isConnected;
+
+    /// <summary>Which of the six screens is showing. See D-047.</summary>
+    [ObservableProperty]
+    private DashboardTab _selectedTab = DashboardTab.Pokemon;
 
     [ObservableProperty]
     private bool _isDownloadingSprites;
@@ -165,6 +170,53 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// <summary>Which emulator is feeding the window, once one is.</summary>
     public string ConnectedVia => _live.ActiveEmulator ?? string.Empty;
 
+    /// <summary>"N / 6" beside the rail's heading.</summary>
+    public string PartyCountText => $"{Slots.Count} / 6";
+
+    /// <summary>Out of what. Held rather than assumed, so a rule change shows up here.</summary>
+    public int StrengthMaximum { get; private set; } = 100;
+
+    public string StrengthMaximumText => $"/ {StrengthMaximum}";
+
+    /// <summary>The three factors costing the most, which is what the rail prints.</summary>
+    public ObservableCollection<StrengthRow> WeakestRailFactors { get; } = [];
+
+    public GridLength StrengthFilled => new(Math.Clamp(StrengthScore, 0, 100), GridUnitType.Star);
+
+    public GridLength StrengthRemaining =>
+        new(Math.Clamp(100 - StrengthScore, 0, 100), GridUnitType.Star);
+
+    public bool IsPokemonTab => SelectedTab == DashboardTab.Pokemon;
+
+    public bool IsStatsTab => SelectedTab == DashboardTab.Stats;
+
+    public bool IsBuildTab => SelectedTab == DashboardTab.Build;
+
+    public bool IsLearnsetTab => SelectedTab == DashboardTab.Learnset;
+
+    public bool IsTeamTab => SelectedTab == DashboardTab.Team;
+
+    public bool IsBridgeTab => SelectedTab == DashboardTab.Bridge;
+
+    /// <summary>
+    /// The line under the app name: which game, and which emulator it came through. Both
+    /// are read from the cartridge rather than configured, so this is also the proof that
+    /// the bridge found something real.
+    /// </summary>
+    public string IdentityLine
+    {
+        get
+        {
+            if (_party is null)
+            {
+                return "NO GAME YET";
+            }
+
+            string via = ConnectedVia.Length > 0 ? $" · {ConnectedVia.ToUpperInvariant()}" : string.Empty;
+            return $"{_party.Game.Title.ToUpperInvariant()} · {_party.Game.GameCode}{via}";
+        }
+    }
+
     /// <summary>
     /// Whether the sprite folder has anything in it. Everything works without it, so this
     /// only decides whether to offer the download. See D-046.
@@ -239,6 +291,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// <summary>Returns to the whole-team view. Selection itself is the list box's job.</summary>
     [RelayCommand]
     private void ClearSelection() => SelectedSlot = null;
+
+    /// <summary>Switches screen. The rail and the header do not move. See D-047.</summary>
+    [RelayCommand]
+    private void ShowTab(DashboardTab tab) => SelectedTab = tab;
+
+    /// <summary>
+    /// Picking a card selects that member and shows the Pokémon screen, because that is
+    /// what somebody clicking a Pokémon is asking for.
+    /// </summary>
+    [RelayCommand]
+    private void SelectSlot(PokemonSlotViewModel slot)
+    {
+        SelectedSlot = slot;
+        SelectedTab = DashboardTab.Pokemon;
+    }
+
+    partial void OnSelectedTabChanged(DashboardTab value)
+    {
+        foreach (string name in new[]
+                 {
+                     nameof(IsPokemonTab), nameof(IsStatsTab), nameof(IsBuildTab),
+                     nameof(IsLearnsetTab), nameof(IsTeamTab), nameof(IsBridgeTab),
+                 })
+        {
+            OnPropertyChanged(name);
+        }
+    }
 
     /// <summary>
     /// Opens the file manager on the script. Typing that path into mGBA's dialog by hand
@@ -316,8 +395,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         OnPropertyChanged(nameof(CanOfferSprites));
     }
 
-    partial void OnSelectedSlotChanged(PokemonSlotViewModel? value) =>
+    partial void OnSelectedSlotChanged(PokemonSlotViewModel? value)
+    {
         OnPropertyChanged(nameof(ShowTeamPanel));
+
+        // The rail badge follows the selection, so each card has to be told.
+        foreach (PokemonSlotViewModel slot in Slots)
+        {
+            slot.IsSelected = ReferenceEquals(slot, value);
+        }
+    }
 
     partial void OnIsConnectedChanged(bool value) => OnPropertyChanged(nameof(ConnectionBrush));
 
@@ -365,6 +452,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _party = party;
         HasReceivedParty = true;
         GameText = $"{party.Game.Title} [{party.Game.GameCode}]";
+        OnPropertyChanged(nameof(IdentityLine));
 
         TeamAnalysis analysis;
         TeamStrength strength;
@@ -422,6 +510,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         UpdateEmptySlots(party.Count);
         OnPropertyChanged(nameof(HasTeam));
+
+        // The rail heading counts the cards, and the cards are rebuilt on every snapshot,
+        // so the count has to be re-read rather than left at whatever it was at startup.
+        OnPropertyChanged(nameof(PartyCountText));
+        OnPropertyChanged(nameof(PartyCountText));
         OnPropertyChanged(nameof(HasEmptyParty));
         UpdateCoverage(analysis);
         UpdateStrength(strength);
@@ -609,7 +702,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void UpdateStrength(TeamStrength strength)
     {
         StrengthScore = strength.Score;
+        StrengthMaximum = strength.MaximumScore;
         StrengthFactors.Clear();
+        WeakestRailFactors.Clear();
+
+        foreach (TeamStrengthFactor factor in strength.WeakestFactors.Take(3))
+        {
+            WeakestRailFactors.Add(new StrengthRow(
+                Humanise(factor.Kind), factor.Points, factor.MaximumPoints, factor.Explanation));
+        }
+
+        foreach (string name in new[]
+                 {
+                     nameof(StrengthMaximum), nameof(StrengthMaximumText),
+                     nameof(StrengthFilled), nameof(StrengthRemaining),
+                 })
+        {
+            OnPropertyChanged(name);
+        }
+
 
         foreach (TeamStrengthFactor factor in strength.Factors)
         {

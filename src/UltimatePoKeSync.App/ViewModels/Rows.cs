@@ -35,6 +35,12 @@ public sealed record MoveRow(string Name, string Type, string Pp, IBrush Brush);
 /// <summary>A type shown as a coloured chip, with the reason it is listed.</summary>
 public sealed record TypeChip(string Type, string Detail, IBrush Brush)
 {
+    /// <summary>
+    /// The name in capitals, as the chips are set. Every chip prints its type: the colour
+    /// is never the only signal, which is the rule TypePalette exists to keep.
+    /// </summary>
+    public string UpperType => Type.ToUpperInvariant();
+
     public static TypeChip For(PokemonType type, string detail) =>
         new(type.ToString(), detail, TypePalette.Brush(type));
 }
@@ -88,4 +94,12 @@ public sealed record StrengthRow(string Name, int Points, int MaximumPoints, str
     public double Fraction => MaximumPoints == 0 ? 0 : (double)Points / MaximumPoints;
 
     public bool IsPerfect => Points >= MaximumPoints;
+
+    /// <summary>How much this factor cost, as the rail prints it: −4.</summary>
+    public string Lost => $"−{MaximumPoints - Points}";
+
+    /// <summary>Red for a factor that scored nothing, yellow for one that scored badly.</summary>
+    public IBrush LostBrush => Points == 0
+        ? new SolidColorBrush(Color.FromRgb(0xFF, 0x5B, 0x4A))
+        : new SolidColorBrush(Color.FromRgb(0xFF, 0xD2, 0x3F));
 }

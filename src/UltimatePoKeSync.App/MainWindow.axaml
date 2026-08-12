@@ -7,7 +7,9 @@
         Title="UltimatePoKeSync"
         Icon="avares://UltimatePoKeSync/Assets/app-icon.png"
         Width="1180" Height="760"
-        MinWidth="900" MinHeight="600">
+        MinWidth="900" MinHeight="600"
+        Background="{StaticResource Ink}"
+        ExtendClientAreaToDecorationsHint="True">
 
   <Window.Resources>
     <!--
@@ -23,10 +25,10 @@
     <SolidColorBrush x:Key="Surface2" Color="#1E242C" />
     <SolidColorBrush x:Key="Surface3" Color="#28303A" />
     <SolidColorBrush x:Key="Line" Color="#262E39" />
-    <SolidColorBrush x:Key="Ink" Color="#E9EDF3" />
-    <SolidColorBrush x:Key="InkMuted" Color="#94A0B0" />
-    <SolidColorBrush x:Key="Accent" Color="#4C8DF6" />
-    <SolidColorBrush x:Key="AccentSoft" Color="#1B2B45" />
+    <SolidColorBrush x:Key="LegacyInk" Color="#E9EDF3" />
+    <SolidColorBrush x:Key="LegacyInkMuted" Color="#94A0B0" />
+    <SolidColorBrush x:Key="LegacyAccent" Color="#4C8DF6" />
+    <SolidColorBrush x:Key="LegacyAccentSoft" Color="#1B2B45" />
 
     <DataTemplate x:Key="ChipTemplate" x:DataType="vm:TypeChip">
       <Border Background="{Binding Brush}" CornerRadius="999" Padding="10,3" Margin="0,0,6,6"
@@ -43,7 +45,7 @@
     <Style Selector="Window">
       <Setter Property="FontSize" Value="14" />
       <Setter Property="Background" Value="{StaticResource Surface0}" />
-      <Setter Property="Foreground" Value="{StaticResource Ink}" />
+      <Setter Property="Foreground" Value="{StaticResource LegacyInk}" />
     </Style>
 
     <!-- Cards sit one level above the ground and carry a hairline, which is what stops a
@@ -59,7 +61,7 @@
     <Style Selector="TextBlock.section">
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{StaticResource InkMuted}" />
+      <Setter Property="Foreground" Value="{StaticResource LegacyInkMuted}" />
       <Setter Property="LetterSpacing" Value="0.09" />
     </Style>
 
@@ -69,13 +71,13 @@
     </Style>
 
     <Style Selector="TextBlock.muted">
-      <Setter Property="Foreground" Value="{StaticResource InkMuted}" />
+      <Setter Property="Foreground" Value="{StaticResource LegacyInkMuted}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
     <Style Selector="TextBlock.caption">
       <Setter Property="FontSize" Value="11" />
-      <Setter Property="Foreground" Value="{StaticResource InkMuted}" />
+      <Setter Property="Foreground" Value="{StaticResource LegacyInkMuted}" />
     </Style>
 
     <Style Selector="TextBlock.numeric">
@@ -86,7 +88,7 @@
          the panel it sits in. -->
     <Style Selector="Button">
       <Setter Property="Background" Value="{StaticResource Surface2}" />
-      <Setter Property="Foreground" Value="{StaticResource Ink}" />
+      <Setter Property="Foreground" Value="{StaticResource LegacyInk}" />
       <Setter Property="BorderBrush" Value="{StaticResource Line}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="999" />
@@ -97,16 +99,16 @@
     <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{StaticResource Surface3}" />
       <Setter Property="BorderBrush" Value="{StaticResource Line}" />
-      <Setter Property="Foreground" Value="{StaticResource Ink}" />
+      <Setter Property="Foreground" Value="{StaticResource LegacyInk}" />
     </Style>
     <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{StaticResource Surface1}" />
     </Style>
 
     <Style Selector="Button.primary">
-      <Setter Property="Background" Value="{StaticResource Accent}" />
+      <Setter Property="Background" Value="{StaticResource LegacyAccent}" />
       <Setter Property="Foreground" Value="White" />
-      <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+      <Setter Property="BorderBrush" Value="{StaticResource LegacyAccent}" />
     </Style>
     <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#5F9BF8" />
@@ -119,17 +121,17 @@
     <Style Selector="Button.segment">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Foreground" Value="{StaticResource InkMuted}" />
+      <Setter Property="Foreground" Value="{StaticResource LegacyInkMuted}" />
       <Setter Property="Padding" Value="14,6" />
       <Setter Property="CornerRadius" Value="999" />
     </Style>
     <Style Selector="Button.segment.on">
-      <Setter Property="Background" Value="{StaticResource Accent}" />
+      <Setter Property="Background" Value="{StaticResource LegacyAccent}" />
       <Setter Property="Foreground" Value="White" />
     </Style>
     <Style Selector="Button.segment:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{StaticResource Surface3}" />
-      <Setter Property="Foreground" Value="{StaticResource Ink}" />
+      <Setter Property="Foreground" Value="{StaticResource LegacyInk}" />
     </Style>
     <Style Selector="Button.segment.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#5F9BF8" />
@@ -148,7 +150,7 @@
       <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="ListBoxItem:selected Border.tile">
-      <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+      <Setter Property="BorderBrush" Value="{StaticResource LegacyAccent}" />
     </Style>
     <Style Selector="ListBoxItem:pointerover Border.tile">
       <Setter Property="BorderBrush" Value="{StaticResource Surface3}" />
@@ -163,57 +165,339 @@
 
     <Style Selector="ProgressBar">
       <Setter Property="MinWidth" Value="0" />
-      <Setter Property="Foreground" Value="{StaticResource Accent}" />
+      <Setter Property="Foreground" Value="{StaticResource LegacyAccent}" />
       <Setter Property="Background" Value="{StaticResource Surface2}" />
       <Setter Property="CornerRadius" Value="999" />
     </Style>
   </Window.Styles>
+  <!--
+    The shell: one bordered slab with a title bar, an identity header, a tab strip and a
+    body split into the party rail and the content area. Nothing here scrolls; the content
+    area does. See D-047.
+  -->
+  <Border CornerRadius="0" BorderThickness="0"
+          BorderBrush="{StaticResource Ink}" Background="{StaticResource ShellBg}"
+          BoxShadow="{StaticResource ShadowShell}" ClipToBounds="True">
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
 
-  <Grid RowDefinitions="Auto,*">
-
-    <!-- Header: what it is, what it is connected to, and which profile is answering. -->
-    <Border Grid.Row="0" Padding="20,14" Background="{DynamicResource SystemControlBackgroundListLowBrush}">
-      <Grid ColumnDefinitions="*,Auto">
-        <StackPanel Orientation="Horizontal" Spacing="12">
-          <Image Source="avares://UltimatePoKeSync/Assets/app-icon.png" Width="40" Height="40"
-                 VerticalAlignment="Center" />
-          <StackPanel Spacing="2" VerticalAlignment="Center">
-            <TextBlock Text="UltimatePoKeSync" Classes="title" />
-            <TextBlock Text="{Binding GameText}" Classes="caption" />
+      <!-- Title bar. Three lamps and the name, on the red the design opens with. -->
+      <Border Background="{StaticResource Alert}" BorderBrush="{StaticResource Ink}"
+              BorderThickness="0,0,0,4" Padding="16,11" PointerPressed="DragWindow">
+        <Grid ColumnDefinitions="Auto,*,78">
+          <!--
+            This bar replaces the system one, so its lamps are the window buttons rather
+            than a drawing of them: left to right, close, minimise, zoom, which is where a
+            Mac user's hand already goes.
+          -->
+          <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+            <Button Classes="lamp" Background="{StaticResource Accent}" Click="CloseWindow"
+                    ToolTip.Tip="Close" />
+            <Button Classes="lamp" Background="{StaticResource Info}" Click="MinimiseWindow"
+                    ToolTip.Tip="Minimise" />
+            <Button Classes="lamp" Background="#8CE07A" Click="ZoomWindow"
+                    ToolTip.Tip="Zoom" />
           </StackPanel>
-        </StackPanel>
+          <TextBlock Grid.Column="1" Text="ULTIMATEPOKESYNC" Classes="display"
+                     FontSize="14" Foreground="#0E0D13" LetterSpacing="1.96"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
 
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-
-          <!-- State as a pill: a dot alone is a decoration, a dot in a chip is a status. -->
-          <Border Background="{StaticResource Surface1}" BorderBrush="{StaticResource Line}"
-                  BorderThickness="1" CornerRadius="999" Padding="12,6" VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding ConnectionBrush}" />
-              <TextBlock Text="{Binding ConnectionText}" FontSize="13.5" VerticalAlignment="Center" />
+      <!-- Identity header: who the app is, what it found, and which profile answers. -->
+      <Border Grid.Row="1" Background="{StaticResource HeaderBg}"
+              BorderBrush="{StaticResource Ink}" BorderThickness="0,0,0,4">
+        <Panel>
+          <Border Background="{StaticResource Halftone}" IsHitTestVisible="False" />
+          <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="22,18">
+            <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+              <Border Width="58" Height="58" CornerRadius="29" Background="White"
+                      BorderBrush="{StaticResource Ink}" BorderThickness="4"
+                      BoxShadow="{StaticResource ShadowCard}" ClipToBounds="True">
+                <Image Source="avares://UltimatePoKeSync/Assets/app-icon.png"
+                       Width="42" Height="42" />
+              </Border>
+              <StackPanel Spacing="3" VerticalAlignment="Center">
+                <TextBlock Text="UltimatePoKeSync" Classes="display" FontSize="21"
+                           Foreground="{StaticResource Accent}" />
+                <TextBlock Text="{Binding IdentityLine}" Classes="mono" FontSize="11.5"
+                           LetterSpacing="1.03" />
+              </StackPanel>
             </StackPanel>
-          </Border>
 
-          <Button Content="Bridge script" Command="{Binding RevealScriptCommand}"
-                  ToolTip.Tip="{Binding ScriptPath}" />
-          <Button Name="CopyHeaderPathButton" Content="Copy path"
-                  ToolTip.Tip="{Binding ScriptPath}" />
+            <!-- Live pill. The dot blinks only while something is actually arriving. -->
+            <Border Grid.Column="2" Classes="chip" Background="#153021" BorderThickness="3"
+                    Padding="15,9" Margin="0,0,12,0" BoxShadow="{StaticResource ShadowChip}"
+                    IsVisible="{Binding IsConnected}" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="9">
+                <Ellipse Width="11" Height="11" Fill="{StaticResource Good}"
+                         Stroke="{StaticResource Ink}" StrokeThickness="2">
+                  <Ellipse.Styles>
+                    <Style Selector="Ellipse">
+                      <Style.Animations>
+                        <Animation Duration="0:0:1.8" IterationCount="Infinite">
+                          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+                          <KeyFrame Cue="50%"><Setter Property="Opacity" Value="0.25" /></KeyFrame>
+                          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+                        </Animation>
+                      </Style.Animations>
+                    </Style>
+                  </Ellipse.Styles>
+                </Ellipse>
+                <TextBlock Text="LIVE" Classes="strong" FontSize="13.5" Foreground="#B6F5C6" />
+              </StackPanel>
+            </Border>
 
-          <Border Background="{StaticResource Surface1}" BorderBrush="{StaticResource Line}"
-                  BorderThickness="1" CornerRadius="999" Padding="3">
-            <StackPanel Orientation="Horizontal" Spacing="2">
-              <Button Content="Playthrough" Classes="segment" Classes.on="{Binding !IsCompetitive}"
-                      Command="{Binding ChooseProfileCommand}" CommandParameter="playthrough"
-                      ToolTip.Tip="Answers for the story: what this Pokémon can reach now." />
-              <Button Content="Competitive" Classes="segment" Classes.on="{Binding IsCompetitive}"
-                      Command="{Binding ChooseProfileCommand}" CommandParameter="competitive"
-                      ToolTip.Tip="Answers for battling: every move it can legally end up with." />
+            <!-- Profile switch: two halves of one pill, the chosen half filled. -->
+            <Border Grid.Column="3" BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                    CornerRadius="999" ClipToBounds="True" VerticalAlignment="Center"
+                    BoxShadow="{StaticResource ShadowChip}">
+              <StackPanel Orientation="Horizontal">
+                <Button Content="Playthrough" Command="{Binding ChooseProfileCommand}" CommandParameter="playthrough"
+                        Classes="segment" Classes.on="{Binding !IsCompetitive}" />
+                <Button Content="Competitive" Command="{Binding ChooseProfileCommand}" CommandParameter="competitive"
+                        Classes="segment" Classes.on="{Binding IsCompetitive}" />
+              </StackPanel>
+            </Border>
+          </Grid>
+        </Panel>
+      </Border>
+
+      <!-- Tab strip. The active tab is a bar pinned to the bottom edge, not a fill. -->
+      <Border Grid.Row="2" Background="{StaticResource TabBg}"
+              BorderBrush="{StaticResource Ink}" BorderThickness="0,0,0,4" Padding="14,0">
+        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
+          <Button Classes="tab" Classes.on="{Binding IsPokemonTab}" Content="Pokémon"
+                  Command="{Binding ShowTabCommand}" CommandParameter="Pokemon" />
+          <Button Grid.Column="1" Classes="tab" Classes.on="{Binding IsStatsTab}"
+                  Content="Stats &amp; IV/EV"
+                  Command="{Binding ShowTabCommand}" CommandParameter="Stats" />
+          <Button Grid.Column="2" Classes="tab" Classes.on="{Binding IsBuildTab}"
+                  Content="Best set"
+                  Command="{Binding ShowTabCommand}" CommandParameter="Build" />
+          <Button Grid.Column="3" Classes="tab" Classes.on="{Binding IsLearnsetTab}"
+                  Content="Learnset"
+                  Command="{Binding ShowTabCommand}" CommandParameter="Learnset" />
+          <Button Grid.Column="4" Classes="tab" Classes.on="{Binding IsTeamTab}"
+                  Content="Team"
+                  Command="{Binding ShowTabCommand}" CommandParameter="Team" />
+          <Button Grid.Column="6" Classes="tab bridge" Classes.on="{Binding IsBridgeTab}"
+                  Content="Bridge"
+                  Command="{Binding ShowTabCommand}" CommandParameter="Bridge" />
+        </Grid>
+      </Border>
+
+      <!-- Body: a fixed party rail and the content area beside it. -->
+      <Grid Grid.Row="3" ColumnDefinitions="286,*">
+
+        <Border Background="{StaticResource RailBg}" BorderBrush="{StaticResource Ink}"
+                BorderThickness="0,0,4,0">
+          <Grid RowDefinitions="Auto,*,Auto" Margin="16,20">
+
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+              <TextBlock Text="PARTY" Classes="display" FontSize="12.5"
+                         LetterSpacing="1.5" Foreground="#8D86A6" />
+              <TextBlock Grid.Column="1" Classes="mono" Foreground="{StaticResource TextFaint}"
+                         Text="{Binding PartyCountText}" />
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="12">
+
+                <ItemsControl ItemsSource="{Binding Slots}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PokemonSlotViewModel">
+                      <!--
+                        A card per member. The slot number overhangs the top-left corner and
+                        the status badge the top-right, both outside the card's own bounds,
+                        which is why the whole thing sits in a Panel with margins rather than
+                        in a StackPanel.
+                      -->
+                      <Panel Margin="9,9,4,3">
+                        <Button Classes="railcard" Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SelectSlotCommand}"
+                                CommandParameter="{Binding}">
+                          <Border Classes="card" Background="{Binding TileBrush}">
+                            <Grid ColumnDefinitions="54,*" ColumnSpacing="11">
+                              <Border Width="54" Height="54" CornerRadius="12"
+                                      BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                                      Background="{StaticResource PanelSunkenDeep}"
+                                      ClipToBounds="True">
+                                <Panel>
+                                  <TextBlock Text="{Binding Initials}" Classes="mono"
+                                             FontSize="10" HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
+                                             IsVisible="{Binding !HasSprite}" />
+                                  <Image Source="{Binding Sprite}" IsVisible="{Binding HasSprite}"
+                                         RenderOptions.BitmapInterpolationMode="None"
+                                         Stretch="Uniform" Margin="2" />
+                                </Panel>
+                              </Border>
+
+                              <StackPanel Grid.Column="1" Spacing="5">
+                                <Grid ColumnDefinitions="*,Auto">
+                                  <TextBlock Text="{Binding SpeciesName}" Classes="strong"
+                                             FontSize="16" TextTrimming="CharacterEllipsis" />
+                                  <TextBlock Grid.Column="1" Text="{Binding LevelText}"
+                                             Classes="mono" FontSize="12" />
+                                </Grid>
+
+                                <ItemsControl ItemsSource="{Binding TypeChips}"
+                                              IsVisible="{Binding ShowsBattleData}">
+                                  <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                      <StackPanel Orientation="Horizontal" Spacing="5" />
+                                    </ItemsPanelTemplate>
+                                  </ItemsControl.ItemsPanel>
+                                  <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:TypeChip">
+                                      <Border Classes="chip" Background="{Binding Brush}">
+                                        <TextBlock Text="{Binding UpperType}" Foreground="#0D1A0C" />
+                                      </Border>
+                                    </DataTemplate>
+                                  </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="7"
+                                      IsVisible="{Binding ShowsBattleData}">
+                                  <Border Height="11" CornerRadius="999"
+                                          BorderBrush="{StaticResource Ink}" BorderThickness="2"
+                                          Background="{StaticResource PanelSunkenDeep}"
+                                          ClipToBounds="True" VerticalAlignment="Center">
+                                    <Grid>
+                                      <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="{Binding HpFilled}" />
+                                        <ColumnDefinition Width="{Binding HpRemaining}" />
+                                      </Grid.ColumnDefinitions>
+                                      <Border Background="{Binding HpBrush}" />
+                                    </Grid>
+                                  </Border>
+                                  <TextBlock Grid.Column="1" Text="{Binding HpText}"
+                                             Classes="mono" FontSize="10.5" />
+                                </Grid>
+
+                                <TextBlock Text="not hatched yet" Classes="mono" FontSize="10.5"
+                                           IsVisible="{Binding IsEgg}" />
+                              </StackPanel>
+                            </Grid>
+                          </Border>
+                        </Button>
+
+                        <!-- Slot number, overhanging the corner. -->
+                        <Border Width="26" Height="26" CornerRadius="13"
+                                BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                                Background="{Binding SlotBadgeBrush}"
+                                HorizontalAlignment="Left" VerticalAlignment="Top"
+                                Margin="-9,-9,0,0" IsHitTestVisible="False">
+                          <TextBlock Text="{Binding SlotNumber}" Classes="display" FontSize="11"
+                                     Foreground="{StaticResource TextOnAccent}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <!-- Status badge, tilted, on the other corner. -->
+                        <Border Classes="chip" BorderThickness="3" Background="{Binding StatusBrush}"
+                                HorizontalAlignment="Right" VerticalAlignment="Top"
+                                Margin="0,-11,-6,0" RenderTransform="rotate(4deg)"
+                                IsVisible="{Binding HasStatus}" IsHitTestVisible="False">
+                          <TextBlock Text="{Binding StatusText}" Foreground="White" />
+                        </Border>
+                      </Panel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Free slots, said once rather than drawn five times. -->
+                <Border CornerRadius="14" BorderThickness="3" Padding="12,10"
+                        BorderBrush="#2F2B40" IsVisible="{Binding HasEmptySlots}">
+                  <TextBlock Text="{Binding EmptySlotsText}" Classes="mono"
+                             HorizontalAlignment="Center" />
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Row="2" Spacing="12" Margin="0,14,0,0">
+              <!-- Team score, pinned to the bottom of the rail. -->
+              <Panel IsVisible="{Binding HasTeam}">
+                <Border Classes="panel" Padding="16,18,16,14" Background="{StaticResource Panel}">
+                  <StackPanel Spacing="9">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Bottom">
+                      <TextBlock Text="{Binding StrengthScore}" Classes="display" FontSize="38"
+                                 Foreground="{StaticResource Accent}" />
+                      <TextBlock Text="{Binding StrengthMaximumText}" Classes="display"
+                                 FontSize="15" Foreground="{StaticResource TextFaint}"
+                                 VerticalAlignment="Bottom" Margin="0,0,0,6" />
+                    </StackPanel>
+
+                    <Border Height="14" CornerRadius="999" BorderBrush="{StaticResource Ink}"
+                            BorderThickness="3" Background="{StaticResource PanelSunkenDeep}"
+                            ClipToBounds="True">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="{Binding StrengthFilled}" />
+                          <ColumnDefinition Width="{Binding StrengthRemaining}" />
+                        </Grid.ColumnDefinitions>
+                        <Border>
+                          <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                              <GradientStop Offset="0" Color="#FF5B4A" />
+                              <GradientStop Offset="1" Color="#FFD23F" />
+                            </LinearGradientBrush>
+                          </Border.Background>
+                        </Border>
+                      </Grid>
+                    </Border>
+
+                    <ItemsControl ItemsSource="{Binding WeakestRailFactors}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:StrengthRow">
+                          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,3,0,0">
+                            <TextBlock Text="{Binding Lost}" Classes="mono strong"
+                                       Foreground="{Binding LostBrush}" />
+                            <TextBlock Grid.Column="1" Text="{Binding Explanation}"
+                                       Classes="muted" FontSize="11.5" TextWrapping="Wrap" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+                <Border Classes="badge">
+                  <TextBlock Text="TEAM SCORE" />
+                </Border>
+              </Panel>
+
+              <!-- The one thing not in the design: the sprites the app never ships. -->
+              <Border Classes="card" Background="{StaticResource PanelAlt}"
+                      IsVisible="{Binding CanOfferSprites}">
+                <StackPanel Spacing="7">
+                  <TextBlock Text="NO SPRITES YET" Classes="display" FontSize="11"
+                             LetterSpacing="1.2" Foreground="{StaticResource TextMuted}" />
+                  <TextBlock Text="27 MB, animated, every generation." Classes="muted"
+                             FontSize="11.5" TextWrapping="Wrap" />
+                  <Button Content="Download" Classes="ink"
+                          Command="{Binding DownloadSpritesCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+              </Border>
+
+              <Border Classes="card" Background="{StaticResource PanelAlt}"
+                      IsVisible="{Binding IsDownloadingSprites}">
+                <StackPanel Spacing="7">
+                  <TextBlock Text="{Binding SpriteStatus}" Classes="mono" />
+                  <ProgressBar Value="{Binding SpriteProgress}" Maximum="1" Height="6" />
+                </StackPanel>
+              </Border>
             </StackPanel>
-          </Border>
-        </StackPanel>
-      </Grid>
-    </Border>
+          </Grid>
+        </Border>
 
+        <!--
+          The content area. One screen at a time; the rail and the header never move.
+          The panels below are the previous dashboard, kept working while each screen is
+          rebuilt to the design in turn.
+        -->
+        <Panel Grid.Column="1" Background="{StaticResource TabBg}">
+          <Border Background="{StaticResource Halftone}" IsHitTestVisible="False" />
+
+          <ScrollViewer IsVisible="{Binding !HasTeam}">
+            <StackPanel MaxWidth="720" Margin="24,28" Spacing="16" HorizontalAlignment="Center">
     <!-- Setup: shown until the bridge answers, and not a moment longer. -->
     <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowSetup}">
       <StackPanel MaxWidth="720" Margin="24,32" Spacing="18" HorizontalAlignment="Center">
@@ -298,103 +582,10 @@
                  Text="The bridge is connected and the save was read: there is simply nothing in the team yet. Catch or withdraw one and it appears here on its own." />
       <TextBlock Text="{Binding GameText}" Classes="caption" HorizontalAlignment="Center" />
     </StackPanel>
-
-    <!-- Dashboard. -->
-    <Grid Grid.Row="1" IsVisible="{Binding HasTeam}" ColumnDefinitions="230,*" Margin="16,16,16,16">
-
-      <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel>
-          <ListBox ItemsSource="{Binding Slots}" SelectedItem="{Binding SelectedSlot}"
-                   Background="Transparent" BorderThickness="0" Padding="0">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:PokemonSlotViewModel">
-                <Border Classes="tile" Background="{Binding TileBrush}">
-                  <StackPanel Spacing="7">
-
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                      <Panel Width="52" Height="52">
-                        <!-- The coloured box is the ground the sprite lands on, so a game
-                             we cannot read still shows something. -->
-                        <Border CornerRadius="6" Background="{Binding PrimaryBrush}"
-                                IsVisible="{Binding !HasSprite}">
-                          <TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="Bold"
-                                     FontSize="14.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <Image Source="{Binding Sprite}" IsVisible="{Binding HasSprite}"
-                               RenderOptions.BitmapInterpolationMode="None"
-                               Stretch="Uniform" />
-                      </Panel>
-
-                      <StackPanel Grid.Column="1" Margin="9,0,0,0" Spacing="1" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding SpeciesName}" FontWeight="SemiBold" FontSize="14.5"
-                                   TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding NicknameText}" IsVisible="{Binding HasNickname}"
-                                   Classes="muted" FontSize="12.5" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding TypeText}" Classes="muted" FontSize="12.5" />
-                      </StackPanel>
-
-                      <StackPanel Grid.Column="2" Spacing="3" HorizontalAlignment="Right">
-                        <TextBlock Text="{Binding LevelText}" FontSize="12.5" HorizontalAlignment="Right" />
-                        <TextBlock Text="✦" IsVisible="{Binding IsShiny}" FontSize="13.5"
-                                   Foreground="#C9A227" HorizontalAlignment="Right"
-                                   ToolTip.Tip="Shiny" />
-                      </StackPanel>
-                    </Grid>
-
-                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="7"
-                          IsVisible="{Binding ShowsBattleData}">
-                      <Grid Height="5" VerticalAlignment="Center">
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="{Binding HpFilled}" />
-                          <ColumnDefinition Width="{Binding HpRemaining}" />
-                        </Grid.ColumnDefinitions>
-                        <Border CornerRadius="3" Background="{Binding HpBrush}" />
-                        <Border Grid.Column="1" CornerRadius="3" Opacity="0.25"
-                                Background="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
-                      </Grid>
-                      <TextBlock Grid.Column="1" Text="{Binding HpText}" FontSize="12"
-                                 Classes="muted" VerticalAlignment="Center" />
-                      <Border Grid.Column="2" Background="{Binding StatusBrush}" CornerRadius="3"
-                              Padding="5,1" IsVisible="{Binding HasStatus}" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding StatusText}" Foreground="White" FontSize="11"
-                                   FontWeight="SemiBold" />
-                      </Border>
-                    </Grid>
-
-                    <TextBlock Text="{Binding HeldItemText}" IsVisible="{Binding HasHeldItem}"
-                               Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-
-          <!-- One line for the free slots. Five empty cards at 72 px each filled the
-               strip for a party of one and said nothing five times. -->
-          <Border CornerRadius="10" Padding="12,7" Margin="0,2,0,0"
-                  BorderThickness="1" BorderBrush="{StaticResource Line}"
-                  Background="#0B0E12" IsVisible="{Binding HasEmptySlots}">
-            <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
-              <ItemsControl ItemsSource="{Binding EmptySlots}" VerticalAlignment="Center">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" Spacing="5" />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="sys:Int32">
-                    <Border Width="13" Height="13" CornerRadius="3" BorderThickness="1"
-                            BorderBrush="{StaticResource Line}" Opacity="0.7" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <TextBlock Text="{Binding EmptySlotsText}" Classes="caption" Opacity="0.6"
-                         VerticalAlignment="Center" />
             </StackPanel>
-          </Border>
-        </StackPanel>
-      </ScrollViewer>
+          </ScrollViewer>
 
+          <Grid IsVisible="{Binding HasTeam}" Margin="22,20" ColumnDefinitions="*">
       <ScrollViewer Grid.Column="1" Margin="16,0,0,0">
         <Panel>
 
@@ -779,6 +970,9 @@
           </ContentControl>
         </Panel>
       </ScrollViewer>
+          </Grid>
+        </Panel>
+      </Grid>
     </Grid>
-  </Grid>
+  </Border>
 </Window>

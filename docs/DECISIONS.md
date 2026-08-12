@@ -1625,3 +1625,44 @@ and a terminal, and most people have neither), bundle the sprites (rejected for 
 D-045 gives, which has not changed), and fetch each sprite the first time it is needed
 (rejected: it would make every party update a potential network call, and the saving is a few
 hundred kilobytes against a one-off 27 MB).
+
+## D-047 — The window is the design's own frame
+
+**Status:** Accepted · 2026-08-12
+
+The dashboard is being rebuilt to a supplied design: a comic Pokédex in thick ink outlines,
+flat offset shadows and tilted sticker badges. This entry records the decisions the shell
+forced; the screens follow it one at a time.
+
+**The tokens live in one file.** `Theme.axaml` holds every colour, font, shadow and the
+halftone brush; `Styles.axaml` holds the shapes the design repeats — panel, card, chip,
+badge, tab, lamp. Nothing else writes a hex. The whole look rests on one ink colour being
+exactly the same in every border and every shadow, and a colour that appears in two files
+drifts in one of them.
+
+**The title bar replaces the system one rather than joining it.** Drawn first, it produced
+two title bars stacked on top of each other, which is exactly as silly as it sounds. With
+`ExtendClientAreaToDecorationsHint` the red bar *is* the window's title bar — so its three
+lamps had to stop being a drawing of window buttons and become the buttons: close, minimise
+and zoom, left to right, where a Mac user's hand already goes. The bar drags the window,
+because the thing that used to do that is gone.
+
+Avalonia 12 no longer has `ExtendClientAreaChromeHints`, which the design's note assumed from
+Avalonia 11; the remaining hint is enough on macOS.
+
+**Fonts are the one new dependency**, and the only files here somebody else wrote: Bungee,
+Nunito and DM Mono, under the Open Font License, which permits shipping them. 484 KB, listed
+in `THIRD_PARTY_NOTICES.md`.
+
+**Three places where the design predates the code**, decided with the author rather than
+invented: the Bridge screen will carry two columns of steps, because melonDS has no script to
+load and the design knew only mGBA; the sprite download — which does not exist in the design
+at all — sits at the foot of the rail while the folder is empty; and the live pill reads
+`LIVE` alone, because "4 reads/s" is a number the app does not measure and inventing one
+would be the first decoration in an app whose rule is that every number on screen came from
+memory.
+
+**Alternatives considered:** port the design's HTML into a web view (rejected by the brief,
+and rightly: the app would gain a browser to draw six panels), and keep the native title bar
+and drop the design's (rejected: the bar is the first thing the design establishes, and the
+lamps work now).

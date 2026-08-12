@@ -1,0 +1,238 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    The shapes the design repeats. Named by what they are in the design language — panel,
+    chip, badge — so a screen reads as the mock describes it rather than as a pile of
+    borders. Everything here draws its colours from Theme.axaml.
+  -->
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{StaticResource AppBg}" />
+    <Setter Property="FontFamily" Value="{StaticResource Body}" />
+  </Style>
+
+  <Style Selector="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource Body}" />
+    <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+
+  <!-- Bungee, for names, scores and the small caps labels. Display only. -->
+  <Style Selector="TextBlock.display">
+    <Setter Property="FontFamily" Value="{StaticResource Display}" />
+  </Style>
+
+  <!-- DM Mono, for numbers, paths and identifiers: things that line up. -->
+  <Style Selector="TextBlock.mono">
+    <Setter Property="FontFamily" Value="{StaticResource Mono}" />
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+  </Style>
+
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+  </Style>
+
+  <Style Selector="TextBlock.faint">
+    <Setter Property="Foreground" Value="{StaticResource TextFaint}" />
+  </Style>
+
+  <!-- Nunito at its heaviest is what the design uses for anything that must be read first. -->
+  <Style Selector="TextBlock.strong">
+    <Setter Property="FontWeight" Value="Black" />
+  </Style>
+
+  <!-- A content panel: 4 px ink, radius 20, hard shadow. -->
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="{StaticResource Panel}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    <Setter Property="BorderThickness" Value="4" />
+    <Setter Property="CornerRadius" Value="20" />
+    <Setter Property="BoxShadow" Value="{StaticResource ShadowPanel}" />
+    <Setter Property="Padding" Value="20" />
+  </Style>
+
+  <!-- A rail card or a nested row: 3 px ink, smaller radius, smaller shadow. -->
+  <Style Selector="Border.card">
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    <Setter Property="BorderThickness" Value="3" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="BoxShadow" Value="{StaticResource ShadowCard}" />
+    <Setter Property="Padding" Value="11" />
+  </Style>
+
+  <!-- A pill: fully round, 2 px ink, for type chips and small badges. -->
+  <Style Selector="Border.chip">
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Padding" Value="8,2" />
+  </Style>
+
+  <Style Selector="Border.chip > TextBlock">
+    <Setter Property="FontWeight" Value="Black" />
+    <Setter Property="FontSize" Value="10.5" />
+  </Style>
+
+  <!--
+    The section badge: a tilted pill that straddles a panel's top border. Placed by the
+    screen with Margin="16,-13,0,0" over the panel it titles.
+  -->
+  <Style Selector="Border.badge">
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    <Setter Property="BorderThickness" Value="3" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Padding" Value="9,3" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Margin" Value="16,-13,0,0" />
+    <Setter Property="Background" Value="{StaticResource Accent}" />
+    <Setter Property="RenderTransform" Value="rotate(-2deg)" />
+  </Style>
+
+  <Style Selector="Border.badge > TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource Display}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{StaticResource TextOnAccent}" />
+  </Style>
+
+  <!--
+    A button in the ink style. Hover lifts the element by a pixel while the shadow stays
+    put, so it appears to pop off the page rather than to glow.
+  -->
+  <Style Selector="Button.ink">
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    <Setter Property="BorderThickness" Value="3" />
+    <Setter Property="CornerRadius" Value="11" />
+    <Setter Property="Padding" Value="14,8" />
+    <Setter Property="FontWeight" Value="Black" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Background" Value="{StaticResource Accent}" />
+    <Setter Property="Foreground" Value="{StaticResource TextOnAccent}" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <!-- The shadow lives on the template's presenter: a Button itself has no BoxShadow. -->
+  <Style Selector="Button.ink /template/ ContentPresenter">
+    <Setter Property="BoxShadow" Value="{StaticResource ShadowChip}" />
+  </Style>
+
+  <Style Selector="Button.ink:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Accent}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+  </Style>
+
+  <Style Selector="Button.ink:pointerover">
+    <Setter Property="RenderTransform" Value="translate(-1px,-1px)" />
+  </Style>
+
+  <!--
+    A tab: a label with a bar pinned to the bottom edge when it is the one showing. No
+    background change, which is what keeps the strip flat and the bar the only signal.
+  -->
+  <Style Selector="Button.tab">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="16,14,16,12" />
+    <Setter Property="FontWeight" Value="Black" />
+    <Setter Property="FontSize" Value="13.5" />
+    <Setter Property="Foreground" Value="#CFC7E6" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Panel>
+          <ContentPresenter Content="{TemplateBinding Content}" Padding="{TemplateBinding Padding}"
+                            Foreground="{TemplateBinding Foreground}"
+                            FontWeight="{TemplateBinding FontWeight}"
+                            FontSize="{TemplateBinding FontSize}"
+                            VerticalAlignment="Center" />
+          <Border Name="Underline" Height="5" CornerRadius="4,4,0,0" Margin="10,0"
+                  VerticalAlignment="Bottom" IsVisible="False" />
+        </Panel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.tab:pointerover">
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="Button.tab.on /template/ Border#Underline">
+    <Setter Property="IsVisible" Value="True" />
+    <Setter Property="Background" Value="{StaticResource Accent}" />
+  </Style>
+
+  <!-- The bridge tab is quieter until it is the one showing, and cyan when it is. -->
+  <Style Selector="Button.tab.bridge">
+    <Setter Property="Foreground" Value="#8D86A6" />
+  </Style>
+
+  <Style Selector="Button.tab.bridge.on /template/ Border#Underline">
+    <Setter Property="Background" Value="{StaticResource Info}" />
+  </Style>
+
+  <!-- Half of the profile switch. The chosen half is filled; the other is not. -->
+  <Style Selector="Button.segment">
+    <Setter Property="Background" Value="#2A2637" />
+    <Setter Property="Foreground" Value="#A49EC0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="17,9" />
+    <Setter Property="FontWeight" Value="Black" />
+    <Setter Property="FontSize" Value="13.5" />
+  </Style>
+
+  <Style Selector="Button.segment.on">
+    <Setter Property="Background" Value="{StaticResource Accent}" />
+    <Setter Property="Foreground" Value="{StaticResource TextOnAccent}" />
+  </Style>
+
+  <Style Selector="Button.segment.on /template/ ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Accent}" />
+  </Style>
+
+  <!--
+    A party card is a button so it can be clicked, but it must look like nothing but the
+    card inside it: no chrome of its own, and the lift on hover belongs to the whole card.
+  -->
+  <Style Selector="Button.railcard">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
+  </Style>
+
+  <Style Selector="Button.railcard /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Button.railcard:pointerover">
+    <Setter Property="RenderTransform" Value="translate(-1px,-1px)" />
+  </Style>
+
+  <!-- A window lamp: a 13 px circle that is also a button. -->
+  <Style Selector="Button.lamp">
+    <Setter Property="Width" Value="13" />
+    <Setter Property="Height" Value="13" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="Button.lamp /template/ ContentPresenter">
+    <Setter Property="Background" Value="{Binding $parent[Button].Background}" />
+    <Setter Property="CornerRadius" Value="7" />
+  </Style>
+
+</Styles>

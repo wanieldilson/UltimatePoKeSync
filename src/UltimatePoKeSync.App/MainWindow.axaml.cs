@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -28,10 +29,39 @@ public partial class MainWindow : Window
         RestoreLayout(AppSettings.Load());
         PositionChanged += (_, _) => RememberNormalBounds();
 
-        this.FindControl<Button>("CopyPathButton")!.Click += CopyScriptPath;
-        this.FindControl<Button>("CopyHeaderPathButton")!.Click += CopyScriptPath;
+        // Both copy buttons are optional: the header lost its own when the shell was
+        // rebuilt, and a screen that has not been rebuilt yet may not carry one either.
+        foreach (string name in new[] { "CopyPathButton", "CopyHeaderPathButton" })
+        {
+            if (this.FindControl<Button>(name) is { } button)
+            {
+                button.Click += CopyScriptPath;
+            }
+        }
         _viewModel.Start();
     }
+
+    /// <summary>
+    /// The red bar is the window's own title bar, so dragging it has to move the window:
+    /// the system one that would normally do that is gone.
+    /// </summary>
+    private void DragWindow(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            BeginMoveDrag(e);
+        }
+    }
+
+    private void CloseWindow(object? sender, RoutedEventArgs e) => Close();
+
+    private void MinimiseWindow(object? sender, RoutedEventArgs e) =>
+        WindowState = WindowState.Minimized;
+
+    private void ZoomWindow(object? sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
 
     /// <summary>
     /// The path is the one thing a user has to move by hand into mGBA's file dialog, so

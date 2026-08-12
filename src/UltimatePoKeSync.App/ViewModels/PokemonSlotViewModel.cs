@@ -172,6 +172,31 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public int SlotIndex => Member.SlotIndex;
 
+    /// <summary>What the badge on the corner shows: slots are counted from one.</summary>
+    public int SlotNumber => Member.SlotIndex + 1;
+
+    /// <summary>Yellow for the selected member, bone white for the rest.</summary>
+    public IBrush SlotBadgeBrush => IsSelected
+        ? new SolidColorBrush(Color.FromRgb(0xFF, 0xD2, 0x3F))
+        : new SolidColorBrush(Color.FromRgb(0xE8, 0xE3, 0xF5));
+
+    /// <summary>Set by the window when the selection changes, so the badge can follow it.</summary>
+    public bool IsSelected
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SlotBadgeBrush));
+        }
+    }
+
     /// <summary>
     /// An egg shows as an egg. Its species is in the bytes, and the game deliberately does
     /// not show it — telling the player what is inside would spoil the one thing hatching

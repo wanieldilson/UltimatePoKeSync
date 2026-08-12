@@ -46,6 +46,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Bungee, Nunito and DM Mono, under the SIL Open Font License. The one design
+         dependency the redesign adds, and the only files in this repository that are not
+         ours: see THIRD_PARTY_NOTICES.md. -->
+    <AvaloniaResource Include="Assets/Fonts/*.ttf" />
+    <AvaloniaResource Include="Theme.axaml" />
+    <AvaloniaResource Include="Styles.axaml" />
+    <AvaloniaResource Include="Assets/halftone.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!--
       The bridge script ships next to the executable. A user who downloaded a release has
       no repository to hunt through, and the setup screen needs a real path to point at.

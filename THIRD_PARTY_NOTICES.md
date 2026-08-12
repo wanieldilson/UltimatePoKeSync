@@ -52,3 +52,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+
+## Bungee, Nunito and DM Mono
+
+The three typefaces of the dashboard, under the SIL Open Font License 1.1, which permits
+bundling them with software. They ship in `src/UltimatePoKeSync.App/Assets/Fonts` and are the
+only files in this repository that somebody else wrote.
+
+- Bungee — Copyright 2023 The Bungee Project Authors (https://github.com/djrrb/Bungee)
+- Nunito — Copyright The Nunito Project Authors (https://github.com/googlefonts/nunito)
+- DM Mono — Copyright The DM Mono Project Authors (https://github.com/googlefonts/dm-mono)
+- Licence: https://openfontlicense.org

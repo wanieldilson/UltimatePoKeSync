@@ -1,0 +1,62 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    The design tokens, defined once. Nothing anywhere else may write a hex: a colour that
+    appears in two files drifts in one of them, and the whole look here rests on one ink
+    colour being exactly the same everywhere it is drawn.
+  -->
+
+  <!-- Ink is the single most important token: every border and every shadow. -->
+  <Color x:Key="InkColour">#08070C</Color>
+  <SolidColorBrush x:Key="Ink" Color="{StaticResource InkColour}" />
+
+  <SolidColorBrush x:Key="AppBg" Color="#0C0B10" />
+  <SolidColorBrush x:Key="ShellBg" Color="#16141D" />
+  <SolidColorBrush x:Key="HeaderBg" Color="#1C1A26" />
+  <SolidColorBrush x:Key="TabBg" Color="#12111A" />
+  <SolidColorBrush x:Key="RailBg" Color="#171522" />
+  <SolidColorBrush x:Key="Panel" Color="#231F31" />
+  <SolidColorBrush x:Key="PanelAlt" Color="#2A2536" />
+  <SolidColorBrush x:Key="PanelAltDeep" Color="#2C2740" />
+  <SolidColorBrush x:Key="PanelSunken" Color="#1B1826" />
+  <SolidColorBrush x:Key="PanelSunkenDeep" Color="#171325" />
+
+  <SolidColorBrush x:Key="Accent" Color="#FFD23F" />
+  <SolidColorBrush x:Key="Alert" Color="#FF5B4A" />
+  <SolidColorBrush x:Key="Info" Color="#45D0E0" />
+  <SolidColorBrush x:Key="Good" Color="#7FF09A" />
+
+  <SolidColorBrush x:Key="TextPrimary" Color="#F6F2E8" />
+  <SolidColorBrush x:Key="TextMuted" Color="#9A93B0" />
+  <SolidColorBrush x:Key="TextFaint" Color="#6F6889" />
+  <SolidColorBrush x:Key="TextOnAccent" Color="#171420" />
+
+  <SolidColorBrush x:Key="GoodBg" Color="#1C3524" />
+  <SolidColorBrush x:Key="BadBg" Color="#4A2A26" />
+
+  <!-- The three faces. Bungee is display only: never a paragraph. -->
+  <FontFamily x:Key="Display">avares://UltimatePoKeSync/Assets/Fonts#Bungee</FontFamily>
+  <FontFamily x:Key="Body">avares://UltimatePoKeSync/Assets/Fonts#Nunito</FontFamily>
+  <FontFamily x:Key="Mono">avares://UltimatePoKeSync/Assets/Fonts#DM Mono</FontFamily>
+
+  <!--
+    The halftone: a 14 px tile with one 2 px white dot at 8%. Decoration only, never
+    interactive, and tiled rather than stretched so the grid stays the same size whatever
+    the panel is.
+  -->
+  <ImageBrush x:Key="Halftone"
+              Source="avares://UltimatePoKeSync/Assets/halftone.png"
+              TileMode="Tile"
+              SourceRect="0,0,14,14"
+              DestinationRect="0,0,14,14" />
+
+  <!-- Hard offsets, never a blur. The element looks stamped rather than floating. -->
+  <BoxShadows x:Key="ShadowChip">3 3 0 0 #08070C</BoxShadows>
+  <BoxShadows x:Key="ShadowCard">4 4 0 0 #08070C</BoxShadows>
+  <BoxShadows x:Key="ShadowSprite">5 5 0 0 #08070C</BoxShadows>
+  <BoxShadows x:Key="ShadowPanel">6 6 0 0 #08070C</BoxShadows>
+  <BoxShadows x:Key="ShadowHero">7 7 0 0 #08070C</BoxShadows>
+  <BoxShadows x:Key="ShadowShell">10 12 0 0 #08070C</BoxShadows>
+
+</ResourceDictionary>
