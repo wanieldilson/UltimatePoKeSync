@@ -1514,3 +1514,34 @@ someone playing tonight, in a way that an optimal level 100 build is not.
 `PokemonGeneration` (rejected: a game code, not a generation, is what identifies tables —
 Black and Black 2 are both Gen 5 and teach differently), and giving the analysers a list of
 sources to try (rejected: it puts the dispatch in every caller instead of in one place).
+
+## D-044 — Recommendations pick their reference data by generation
+
+**Status:** Accepted · 2026-08-12
+
+Gen 5 gets recommendations. The engine used to hold one preset catalog and one move catalog
+and refuse anything that did not match them; it now holds them keyed by generation and looks
+up the party's, in the same way it already keyed the two profiles by kind. A catalog knows
+which generation it is for, so nothing else has to be told, and Gen 4 will be two more
+entries.
+
+The data is Showdown's Gen 5 Random Battle sets from the commit already pinned for Gen 3 —
+388 species, 606 sets — and it carries exactly the standing D-024 gave the Gen 3 ones:
+expert-authored examples of what a species can do, not standard competitive play and not a
+claim about this save.
+
+The Gen 5 tables answering rather than the Gen 3 ones is checked by something only they
+have: Grass Pledge appears among a Snivy's tutor candidates, and there is no such move in
+Emerald.
+
+**A test had to be rewritten rather than kept.** An hour earlier the dashboard asserted that
+a Gen 5 party gets no build and is told so on screen. That was true when it was written and
+is now false, so it was replaced by the opposite assertion rather than worked around. A test
+that describes a limitation has a shelf life; what it was really guarding — that the window
+and the analysis agree about what exists — is what the replacement checks.
+
+**Alternatives considered:** keep one catalog and construct a second engine for Gen 5
+(rejected: two engines mean two places for a policy change to be forgotten), and resolve
+catalogs from the game code rather than the generation (rejected: unlike learnsets, reference
+sets do not differ between Black and Black 2 — and inventing a distinction that the data does
+not make is how a table grows entries nobody can justify).

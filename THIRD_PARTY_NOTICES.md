@@ -17,6 +17,13 @@ because the base file holds the current generation's numbers. See D-041.
 
 - Files: `data/moves.ts`, `data/mods/gen{8,7,6,5}/moves.ts`
 - Importer: `tools/import-showdown-gen5-data.mjs`
+
+## Pokémon Showdown Gen 5 Random Battle sets
+
+The same pinned commit again, and the same standing as the Gen 3 sets: expert-authored role
+and movepool examples, not standard OU usage. See D-024 and D-044.
+
+- File: https://github.com/smogon/pokemon-showdown/blob/db93869dcc216c0be39e7f86e9a64edcc7496d89/data/random-battles/gen5/sets.json
 - Revision: `db93869dcc216c0be39e7f86e9a64edcc7496d89`
 - Retrieved: 2026-08-10
 

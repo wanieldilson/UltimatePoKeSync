@@ -9,8 +9,8 @@ public sealed class PokemonRecommendationEngine
     private readonly TeamAnalyzer _teamAnalyzer;
     private readonly PokemonRoleAnalyzer _roleAnalyzer;
     private readonly IGenerationRulesResolver _rulesResolver;
-    private readonly IReferencePresetCatalog _presetCatalog;
-    private readonly IMoveReferenceCatalog _moveCatalog;
+    private readonly IReadOnlyDictionary<PokemonGeneration, IReferencePresetCatalog> _presetCatalogs;
+    private readonly IReadOnlyDictionary<PokemonGeneration, IMoveReferenceCatalog> _moveCatalogs;
     private readonly IMoveLearnSource _learnsets;
     private readonly IReadOnlyDictionary<RecommendationProfileKind, IRecommendationProfile> _profiles;
 
@@ -23,8 +23,8 @@ public sealed class PokemonRecommendationEngine
             new TeamAnalyzer(),
             new PokemonRoleAnalyzer(),
             GenerationRulesResolver.Default,
-            ShowdownGen3PresetCatalog.Instance,
-            ShowdownGen3MoveCatalog.Instance,
+            [ShowdownGen3PresetCatalog.Instance, ShowdownGen5PresetCatalog.Instance],
+            [ShowdownGen3MoveCatalog.Instance, ShowdownGen5MoveCatalog.Instance],
             learnsets,
             [new PlaythroughRecommendationProfile(), new CompetitiveRecommendationProfile()]);
 
@@ -32,24 +32,26 @@ public sealed class PokemonRecommendationEngine
         TeamAnalyzer teamAnalyzer,
         PokemonRoleAnalyzer roleAnalyzer,
         IGenerationRulesResolver rulesResolver,
-        IReferencePresetCatalog presetCatalog,
-        IMoveReferenceCatalog moveCatalog,
+        IEnumerable<IReferencePresetCatalog> presetCatalogs,
+        IEnumerable<IMoveReferenceCatalog> moveCatalogs,
         IMoveLearnSource learnsets,
         IEnumerable<IRecommendationProfile> profiles)
     {
         ArgumentNullException.ThrowIfNull(teamAnalyzer);
         ArgumentNullException.ThrowIfNull(roleAnalyzer);
         ArgumentNullException.ThrowIfNull(rulesResolver);
-        ArgumentNullException.ThrowIfNull(presetCatalog);
-        ArgumentNullException.ThrowIfNull(moveCatalog);
+        ArgumentNullException.ThrowIfNull(presetCatalogs);
+        ArgumentNullException.ThrowIfNull(moveCatalogs);
         ArgumentNullException.ThrowIfNull(learnsets);
         ArgumentNullException.ThrowIfNull(profiles);
 
         _teamAnalyzer = teamAnalyzer;
         _roleAnalyzer = roleAnalyzer;
         _rulesResolver = rulesResolver;
-        _presetCatalog = presetCatalog;
-        _moveCatalog = moveCatalog;
+        // Keyed by generation for the same reason the profiles are keyed by kind: a
+        // catalog knows which generation it is for, so nothing else has to be told.
+        _presetCatalogs = presetCatalogs.ToDictionary(catalog => catalog.Generation);
+        _moveCatalogs = moveCatalogs.ToDictionary(catalog => catalog.Generation);
         _learnsets = learnsets;
         _profiles = profiles.ToDictionary(profile => profile.Kind);
 
@@ -71,8 +73,8 @@ public sealed class PokemonRecommendationEngine
         IGenerationRules rules = _rulesResolver.Resolve(party.Game.Generation)
             ?? throw new NotSupportedException(
                 $"No recommendation rules are available for {party.Game.Generation}.");
-        if (_presetCatalog.Generation != party.Game.Generation ||
-            _moveCatalog.Generation != party.Game.Generation)
+        if (!_presetCatalogs.TryGetValue(party.Game.Generation, out IReferencePresetCatalog? presets) ||
+            !_moveCatalogs.TryGetValue(party.Game.Generation, out IMoveReferenceCatalog? moves))
         {
             throw new NotSupportedException(
                 $"No recommendation reference data is available for {party.Game.Generation}.");
@@ -111,8 +113,8 @@ public sealed class PokemonRecommendationEngine
                 teamAnalysis,
                 role,
                 rules,
-                _presetCatalog,
-                _moveCatalog,
+                presets,
+                moves,
                 _learnsets,
                 answered));
 

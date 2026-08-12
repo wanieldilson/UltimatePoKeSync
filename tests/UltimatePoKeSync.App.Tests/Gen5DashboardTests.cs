@@ -40,18 +40,48 @@ public sealed class Gen5DashboardTests
         Assert.NotEmpty(snivy.Weaknesses);
     }
 
+    /// <summary>
+    /// Gen 5 has reference sets of its own now, so the window offers a build for it and
+    /// reports nothing missing. This test used to assert the opposite, which was true for
+    /// about an hour; what it guards has not changed — that the window and the analysis
+    /// agree about what exists.
+    /// </summary>
     [Fact]
-    public void WhatIsMissingIsNamedRatherThanLeftBlank()
+    public void AGenFivePokemonGetsABuildOfItsOwn()
     {
         (MainWindowViewModel viewModel, FakeSource source) = Create();
 
         source.RaiseParty(LoadBlack());
 
-        // No build to offer, and the window says why instead of showing an empty card.
-        Assert.False(viewModel.Slots[0].HasRecommendation);
-        Assert.True(viewModel.HasAnalysisError);
-        Assert.Contains("Gen5", viewModel.AnalysisError, StringComparison.Ordinal);
-        Assert.Contains("still shown", viewModel.AnalysisError, StringComparison.Ordinal);
+        PokemonSlotViewModel snivy = viewModel.Slots[0];
+        Assert.True(snivy.HasRecommendation);
+        Assert.False(viewModel.HasAnalysisError);
+
+        snivy.ToggleBuildCommand.Execute(null);
+        Assert.NotEmpty(snivy.BuildMoves);
+        Assert.All(snivy.BuildMoves, move => Assert.NotEqual("?", move.Name));
+
+        // The candidates come from the Gen 5 tables: Grass Pledge is a move Gen 3 does not
+        // have, so seeing it proves the right catalog answered.
+        Assert.Contains(snivy.Candidates, candidate => candidate.Name == "Grass Pledge");
+    }
+
+    /// <summary>
+    /// What the next levels bring, in the window rather than the console. Snivy becomes
+    /// Servine at 17, which is one level later than the Gen 3 starters — a difference that
+    /// only shows if the Gen 5 tables are the ones answering. See D-043.
+    /// </summary>
+    [Fact]
+    public void TheGenFiveEvolutionIsCountedDownTo()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+
+        source.RaiseParty(LoadBlack());
+
+        PokemonSlotViewModel snivy = viewModel.Slots[0];
+        Assert.True(snivy.HasProgress);
+        Assert.Equal("Becomes Servine at Lv.17, 11 levels away.", snivy.EvolutionText);
+        Assert.Contains(snivy.UpcomingMoves, move => move.Name == "Vine Whip");
     }
 
     /// <summary>
