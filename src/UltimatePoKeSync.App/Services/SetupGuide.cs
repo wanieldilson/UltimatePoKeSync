@@ -136,6 +136,20 @@ public static class SetupGuide
         $"Keep playing. This window connects on port {port} by itself.",
     ];
 
+    /// <summary>
+    /// The other way in, for the DS games. melonDS has no scripting worth the name, so there
+    /// is no file to load: it answers a debugger instead, and the app speaks that. See D-039.
+    /// </summary>
+    public static IReadOnlyList<string> DsSteps() =>
+    [
+        "Install melonDS 1.1 or later and open your Gen 5 ROM.",
+        "Open Config → Emu settings and tick \"Enable GDB stub\".",
+        "Leave the JIT recompiler off. melonDS ships that way, and the debugger only "
+            + "answers when it is off.",
+        "Restart the game so the setting takes effect, then keep playing. Nothing else to "
+            + "load: this window connects on port 3334 by itself.",
+    ];
+
     /// <summary>Shown when the port is busy, which is nearly always a second mGBA.</summary>
     public static string PortHelp(int port) =>
         $"Nothing yet on port {port}. If mGBA is running with the script loaded, check its "

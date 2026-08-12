@@ -1439,3 +1439,44 @@ in the output), take move data from PKHeX (rejected: it carries move type and PP
 base power nor category, so it cannot answer the question), and share one type chart file
 between the generations (rejected: it saves a kilobyte and costs the ability to say which
 generation a multiplier belongs to — the duplication is checked by a test instead).
+
+## D-042 — Both emulators are watched at once, and nobody is asked which
+
+**Status:** Accepted · 2026-08-12
+
+With two emulators supported the obvious move is a menu: pick mGBA or melonDS. That question
+has already been answered by whoever opened one of them, and the promise the app was built on
+is that you open it and it works — no configuration, no 300 steps.
+
+So `LiveTeamService` runs both pipelines side by side and adopts whichever produces a party.
+Nothing is asked, nothing is remembered, and swapping from a GBA game to a DS one mid-session
+needs no announcement: the most recent party wins, so the next poll simply arrives from the
+other emulator and the window follows it.
+
+Three details that only matter once both are running:
+
+**The memory reader follows the active emulator.** Sprites are fetched from the machine the
+team came from, not from whichever provider happens to be constructed first.
+
+**Only the active emulator reports its state.** Otherwise the one that is *not* running keeps
+announcing that it is reconnecting, over the top of the one that is working. Before either
+has answered they both report, which is harmless — they are both connecting.
+
+**Sprites stay a Gen 3 feature.** `RomSpriteSource` reads a GBA cartridge at GBA addresses
+(D-033), so it is skipped entirely for a DS game. Without that guard it would hunt for tables
+that are not there, down a channel that moves 15 KB a second (D-039), and spend half a minute
+finding nothing.
+
+The setup screen now carries both sets of instructions under their own headings, because the
+two could not be less alike: mGBA needs a Lua script found and loaded by hand, while melonDS
+needs a checkbox ticked and the JIT left off, and no file at all. Telling a Black player to
+load `ups_bridge.lua` would be sending them looking for something that cannot help them.
+
+Verified against the real composition with mGBA closed and melonDS running: `Connecting`,
+`Connecting`, `Streaming`, then `connected via melonDS`, POKEMON B [IRBI], Snivy Lv.6.
+
+**Alternatives considered:** a dropdown in the UI (rejected: it asks a question the user has
+already answered by opening an emulator), remembering the last emulator used and trying it
+first (rejected: it saves nothing — both are already tried at once — and it fails on the day
+somebody switches), and picking by the ROM the app is told about (rejected: the app is not
+told about a ROM, it finds one, which is the point of D-005).

@@ -90,6 +90,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _post = post;
 
         SetupSteps = SetupGuide.Steps(live.Port);
+        DsSetupSteps = SetupGuide.DsSteps();
         ScriptPath = SetupGuide.ScriptPath;
         PlatformName = SetupGuide.PlatformName;
         PortHelp = SetupGuide.PortHelp(live.Port);
@@ -136,6 +137,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public ObservableCollection<StrengthRow> StrengthFactors { get; } = [];
 
     public IReadOnlyList<string> SetupSteps { get; }
+
+    /// <summary>The other emulator's steps, for the DS games.</summary>
+    public IReadOnlyList<string> DsSetupSteps { get; }
+
+    /// <summary>Which emulator is feeding the window, once one is.</summary>
+    public string ConnectedVia => _live.ActiveEmulator ?? string.Empty;
 
     public string ScriptPath { get; }
 
@@ -231,6 +238,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void OnStateChanged(EmulatorConnectionState state)
     {
+        OnPropertyChanged(nameof(ConnectedVia));
         IsConnected = state == EmulatorConnectionState.Streaming;
         ConnectionText = state switch
         {
@@ -330,7 +338,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         GameIdentity game,
         IReadOnlyList<PokemonSlotViewModel> slots)
     {
-        if (_sprites is null)
+        // Sprites are read out of a GBA cartridge, at GBA addresses (D-033). A DS game has
+        // neither, and the melonDS channel moves 15 KB a second, so hunting for tables that
+        // are not there would spend half a minute finding nothing. See D-039.
+        if (_sprites is null || game.Generation != PokemonGeneration.Gen3)
         {
             return;
         }

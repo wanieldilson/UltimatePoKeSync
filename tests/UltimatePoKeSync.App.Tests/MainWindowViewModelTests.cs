@@ -24,6 +24,25 @@ public sealed class MainWindowViewModelTests
     }
 
     /// <summary>
+    /// Both emulators are watched at once, so both sets of instructions are on the screen:
+    /// someone playing Black must not be told to load a Lua script that melonDS cannot use.
+    /// See D-042.
+    /// </summary>
+    [Fact]
+    public void TheSetupScreenExplainsBothEmulators()
+    {
+        (MainWindowViewModel viewModel, _) = Create();
+
+        Assert.Contains(viewModel.SetupSteps, step => step.Contains("mGBA", StringComparison.Ordinal));
+        Assert.NotEmpty(viewModel.DsSetupSteps);
+        Assert.Contains(viewModel.DsSetupSteps, step => step.Contains("melonDS", StringComparison.Ordinal));
+        Assert.Contains(viewModel.DsSetupSteps, step => step.Contains("GDB stub", StringComparison.Ordinal));
+
+        // And it must not tell a DS player to leave the JIT on, which silences the stub.
+        Assert.Contains(viewModel.DsSetupSteps, step => step.Contains("JIT", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// The path handed to the user must survive being opened from Downloads on macOS,
     /// where the app itself runs from a randomised throwaway directory. See D-029.
     /// </summary>
@@ -291,6 +310,8 @@ public sealed class MainWindowViewModelTests
         public int Port => 8888;
 
         public IEmulatorMemoryReader? MemoryReader => null;
+
+        public string? ActiveEmulator { get; set; }
 
         public bool Started { get; private set; }
 

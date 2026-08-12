@@ -25,5 +25,10 @@ public interface ILiveTeamSource : IAsyncDisposable
     /// </summary>
     IEmulatorMemoryReader? MemoryReader { get; }
 
+    /// <summary>
+    /// Which emulator is feeding the window, once one is. Null before anything arrives.
+    /// </summary>
+    string? ActiveEmulator { get; }
+
     void Start();
 }

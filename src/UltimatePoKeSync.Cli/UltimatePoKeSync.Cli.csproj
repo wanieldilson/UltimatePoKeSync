@@ -24,6 +24,7 @@
     <ProjectReference Include="..\UltimatePoKeSync.GameData\UltimatePoKeSync.GameData.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.GameData.Learnsets\UltimatePoKeSync.GameData.Learnsets.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.Providers.MGba\UltimatePoKeSync.Providers.MGba.csproj" />
+    <ProjectReference Include="..\UltimatePoKeSync.Providers.MelonDs\UltimatePoKeSync.Providers.MelonDs.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.Parsing\UltimatePoKeSync.Parsing.csproj" />
     <ProjectReference Include="..\UltimatePoKeSync.Session\UltimatePoKeSync.Session.csproj" />
   </ItemGroup>

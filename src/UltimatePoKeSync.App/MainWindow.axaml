@@ -219,9 +219,23 @@
       <StackPanel MaxWidth="720" Margin="24,32" Spacing="18" HorizontalAlignment="Center">
         <TextBlock Text="Connect the emulator" FontSize="24" FontWeight="SemiBold" />
         <TextBlock Classes="muted"
-                   Text="{Binding PlatformName, StringFormat='Setting up on {0}. mGBA cannot load a script from the command line, so this part is manual — once, then it just works.'}" />
+                   Text="{Binding PlatformName, StringFormat='Setting up on {0}. Both emulators are watched at once, so follow whichever list matches the game you are playing — this window picks up the one that answers.'}" />
+
+        <TextBlock Text="Game Boy Advance · Gen 1 to 3 · mGBA" Classes="section" Margin="0,6,0,0" />
 
         <ItemsControl ItemsSource="{Binding SetupSteps}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="sys:String">
+              <Border Classes="card" Margin="0,0,0,8">
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- The DS half. No script to load here: melonDS answers a debugger instead. -->
+        <TextBlock Text="Nintendo DS · Gen 4 and 5 · melonDS" Classes="section" Margin="0,14,0,0" />
+        <ItemsControl ItemsSource="{Binding DsSetupSteps}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="sys:String">
               <Border Classes="card" Margin="0,0,0,8">
