@@ -29,15 +29,22 @@ import statistics
 import sys
 import time
 
-# The ARM9 is the CPU that runs the game logic; the ARM7 is sound and I/O.
-DEFAULT_PORT = 3333
+# The ARM7, not the ARM9. Both CPUs get a stub, and the ARM9 one — the obvious
+# choice, since it runs the game logic — completes the handshake and then closes
+# the connection on the first command, whatever the command is. The ARM7 stub
+# answers properly, and main RAM is shared between the two processors, so it can
+# read everything we care about anyway.
+DEFAULT_PORT = 3334
 
 # Main RAM on the DS. The party lives somewhere in here, but this tool does not
 # need to know where: it is measuring the channel, not reading Pokemon.
 MAIN_RAM = 0x02000000
 
-# The stub refuses anything above half its 1152-byte buffer.
-MAX_READ = 576
+# The stub allows up to half its 1152-byte buffer, but that limit is wrong: 576
+# bytes become 1152 hex characters, which no longer leave room for the framing in
+# a response buffer of exactly 1152. Anything near the limit times out. This is
+# the size that was actually observed to work.
+MAX_READ = 256
 
 
 class GdbError(Exception):
@@ -52,7 +59,22 @@ class GdbClient:
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.buffer = b""
 
+        # melonDS waits one second for a bare '+' before it will speak to anyone,
+        # and swallows whatever arrives first as that acknowledgement. Sending a
+        # packet straight away loses its opening '$' to the handshake and the rest
+        # arrives as garbage, which the stub answers by hanging up.
+        self.sock.sendall(b"+")
+
     def close(self) -> None:
+        # Detach first. Connecting halts the emulated CPU, and merely dropping the
+        # socket can leave the game frozen for the person playing it.
+        try:
+            self.send("D")
+            self.sock.settimeout(1.0)
+            self.receive()
+        except (OSError, GdbError):
+            pass
+
         self.sock.close()
 
     def send(self, payload: str) -> None:
@@ -111,7 +133,8 @@ def main() -> int:
 
     print(f"Connected to {args.host}:{args.port}.")
 
-    # 1. Connecting halts the target. Release it before measuring anything.
+    # 1. Connecting halts the target. Release it before measuring anything. There is
+    # no reply to a continue until the target stops again, so nothing is read here.
     client.send("c")
     print("Sent continue. The game should be running again — check the window.")
     time.sleep(0.5)
