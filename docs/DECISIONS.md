@@ -1276,3 +1276,61 @@ honest part twice), keep one "safe" list and only fix the wording (rejected: it 
 two views phrased differently for no reason), drop the empty slots entirely (rejected: a
 party of one is worth seeing as a party of one), and remember the layout in the OS-native
 way per platform (rejected: three implementations of a file with five numbers in it).
+
+## D-039 — melonDS answers, but one frame at a time
+
+**Status:** Accepted · 2026-08-12
+
+Gen 4 and 5 are Nintendo DS games, so D-001's emulator cannot run them. melonDS can, ships a
+universal macOS build, and offers a GDB stub where mGBA offers Lua. Everything below was
+measured against melonDS 1.1 running a real Pokémon Black, because the source told a
+different story from the machine in three separate places.
+
+**The JIT is not a price.** The run loop picks the JIT over the GDB stub, so reading memory
+means running the interpreter — which sounded like the cost of the whole approach. It is not:
+`JIT.Enable` has no entry in melonDS's defaults table, so a fresh install already runs the
+interpreter, and on macOS Intel the JIT is not even compiled in. Measured on an Apple Silicon
+Mac: **180 FPS** uncapped against a 60 FPS target, and a steady 60 while being hammered with
+back-to-back reads.
+
+**The ARM9 stub is broken; the ARM7 stub is not.** The obvious choice is the ARM9, which runs
+the game. It completes the handshake and then closes the connection on the first command,
+whatever the command is — `?`, `qSupported`, a memory read, every time, on fresh connections.
+The ARM7 stub on port 3334 answers correctly, and main RAM is shared between the processors,
+so it reaches everything we need. A defect in the tool we depend on, routed around rather
+than fixed.
+
+**Two protocol details that the source states wrongly.** A client must send a bare `+` as its
+first byte: melonDS waits one second for it and swallows whatever arrives first, so a client
+that opens with a packet loses its `$` to the handshake and gets hung up on. And the
+documented read limit of 576 bytes is not real — 576 bytes become 1152 hex characters, which
+no longer leave room for framing in a response buffer of exactly 1152. Reads near the limit
+time out. 256 bytes works.
+
+**The ceiling is one request per frame.** Each read takes ~16 ms, which is 1/60th of a second
+on a 60 FPS target, and the measured throughput is 60 reads/s — the stub is polled once per
+frame, so no amount of pipelining goes faster.
+
+| | mGBA + Lua (D-002) | melonDS + GDB stub |
+| --- | --- | --- |
+| party read | pushed on change, ~600 B | 1408 B in 6 requests, **95 ms** |
+| throughput | ~350 KB in one reply | **15 KB/s** |
+| cost while polling | none observed | none observed, 60 FPS held |
+
+95 ms per party is comfortable at one or two polls a second. The 15 KB/s ceiling is not
+comfortable for everything: **sprites read from the cartridge (D-033) take ~350 KB in Gen 3,
+which would be 23 seconds here.** Gen 4 and 5 will need a different answer for sprites, and
+that is a difference in what the app can do per generation rather than a detail of the
+provider.
+
+Two behaviours the provider must own. Connecting *halts* the emulated CPU until a continue
+arrives, and dropping the socket without detaching leaves the game frozen for whoever is
+playing — which is exactly what happened repeatedly while measuring this. The provider
+connects once and keeps the connection, rather than opening one per read.
+
+**Alternatives considered:** wait for melonDS's Lua support (rejected: the pull request has
+been open since April 2023, and the API in the fork that develops it has no memory read at
+all, so it would not help even if it landed), BizHawk with the melonDS core (rejected: its
+own README says Apple Silicon is not available — D-001 again, three years on), and running DS
+games under a 3DS emulator (rejected: a 3DS switches to separate DS hardware rather than
+emulating it, and Azahar's loader accepts no `.nds` file).
