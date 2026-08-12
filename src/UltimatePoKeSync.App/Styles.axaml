@@ -97,6 +97,22 @@
     <Setter Property="Foreground" Value="{StaticResource TextOnAccent}" />
   </Style>
 
+  <Style Selector="Border.compare-left, Border.compare-right">
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    <Setter Property="BorderThickness" Value="3" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Background" Value="{StaticResource PanelSunken}" />
+    <Setter Property="Padding" Value="12,9" />
+  </Style>
+
+  <Style Selector="Border.compare-left.changed">
+    <Setter Property="Background" Value="{StaticResource BadBg}" />
+  </Style>
+
+  <Style Selector="Border.compare-right.changed">
+    <Setter Property="Background" Value="{StaticResource GoodBg}" />
+  </Style>
+
   <!--
     A button in the ink style. Hover lifts the element by a pixel while the shadow stays
     put, so it appears to pop off the page rather than to glow.

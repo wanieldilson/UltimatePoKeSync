@@ -181,8 +181,51 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
                     Humanise(slot.Role),
                     DescribeSource(slot.Move),
                     slot.Reason,
-                    TypePalette.Brush(slot.Move.Move.Type))),
+                    TypePalette.Brush(slot.Move.Move.Type),
+                    RoleBrush(slot.Role),
+                    IsObtainableNow(slot.Move, member.Level))),
             ];
+
+        Alternatives = recommendation is null
+            ? []
+            :
+            [
+                .. recommendation.Build.Alternatives.Select(move => new AlternativeMoveRow(
+                    move.Move.Name,
+                    $"{DescribeSource(move)} · {Describe(move.Availability)}")),
+            ];
+
+        string currentRole = Moves.Count < 4 ? "undecided" : RoleText;
+        string recommendedItem = recommendation?.ItemCandidates.FirstOrDefault()?.Name ?? "none";
+        bool effortValuesMatch = EffortValues
+            .Where(stat => stat.Value > 0)
+            .All(stat => stat.IsRecommended);
+        BuildComparisonRows =
+        [
+            new("Role", currentRole, "Role", RoleText,
+                !currentRole.Equals(RoleText, StringComparison.OrdinalIgnoreCase)),
+            new("Nature", Member.NatureName, "Nature", NatureText,
+                recommendation?.Nature.CurrentNatureIsPreferred == false),
+            new("Item", HeldItemOrNone, "Item", recommendedItem,
+                !HeldItemOrNone.Equals(recommendedItem, StringComparison.OrdinalIgnoreCase)),
+            new("Moves", $"{Moves.Count} of 4", "EV", EffortValueText,
+                Moves.Count != 4 || !effortValuesMatch),
+        ];
+        BuildChangeCount = BuildComparisonRows.Count(row => row.IsDifferent);
+        CurrentNatureCard = BuildNatureCard(
+            currentNature,
+            member,
+            $"{Member.NatureName} — what you have",
+            isRecommended: recommendation?.Nature.CurrentNatureIsPreferred == true,
+            RoleText);
+        RecommendedNatureCard = BuildNatureCard(
+            recommendation?.Nature.PreferredNatures.FirstOrDefault(),
+            member,
+            recommendation?.Nature.PreferredNatures.FirstOrDefault() is NatureInfo preferredNature
+                ? $"{preferredNature.Name} — what to look for"
+                : "No preferred nature available",
+            isRecommended: true,
+            RoleText);
 
         // The whole pool, not only the four that won. Which moves were on the table is
         // how a player judges whether the four are right, and until now only the console
@@ -502,6 +545,22 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public bool HasProjectedStats => ProjectedStatsText.Length > 0;
 
     public IReadOnlyList<BuildMoveRow> BuildMoves { get; }
+
+    public IReadOnlyList<AlternativeMoveRow> Alternatives { get; }
+
+    public bool HasAlternatives => Alternatives.Count > 0;
+
+    public IReadOnlyList<BuildComparisonRow> BuildComparisonRows { get; }
+
+    public int BuildChangeCount { get; }
+
+    public string BuildChangeText => BuildChangeCount == 1
+        ? "1 change"
+        : $"{BuildChangeCount} changes";
+
+    public NatureCard CurrentNatureCard { get; }
+
+    public NatureCard RecommendedNatureCard { get; }
 
     /// <summary>Every move that was on the table, with the four that made it marked.</summary>
     public IReadOnlyList<CandidateMoveRow> Candidates { get; }
@@ -862,5 +921,90 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         BuildSlotRole.TeamSupport => "Team support",
         BuildSlotRole.Utility => "Utility",
         _ => "Filler",
+    };
+
+    private static IBrush RoleBrush(BuildSlotRole role) => role switch
+    {
+        BuildSlotRole.SameType => new SolidColorBrush(Color.FromRgb(0xFF, 0xD2, 0x3F)),
+        BuildSlotRole.Coverage => new SolidColorBrush(Color.FromRgb(0xE0, 0x95, 0x4A)),
+        BuildSlotRole.TeamSupport => new SolidColorBrush(Color.FromRgb(0xB0, 0x6B, 0xE0)),
+        BuildSlotRole.Utility => new SolidColorBrush(Color.FromRgb(0x45, 0xD0, 0xE0)),
+        _ => new SolidColorBrush(Color.FromRgb(0xA8, 0xAA, 0xA6)),
+    };
+
+    private static bool IsObtainableNow(MoveRecommendation move, int level) =>
+        move.Availability == RecommendationAvailability.KnownAvailable
+        && (move.LearnedAtLevel is null || move.LearnedAtLevel <= level);
+
+    private static NatureCard BuildNatureCard(
+        NatureInfo? nature,
+        PokemonSnapshot member,
+        string heading,
+        bool isRecommended,
+        string role)
+    {
+        if (nature is null)
+        {
+            return new NatureCard(heading, [], "No nature recommendation is available for this game.");
+        }
+
+        IReadOnlyList<NatureModifierChip> modifiers = nature.IsNeutral
+            ?
+            [
+                new("neutral", new SolidColorBrush(Color.FromRgb(0xA8, 0xAA, 0xA6))),
+            ]
+            :
+            [
+                new($"+10% {Abbreviate(nature.IncreasedStat!.Value)}",
+                    new SolidColorBrush(Color.FromRgb(0x7F, 0xF0, 0x9A))),
+                new($"−10% {Abbreviate(nature.DecreasedStat!.Value)}",
+                    new SolidColorBrush(Color.FromRgb(0xFF, 0x5B, 0x4A))),
+            ];
+
+        string explanation;
+        if (nature.IsNeutral)
+        {
+            explanation = isRecommended
+                ? $"A neutral nature leaves every stat alone and still fits the {role.ToLowerInvariant()} plan."
+                : "This nature leaves every stat unchanged.";
+        }
+        else if (isRecommended)
+        {
+            explanation = $"It strengthens {DescribeStat(nature.IncreasedStat!.Value)} and gives up "
+                + $"{DescribeStat(nature.DecreasedStat!.Value)}, matching the {role.ToLowerInvariant()} plan.";
+        }
+        else
+        {
+            Stat reduced = nature.DecreasedStat!.Value;
+            int today = NatureCost(member, reduced, member.Level, nature);
+            int atHundred = NatureCost(member, reduced, 100, nature);
+            explanation = $"It takes {today} {DescribeStat(reduced)} "
+                + (today == 1 ? "point" : "points")
+                + $" off today and {atHundred} at level 100.";
+        }
+
+        return new NatureCard(heading, modifiers, explanation);
+    }
+
+    private static int NatureCost(
+        PokemonSnapshot member,
+        Stat stat,
+        int level,
+        NatureInfo nature)
+    {
+        int neutral = (((2 * member.BaseStats[stat]
+            + member.IndividualValues[stat]
+            + (member.EffortValues[stat] / 4)) * level) / 100) + 5;
+        return Math.Abs(neutral - nature.Apply(stat, neutral));
+    }
+
+    private static string DescribeStat(Stat stat) => stat switch
+    {
+        Stat.Hp => "HP",
+        Stat.Attack => "Attack",
+        Stat.Defense => "Defense",
+        Stat.SpecialAttack => "Special Attack",
+        Stat.SpecialDefense => "Special Defense",
+        _ => "Speed",
     };
 }

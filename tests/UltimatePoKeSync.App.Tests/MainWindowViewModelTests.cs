@@ -252,6 +252,25 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void TheBestSetComparisonComesFromTheRecommendationEngine()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+        source.RaiseParty(LoadRealParty());
+
+        PokemonSlotViewModel slot = viewModel.Slots[0];
+
+        Assert.Equal(4, slot.BuildComparisonRows.Count);
+        Assert.Equal(slot.BuildComparisonRows.Count(row => row.IsDifferent), slot.BuildChangeCount);
+        Assert.All(slot.BuildMoves, move =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(move.Role));
+            Assert.False(string.IsNullOrWhiteSpace(move.Description));
+        });
+        Assert.Contains(slot.Member.NatureName, slot.CurrentNatureCard.Heading, StringComparison.Ordinal);
+        Assert.Contains("next catch", "Nature is fixed at capture. It cannot be trained away — this is advice for the next catch, not a task for this one.", StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SwitchingProfile_RecomputesWithoutANewSnapshot()
     {
         (MainWindowViewModel viewModel, FakeSource source) = Create();

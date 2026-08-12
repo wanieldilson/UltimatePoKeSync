@@ -122,7 +122,33 @@ public sealed record BuildMoveRow(
     string Role,
     string Source,
     string Reason,
-    IBrush Brush);
+    IBrush Brush,
+    IBrush RoleBrush,
+    bool IsObtainableNow)
+{
+    public string Description => $"{Source}. {Reason}";
+    public double Fade => IsObtainableNow ? 1 : 0.78;
+}
+
+/// <summary>The same decision shown on the current and recommended sides.</summary>
+public sealed record BuildComparisonRow(
+    string LeftLabel,
+    string LeftValue,
+    string RightLabel,
+    string RightValue,
+    bool IsDifferent);
+
+/// <summary>A +10%, −10%, or neutral nature chip.</summary>
+public sealed record NatureModifierChip(string Text, IBrush Brush);
+
+/// <summary>One half of the plain-language nature comparison.</summary>
+public sealed record NatureCard(
+    string Heading,
+    IReadOnlyList<NatureModifierChip> Modifiers,
+    string Explanation);
+
+/// <summary>A move which made the candidate pool but not the final four.</summary>
+public sealed record AlternativeMoveRow(string Name, string Reason);
 
 /// <summary>
 /// A move the next few levels bring. <c>Distance</c> is the half that gets acted on: a level

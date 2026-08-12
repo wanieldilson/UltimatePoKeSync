@@ -49,6 +49,10 @@
   <SolidColorBrush x:Key="EvText" Color="#D8C88F" />
   <SolidColorBrush x:Key="EvEmpty" Color="#6B5F31" />
   <SolidColorBrush x:Key="WarningText" Color="#FFD9D3" />
+  <SolidColorBrush x:Key="PositiveText" Color="#A6FFBC" />
+  <SolidColorBrush x:Key="NegativeText" Color="#FF9A90" />
+  <SolidColorBrush x:Key="NatureGoodText" Color="#C9F0D3" />
+  <SolidColorBrush x:Key="CoverageRole" Color="#E0954A" />
 
   <SolidColorBrush x:Key="GoodBg" Color="#1C3524" />
   <SolidColorBrush x:Key="BadBg" Color="#4A2A26" />
