@@ -27,6 +27,9 @@ public sealed class PokemonProgressAnalyzerTests
         Assert.Equal(EvolutionTrigger.Level, progress.NextEvolution.Trigger);
         Assert.Equal(16, progress.NextEvolution.Level);
         Assert.Equal("at Lv.16", progress.NextEvolution.Requirement);
+
+        Assert.Equal([252, 253, 254],
+            progress.EvolutionLine.Select(stage => stage.SpeciesId));
     }
 
     [Fact]
@@ -42,6 +45,8 @@ public sealed class PokemonProgressAnalyzerTests
         Assert.Equal(
             [.. progress.Moves.Select(move => move.Level).Order()],
             [.. progress.Moves.Select(move => move.Level)]);
+
+        Assert.Contains(progress.Timeline, move => move.IsNext);
     }
 
     /// <summary>

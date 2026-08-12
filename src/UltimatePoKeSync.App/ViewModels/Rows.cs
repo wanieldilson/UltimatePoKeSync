@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using CommunityToolkit.Mvvm.ComponentModel;
 using UltimatePoKeSync.Contracts;
 
 namespace UltimatePoKeSync.App.ViewModels;
@@ -149,6 +151,71 @@ public sealed record NatureCard(
 
 /// <summary>A move which made the candidate pool but not the final four.</summary>
 public sealed record AlternativeMoveRow(string Name, string Reason);
+
+/// <summary>One live stage in the evolution line.</summary>
+public sealed partial class EvolutionStageRow : ObservableObject
+{
+    public EvolutionStageRow(
+        int speciesId,
+        string speciesName,
+        int? evolutionLevel,
+        string distance,
+        bool isCurrent,
+        double opacity)
+    {
+        SpeciesId = speciesId;
+        SpeciesName = speciesName;
+        EvolutionLevel = evolutionLevel;
+        Distance = distance;
+        IsCurrent = isCurrent;
+        Opacity = opacity;
+    }
+
+    public int SpeciesId { get; }
+    public string SpeciesName { get; }
+    public int? EvolutionLevel { get; }
+    public string Distance { get; }
+    public bool IsCurrent { get; }
+    public bool ShowsArrow => !IsCurrent;
+    public string ArrowLabel => EvolutionLevel is int level ? $"Lv.{level}" : "→";
+    public double Opacity { get; }
+    public string Initials => SpeciesName.Length <= 3
+        ? SpeciesName.ToUpperInvariant()
+        : SpeciesName[..3].ToUpperInvariant();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSprite))]
+    private Bitmap? _sprite;
+
+    public bool HasSprite => Sprite is not null;
+}
+
+/// <summary>One real move from the per-game learnset, placed on the vertical rail.</summary>
+public sealed record LearnsetTimelineRow(
+    string Level,
+    string Name,
+    string Type,
+    IBrush Brush,
+    bool IsKnown,
+    bool IsAfterEvolution,
+    bool IsNext,
+    string Note)
+{
+    public double Fade => IsKnown ? 0.50 : IsAfterEvolution ? 0.55 : 1;
+    public double DotSize => IsNext ? 19 : 15;
+    public IBrush DotBrush => IsNext
+        ? new SolidColorBrush(Color.FromRgb(0xFF, 0xD2, 0x3F))
+        : IsKnown || IsAfterEvolution
+            ? new SolidColorBrush(Color.FromRgb(0x3A, 0x34, 0x50))
+            : new SolidColorBrush(Color.FromRgb(0xCF, 0xC7, 0xE6));
+    public string StateText => IsKnown
+        ? "known"
+        : IsAfterEvolution
+            ? Note
+            : IsNext
+                ? string.Empty
+                : Note;
+}
 
 /// <summary>
 /// A move the next few levels bring. <c>Distance</c> is the half that gets acted on: a level

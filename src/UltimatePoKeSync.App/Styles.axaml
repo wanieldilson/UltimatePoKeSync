@@ -113,6 +113,19 @@
     <Setter Property="Background" Value="{StaticResource GoodBg}" />
   </Style>
 
+  <Style Selector="Border.evolution-stage">
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    <Setter Property="BorderThickness" Value="3" />
+    <Setter Property="CornerRadius" Value="18" />
+    <Setter Property="Background" Value="{StaticResource PanelAlt}" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
+  <Style Selector="Border.evolution-stage.current">
+    <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    <Setter Property="BorderThickness" Value="4" />
+  </Style>
+
   <!--
     A button in the ink style. Hover lifts the element by a pixel while the shadow stays
     put, so it appears to pop off the page rather than to glow.

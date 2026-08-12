@@ -277,6 +277,29 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
                 progress.OtherEvolutions.Select(step => $"{step.IntoSpeciesName} {step.Requirement}"))
                 + ".";
         HasProgress = progress.HasAnything;
+        EvolutionStages =
+        [
+            .. progress.EvolutionLine.Select(stage => new EvolutionStageRow(
+                stage.SpeciesId,
+                stage.SpeciesName,
+                stage.EvolutionLevel,
+                stage.IsCurrent ? $"YOU ARE HERE · LV.{member.Level}" : stage.Distance,
+                stage.IsCurrent,
+                stage.Opacity)),
+        ];
+        LearnsetTimeline =
+        [
+            .. progress.Timeline.Select(entry => new LearnsetTimelineRow(
+                $"Lv.{entry.Level}",
+                entry.Move.Name,
+                entry.Move.Type.ToString(),
+                TypePalette.Brush(entry.Move.Type),
+                entry.IsKnown,
+                entry.IsAfterEvolution,
+                entry.IsNext,
+                entry.Note)),
+        ];
+        HoldEvolutionNote = BuildHoldEvolutionNote(progress, member.SpeciesName);
     }
 
     public PokemonSnapshot Member { get; }
@@ -601,6 +624,18 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public bool HasProgress { get; }
 
+    public IReadOnlyList<EvolutionStageRow> EvolutionStages { get; }
+
+    public bool HasEvolutionLine => EvolutionStages.Count > 1;
+
+    public IReadOnlyList<LearnsetTimelineRow> LearnsetTimeline { get; }
+
+    public bool HasLearnsetTimeline => LearnsetTimeline.Count > 0;
+
+    public string HoldEvolutionNote { get; }
+
+    public bool HasHoldEvolutionNote => HoldEvolutionNote.Length > 0;
+
     [RelayCommand]
     private void ToggleBuild() => ShowBuild = !ShowBuild;
 
@@ -640,7 +675,15 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         return ($"Becomes {step.IntoSpeciesName} {step.Requirement}.", string.Empty);
     }
 
-    partial void OnSpriteChanged(Bitmap? value) => OnPropertyChanged(nameof(HasSprite));
+    partial void OnSpriteChanged(Bitmap? value)
+    {
+        OnPropertyChanged(nameof(HasSprite));
+        EvolutionStageRow? current = EvolutionStages.FirstOrDefault(stage => stage.IsCurrent);
+        if (current is not null)
+        {
+            current.Sprite = value;
+        }
+    }
 
     /// <summary>
     /// Plays an animated sprite, one frame at a time, at the speeds the file itself
@@ -750,6 +793,34 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     private static string DescribeDistance(int levelsAway) => levelsAway == 1
         ? "1 level away"
         : $"{levelsAway} levels away";
+
+    private static string BuildHoldEvolutionNote(PokemonProgress progress, string speciesName)
+    {
+        if (progress.NextEvolution?.Level is not int evolutionLevel)
+        {
+            return string.Empty;
+        }
+
+        UpcomingMove? lastBeforeEvolution = progress.Moves
+            .Where(move => move.Level <= evolutionLevel)
+            .OrderByDescending(move => move.Level)
+            .FirstOrDefault();
+        LearnsetTimelineEntry? evolvedVersion = lastBeforeEvolution is null
+            ? null
+            : progress.Timeline.FirstOrDefault(entry =>
+                entry.IsAfterEvolution && entry.Move.MoveId == lastBeforeEvolution.Move.MoveId);
+
+        if (lastBeforeEvolution is null)
+        {
+            return string.Empty;
+        }
+
+        string comparison = evolvedVersion is null
+            ? $"{progress.NextEvolution.IntoSpeciesName} follows a different learnset after that."
+            : $"{progress.NextEvolution.IntoSpeciesName} learns it at Lv.{evolvedVersion.Level}.";
+        return $"Hold it back? {speciesName} learns {lastBeforeEvolution.Move.Name} at "
+            + $"Lv.{lastBeforeEvolution.Level}; {comparison}";
+    }
 
     private static StatSourceRow BuildStatSource(
         Stat stat,

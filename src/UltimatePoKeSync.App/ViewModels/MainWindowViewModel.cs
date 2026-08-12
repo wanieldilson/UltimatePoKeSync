@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -193,7 +194,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// The screens still waiting to be rebuilt keep showing the previous dashboard, so the
     /// app stays usable between one screen and the next.
     /// </summary>
-    public bool ShowsOldPanels => HasTeam && !IsPokemonTab && !IsStatsTab && !IsBuildTab;
+    public bool ShowsOldPanels => HasTeam && !IsPokemonTab && !IsStatsTab && !IsBuildTab
+        && !IsLearnsetTab;
 
     public bool IsStatsTab => SelectedTab == DashboardTab.Stats;
 
@@ -590,6 +592,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             {
                 _post(() => slot.Play(animated, _post, _animations.Token));
             }
+
+            foreach (EvolutionStageRow stage in slot.EvolutionStages.Where(stage => !stage.IsCurrent))
+            {
+                if (_pack.Find(stage.SpeciesId, shiny: false) is AnimatedSprite evolutionSprite)
+                {
+                    Bitmap firstFrame = SpriteImage.From(evolutionSprite, evolutionSprite.Frames[0]);
+                    _post(() => stage.Sprite = firstFrame);
+                }
+            }
         }
 
         // The cartridge is the fallback, and only a GBA one can be read this way (D-033).
@@ -602,25 +613,48 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         foreach (PokemonSlotViewModel slot in slots)
         {
-            if (slot.IsEgg || slot.HasSprite)
+            if (slot.IsEgg)
             {
                 continue;
             }
 
-            DecodedSprite? decoded;
-            try
+            if (!slot.HasSprite)
             {
-                decoded = await _sprites.TryGetAsync(game, slot.Member.SpeciesId).ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                // A sprite is decoration. Losing one must never take the party down with it.
-                return;
+                DecodedSprite? decoded;
+                try
+                {
+                    decoded = await _sprites.TryGetAsync(game, slot.Member.SpeciesId).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    // A sprite is decoration. Losing one must never take the party down with it.
+                    return;
+                }
+
+                if (decoded is not null)
+                {
+                    _post(() => slot.Sprite = SpriteImage.From(decoded));
+                }
             }
 
-            if (decoded is not null)
+
+            foreach (EvolutionStageRow stage in slot.EvolutionStages
+                .Where(stage => !stage.IsCurrent && !stage.HasSprite))
             {
-                _post(() => slot.Sprite = SpriteImage.From(decoded));
+                try
+                {
+                    DecodedSprite? evolution = await _sprites
+                        .TryGetAsync(game, stage.SpeciesId)
+                        .ConfigureAwait(false);
+                    if (evolution is not null)
+                    {
+                        _post(() => stage.Sprite = SpriteImage.From(evolution));
+                    }
+                }
+                catch (Exception)
+                {
+                    break;
+                }
             }
         }
     }

@@ -1291,6 +1291,121 @@
             </StackPanel>
           </ScrollViewer>
 
+          <!-- Learnset: the live evolution path and per-game level-up timeline. -->
+          <ScrollViewer DataContext="{Binding CurrentSlot}"
+                        IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsLearnsetTab}">
+            <StackPanel Spacing="18" Margin="22,20,24,30">
+              <Panel IsVisible="{Binding HasEvolutionLine}">
+                <Border Classes="panel" Padding="20">
+                  <StackPanel Spacing="16" Margin="0,16,0,0">
+                    <ItemsControl ItemsSource="{Binding EvolutionStages}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:EvolutionStageRow">
+                          <Grid ColumnDefinitions="58,220" Opacity="{Binding Opacity}">
+                            <StackPanel IsVisible="{Binding ShowsArrow}" VerticalAlignment="Center"
+                                        HorizontalAlignment="Center" Spacing="5">
+                              <TextBlock Text="→" Classes="display" FontSize="24"
+                                         Foreground="{StaticResource BaseStat}" />
+                              <TextBlock Text="{Binding ArrowLabel}" Classes="mono" FontSize="11" />
+                            </StackPanel>
+                            <Border Grid.Column="1" Classes="evolution-stage"
+                                    Classes.current="{Binding IsCurrent}">
+                              <StackPanel Spacing="9" HorizontalAlignment="Center">
+                                <Border Width="84" Height="84" BorderBrush="{StaticResource Ink}"
+                                        BorderThickness="3" CornerRadius="14"
+                                        Background="{StaticResource PanelSunkenDeep}"
+                                        ClipToBounds="True">
+                                  <Panel>
+                                    <TextBlock Text="{Binding Initials}" Classes="mono" FontSize="10"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               IsVisible="{Binding !HasSprite}" />
+                                    <Image Source="{Binding Sprite}" IsVisible="{Binding HasSprite}"
+                                           RenderOptions.BitmapInterpolationMode="None"
+                                           Stretch="Uniform" Margin="3" />
+                                  </Panel>
+                                </Border>
+                                <TextBlock Text="{Binding SpeciesName}" Classes="display" FontSize="17"
+                                           Foreground="{StaticResource Lavender}" />
+                                <Border Classes="chip" Background="{StaticResource Accent}"
+                                        IsVisible="{Binding IsCurrent}">
+                                  <TextBlock Text="{Binding Distance}" FontSize="10.5"
+                                             Foreground="{StaticResource TextOnAccent}" />
+                                </Border>
+                                <TextBlock Text="{Binding Distance}" Classes="mono" FontSize="11.5"
+                                           IsVisible="{Binding !IsCurrent}" />
+                              </StackPanel>
+                            </Border>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                            CornerRadius="14" Background="{StaticResource PanelSunken}"
+                            Padding="14,12" IsVisible="{Binding HasHoldEvolutionNote}">
+                      <TextBlock Text="{Binding HoldEvolutionNote}" FontSize="13"
+                                 Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" />
+                    </Border>
+                  </StackPanel>
+                </Border>
+                <Border Classes="badge" Background="{StaticResource Accent}">
+                  <TextBlock Text="EVOLUTION LINE" />
+                </Border>
+              </Panel>
+
+              <Panel IsVisible="{Binding HasLearnsetTimeline}">
+                <Border Classes="panel" Padding="20">
+                  <ItemsControl ItemsSource="{Binding LearnsetTimeline}" Margin="0,18,0,0">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:LearnsetTimelineRow">
+                        <Grid ColumnDefinitions="60,34,*" ColumnSpacing="16" MinHeight="58"
+                              Opacity="{Binding Fade}">
+                          <TextBlock Text="{Binding Level}" Classes="mono" FontSize="13"
+                                     Foreground="{StaticResource Lavender}" Margin="0,9,0,0" />
+                          <Panel Grid.Column="1">
+                            <Border Width="4" Background="{StaticResource BaseStat}"
+                                    HorizontalAlignment="Center" Margin="0,15,0,-15" />
+                            <Ellipse Width="{Binding DotSize}" Height="{Binding DotSize}"
+                                     Fill="{Binding DotBrush}" Stroke="{StaticResource Ink}"
+                                     StrokeThickness="3" HorizontalAlignment="Center"
+                                     VerticalAlignment="Top" Margin="0,7,0,0" />
+                          </Panel>
+                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10"
+                                      Margin="0,6,0,12" VerticalAlignment="Top">
+                            <TextBlock Text="{Binding Name}" Classes="strong" FontSize="14"
+                                       VerticalAlignment="Center" />
+                            <Border Classes="chip" Background="{Binding Brush}"
+                                    IsVisible="{Binding !IsKnown}">
+                              <TextBlock Text="{Binding Type}" FontSize="10.5"
+                                         Foreground="{StaticResource TextOnAccent}" />
+                            </Border>
+                            <Border Classes="chip" Background="{StaticResource Accent}"
+                                    IsVisible="{Binding IsNext}">
+                              <TextBlock Text="TAKE IT" FontSize="10.5"
+                                         Foreground="{StaticResource TextOnAccent}" />
+                            </Border>
+                            <TextBlock Text="{Binding StateText}" FontSize="12.5"
+                                       Foreground="{StaticResource TextMuted}"
+                                       VerticalAlignment="Center" />
+                          </StackPanel>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
+                <Border Classes="badge" Background="{StaticResource Info}"
+                        RenderTransform="rotate(2deg)">
+                  <TextBlock Text="LEVEL-UP TIMELINE" />
+                </Border>
+              </Panel>
+            </StackPanel>
+          </ScrollViewer>
+
           <!-- The screens not yet rebuilt still show the previous panels. -->
           <Grid IsVisible="{Binding ShowsOldPanels}" Margin="22,20" ColumnDefinitions="*">
       <ScrollViewer Grid.Column="1" Margin="16,0,0,0">

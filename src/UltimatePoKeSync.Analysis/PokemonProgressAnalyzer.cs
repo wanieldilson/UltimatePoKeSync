@@ -66,10 +66,17 @@ public sealed class PokemonProgressAnalyzer
         List<UpcomingMove> upcoming = [];
         bool cutShort = false;
 
-        foreach (LearnableMove learnable in _learnsets
-            .FindLearnableMoves(game, member.SpeciesId, 100)
-            .Where(entry => entry.Method == MoveLearnMethod.LevelUp && entry.LearnedAtLevel > member.Level)
-            .OrderBy(entry => entry.LearnedAtLevel))
+        LearnableMove[] currentLearnset =
+        [
+            .. _learnsets
+                .FindLearnableMoves(game, member.SpeciesId, 100)
+                .Where(entry => entry.Method == MoveLearnMethod.LevelUp
+                    && entry.LearnedAtLevel is not null)
+                .OrderBy(entry => entry.LearnedAtLevel),
+        ];
+
+        foreach (LearnableMove learnable in currentLearnset
+            .Where(entry => entry.LearnedAtLevel > member.Level))
         {
             int at = learnable.LearnedAtLevel!.Value;
             if (at > lastUsefulLevel)
@@ -86,12 +93,89 @@ public sealed class PokemonProgressAnalyzer
             upcoming.Add(new UpcomingMove(learnable.Move, at, at - member.Level));
         }
 
+        List<EvolutionLineStage> evolutionLine =
+        [
+            new(member.SpeciesId, member.SpeciesName, null, string.Empty, true, 1),
+        ];
+        EvolutionStep? lineStep = next;
+        int lineLevel = member.Level;
+        double lineOpacity = 0.80;
+        while (lineStep is not null && evolutionLine.Count < 3)
+        {
+            int? stageLevel = lineStep.Level;
+            string distance = stageLevel is int levelAt
+                ? levelAt <= lineLevel
+                    ? "next level"
+                    : levelAt - member.Level == 1
+                        ? "1 level away"
+                        : $"{levelAt - member.Level} levels away"
+                : lineStep.Requirement;
+            evolutionLine.Add(new EvolutionLineStage(
+                lineStep.IntoSpeciesId,
+                lineStep.IntoSpeciesName,
+                stageLevel,
+                distance,
+                false,
+                lineOpacity));
+            lineLevel = stageLevel ?? lineLevel;
+            lineStep = _evolutions.FindEvolutions(game, lineStep.IntoSpeciesId)
+                .OrderBy(step => step.Level ?? int.MaxValue)
+                .FirstOrDefault();
+            lineOpacity = 0.55;
+        }
+
+        HashSet<int> knownMoveIds = [.. member.Moves.Where(move => !move.IsEmpty).Select(move => move.MoveId)];
+        List<LearnsetTimelineEntry> timeline =
+        [
+            .. currentLearnset
+                .Where(entry => entry.LearnedAtLevel <= member.Level || entry.LearnedAtLevel <= lastUsefulLevel)
+                .Select(entry => new LearnsetTimelineEntry(
+                    entry.Move,
+                    entry.LearnedAtLevel!.Value,
+                    knownMoveIds.Contains(entry.Move.MoveId),
+                    false,
+                    entry.LearnedAtLevel > member.Level
+                        && entry.LearnedAtLevel == currentLearnset
+                            .Where(candidate => candidate.LearnedAtLevel > member.Level)
+                            .Select(candidate => candidate.LearnedAtLevel)
+                            .FirstOrDefault(),
+                    string.Empty)),
+        ];
+
+        if (next?.HappensByLevellingAlone == true && next.Level is int evolutionAt)
+        {
+            timeline.AddRange(_learnsets
+                .FindLearnableMoves(game, next.IntoSpeciesId, Math.Min(100, evolutionAt + 20))
+                .Where(entry => entry.Method == MoveLearnMethod.LevelUp
+                    && entry.LearnedAtLevel > evolutionAt)
+                .OrderBy(entry => entry.LearnedAtLevel)
+                .Take(Math.Max(0, MaximumUpcomingMoves - timeline.Count(entry => !entry.IsKnown)))
+                .Select(entry => new LearnsetTimelineEntry(
+                    entry.Move,
+                    entry.LearnedAtLevel!.Value,
+                    false,
+                    true,
+                    false,
+                    $"{next.IntoSpeciesName}'s learnset by then")));
+        }
+
+        timeline =
+        [
+            .. timeline
+                .GroupBy(entry => (entry.Move.MoveId, entry.Level, entry.IsAfterEvolution))
+                .Select(group => group.First())
+                .OrderBy(entry => entry.Level)
+                .Take(8),
+        ];
+
         return new PokemonProgress(
             upcoming,
             next,
             [.. evolutions.Where(step => step != next)],
             cutShort,
-            evolvesOnNextLevelUp);
+            evolvesOnNextLevelUp,
+            evolutionLine,
+            timeline);
     }
 
     /// <summary>
@@ -124,12 +208,32 @@ public sealed record PokemonProgress(
     EvolutionStep? NextEvolution,
     IReadOnlyList<EvolutionStep> OtherEvolutions,
     bool MovesStopAtEvolution,
-    bool EvolvesOnNextLevelUp)
+    bool EvolvesOnNextLevelUp,
+    IReadOnlyList<EvolutionLineStage> EvolutionLine,
+    IReadOnlyList<LearnsetTimelineEntry> Timeline)
 {
-    public static PokemonProgress Nothing { get; } = new([], null, [], false, false);
+    public static PokemonProgress Nothing { get; } = new([], null, [], false, false, [], []);
 
     public bool HasAnything => Moves.Count > 0 || NextEvolution is not null;
 }
 
 /// <param name="LevelsAway">How much walking is left, which is the actionable number.</param>
 public sealed record UpcomingMove(MoveReference Move, int Level, int LevelsAway);
+
+/// <summary>One card and its incoming arrow in the evolution line.</summary>
+public sealed record EvolutionLineStage(
+    int SpeciesId,
+    string SpeciesName,
+    int? EvolutionLevel,
+    string Distance,
+    bool IsCurrent,
+    double Opacity);
+
+/// <summary>One dot on the selected species' level-up rail.</summary>
+public sealed record LearnsetTimelineEntry(
+    MoveReference Move,
+    int Level,
+    bool IsKnown,
+    bool IsAfterEvolution,
+    bool IsNext,
+    string Note);
