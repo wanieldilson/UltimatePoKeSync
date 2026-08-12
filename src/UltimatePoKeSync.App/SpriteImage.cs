@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using UltimatePoKeSync.App.Services;
 using UltimatePoKeSync.GameData.Sprites;
 
 namespace UltimatePoKeSync.App;
@@ -27,6 +28,28 @@ public static class SpriteImage
         using ILockedFramebuffer buffer = bitmap.Lock();
         System.Runtime.InteropServices.Marshal.Copy(
             sprite.Rgba, 0, buffer.Address, sprite.Rgba.Length);
+
+        return bitmap;
+    }
+
+    /// <summary>
+    /// One frame of an animated sprite. Its pixels are already in the order Avalonia wants,
+    /// so this only wraps them.
+    /// </summary>
+    public static Bitmap From(AnimatedSprite sprite, AnimatedSprite.Frame frame)
+    {
+        ArgumentNullException.ThrowIfNull(sprite);
+        ArgumentNullException.ThrowIfNull(frame);
+
+        var bitmap = new WriteableBitmap(
+            new PixelSize(sprite.Width, sprite.Height),
+            new Vector(96, 96),
+            PixelFormat.Bgra8888,
+            AlphaFormat.Premul);
+
+        using ILockedFramebuffer buffer = bitmap.Lock();
+        System.Runtime.InteropServices.Marshal.Copy(
+            frame.Bgra, 0, buffer.Address, frame.Bgra.Length);
 
         return bitmap;
     }

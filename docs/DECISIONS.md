@@ -1545,3 +1545,52 @@ and the analysis agree about what exists — is what the replacement checks.
 catalogs from the game code rather than the generation (rejected: unlike learnsets, reference
 sets do not differ between Black and Black 2 — and inventing a distinction that the data does
 not make is how a table grows entries nobody can justify).
+
+## D-045 — The artwork comes from the player, animated, and we ship none of it
+
+**Status:** Accepted · 2026-08-12
+
+D-033 reads sprites out of the player's own cartridge, which works because a Game Boy Advance
+maps its ROM into memory. A Nintendo DS does not: the cartridge is read in blocks through a
+register interface, so there is no address to point at, and what the emulator will answer for
+moves at 15 KB/s (D-039). The Gen 5 dashboard therefore had no picture in it.
+
+Decoding the sprites out of the DS ROM file was attempted and got most of the way — the
+filesystem, the `a/0/0/4` archive, LZ11 decompression and the NCGR headers all read correctly,
+96×96 at 4bpp — and then stopped at the pixel layout, which is neither of the two obvious
+conventions. That work is not wasted but it is not finished either, and it would only ever
+have solved Gen 5.
+
+**What was done instead keeps D-033's principle and covers everything.** The player supplies a
+folder of sprites; the app reads it. One Black and White style set covers Gen 1 through Gen 5,
+so an Emerald team and a Black team look like they belong to the same app. The cartridge stays
+the fallback for a GBA game, so nothing that worked before stopped working.
+
+**No Pokémon artwork enters this repository or any release.** It belongs to Nintendo, Game
+Freak and Creatures, and the collections that gather it — Project Pokémon's, PokeAPI's — state
+no licence of their own. `tools/fetch-sprites.py` downloads it to the player's disk on their
+own machine, because the alternative was clicking a thousand times; the tool contains no art
+and the app ships none. The test fixtures are a hand-made two-frame GIF, red then blue, for
+the same reason.
+
+**Animated, at the file's own speed.** Avalonia draws a GIF's first frame and stops, so the
+frames are taken apart with SkiaSharp — already inside Avalonia, so no new dependency — and
+played at the durations the file declares rather than at one invented rate, which would make
+every sprite move alike and some of them wrong. Frames compose cumulatively, because a GIF
+frame stores only what changed. A still image starts no timer at all, and closing the window
+cancels the ones that are running.
+
+**Size was measured rather than argued about.** 649 fronts are 27 MB and the shinies another
+27. Animated WebP was tried and saves **6%**: a small palette animation is precisely what GIF
+is good at, so recompression is not the lever. The levers are fetching fewer files, so shinies
+are now opt-in — a missing shiny falls back to the ordinary sprite, and the tile marks it with
+a star regardless — and `--up-to 386` fetches Gen 1 to 3 for 13 MB. None of this touches the
+47 MB download, which carries no sprites at all.
+
+**Alternatives considered:** bundle the sprites (rejected: it is the one thing the project has
+been careful never to do, and no licence permits it), fetch them from inside the app on demand
+(rejected: it would put a network call in an app that works offline, and the saving is a few
+hundred kilobytes against a one-off 27 MB), finish the NARC decoder first (rejected: weeks of
+format archaeology for one generation, when a folder solves five), and ship static PNGs
+instead of animations (rejected: they are the same size, and the animation is the reason to
+have them).

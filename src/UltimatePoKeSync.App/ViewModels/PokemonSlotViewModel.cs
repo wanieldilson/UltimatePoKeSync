@@ -5,6 +5,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UltimatePoKeSync.Analysis;
+using UltimatePoKeSync.App.Services;
 using UltimatePoKeSync.Contracts;
 using UltimatePoKeSync.GameData;
 
@@ -405,6 +406,48 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     }
 
     partial void OnSpriteChanged(Bitmap? value) => OnPropertyChanged(nameof(HasSprite));
+
+    /// <summary>
+    /// Plays an animated sprite, one frame at a time, at the speeds the file itself
+    /// declares. A single-frame image simply becomes the sprite and no timer is started —
+    /// six idle timers for six still pictures would be six timers too many. See D-045.
+    /// </summary>
+    public void Play(AnimatedSprite sprite, Action<Action> post, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(sprite);
+        ArgumentNullException.ThrowIfNull(post);
+
+        Bitmap[] frames = [.. sprite.Frames.Select(frame => SpriteImage.From(sprite, frame))];
+        Sprite = frames[0];
+
+        if (frames.Length == 1)
+        {
+            return;
+        }
+
+        _ = Task.Run(
+            async () =>
+            {
+                int index = 0;
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Task.Delay(sprite.Frames[index].Duration, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+
+                    index = (index + 1) % frames.Length;
+                    Bitmap frame = frames[index];
+                    post(() => Sprite = frame);
+                }
+            },
+            cancellationToken);
+    }
 
     private static (IReadOnlyList<TypeChip> Weak,
         IReadOnlyList<TypeChip> Resisted,

@@ -98,6 +98,21 @@ loading it and saying so is the single most useful thing you can contribute.
 
 </details>
 
+## Sprites
+
+The app ships no Pokémon artwork — it is not ours to distribute. It reads what you already
+have: from your own cartridge for a Game Boy Advance game, and otherwise from a folder on
+your disk.
+
+```
+python3 tools/fetch-sprites.py            # 27 MB, every species, Gen 1 to 5
+python3 tools/fetch-sprites.py --up-to 386  # Gen 1 to 3 only, 13 MB
+```
+
+They land where the app already looks, so there is nothing to configure afterwards, and they
+are animated. Without them you get a coloured tile per Pokémon and everything else works
+exactly the same.
+
 ## Requirements
 
 - mGBA 0.10.5 or later — Lua scripting exists from 0.10.0

@@ -38,6 +38,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private readonly RomSpriteSource? _sprites;
 
+    /// <summary>The player's own sprite folder, when they have one. See D-045.</summary>
+    private readonly SpritePackSource _pack = new();
+
+    /// <summary>Stops the running animations when the window closes.</summary>
+    private readonly CancellationTokenSource _animations = new();
+
     private PartySnapshot? _party;
 
     [ObservableProperty]
@@ -197,7 +203,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public void Start() => _live.Start();
 
-    public ValueTask DisposeAsync() => _live.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        // The animations outlive nothing: a timer still swapping frames into a closed
+        // window is a leak with a picture attached.
+        await _animations.CancelAsync().ConfigureAwait(false);
+        _animations.Dispose();
+
+        await _live.DisposeAsync().ConfigureAwait(false);
+    }
 
     /// <summary>Returns to the whole-team view. Selection itself is the list box's job.</summary>
     [RelayCommand]
@@ -355,9 +369,27 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         GameIdentity game,
         IReadOnlyList<PokemonSlotViewModel> slots)
     {
-        // Sprites are read out of a GBA cartridge, at GBA addresses (D-033). A DS game has
-        // neither, and the melonDS channel moves 15 KB a second, so hunting for tables that
-        // are not there would spend half a minute finding nothing. See D-039.
+        // The player's own sprite folder first, when they have one: it covers every
+        // generation in one style, and it is the only thing that can draw a DS game at all,
+        // whose ROM is not mapped into memory. See D-045.
+        foreach (PokemonSlotViewModel slot in slots)
+        {
+            // Drawing the species inside an egg would give away the one thing the game
+            // keeps from the player until it hatches. See D-036.
+            if (slot.IsEgg)
+            {
+                continue;
+            }
+
+            if (_pack.Find(slot.Member.SpeciesId, slot.Member.IsShiny) is AnimatedSprite animated)
+            {
+                _post(() => slot.Play(animated, _post, _animations.Token));
+            }
+        }
+
+        // The cartridge is the fallback, and only a GBA one can be read this way (D-033).
+        // On melonDS the channel moves 15 KB a second (D-039), so hunting for tables that
+        // are not there would spend half a minute finding nothing.
         if (_sprites is null || game.Generation != PokemonGeneration.Gen3)
         {
             return;
@@ -365,9 +397,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         foreach (PokemonSlotViewModel slot in slots)
         {
-            // Drawing the species inside an egg would give away the one thing the game
-            // keeps from the player until it hatches. See D-036.
-            if (slot.IsEgg)
+            if (slot.IsEgg || slot.HasSprite)
             {
                 continue;
             }
