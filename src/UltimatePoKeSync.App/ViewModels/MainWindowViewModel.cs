@@ -26,15 +26,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly TeamAnalyzer _teamAnalyzer = new();
     private readonly TeamStrengthAnalyzer _strengthAnalyzer = new();
     private readonly PokemonRecommendationEngine _engine =
-        PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance);
+        PokemonRecommendationEngine.CreateDefault(PKHeXSources.Learnsets);
 
     /// <summary>
     /// What the next few levels bring. Cheap enough to run for every member on every
     /// snapshot: it reads the same tables the engine already loaded. See D-037.
     /// </summary>
     private readonly PokemonProgressAnalyzer _progressAnalyzer = new(
-        PKHeXGen3MoveLearnSource.Instance,
-        PKHeXGen3EvolutionSource.Instance);
+        PKHeXSources.Learnsets,
+        PKHeXSources.Evolutions);
 
     private readonly RomSpriteSource? _sprites;
 

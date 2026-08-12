@@ -1480,3 +1480,37 @@ already answered by opening an emulator), remembering the last emulator used and
 first (rejected: it saves nothing — both are already tried at once — and it fails on the day
 somebody switches), and picking by the ROM the app is told about (rejected: the app is not
 told about a ROM, it finds one, which is the point of D-005).
+
+## D-043 — Generations dispatch themselves
+
+**Status:** Accepted · 2026-08-12
+
+Gen 5 learnsets and evolutions now come from PKHeX the same way Gen 3's do, and adding them
+raised a question that had not existed with one generation: who decides which tables answer.
+
+`IMoveLearnSource.Supports(game)` and `IEvolutionSource.Supports(game)` already existed, so
+the answer is the sources' own. `CompositeMoveLearnSource` and `CompositeEvolutionSource`
+hold several and ask each in turn; `PKHeXSources` lists them in one place. Adding Gen 4 will
+mean writing its source and adding one line, with nothing above it changed and nothing to
+remember. The alternative — a switch on the generation somewhere in Analysis — is a second
+place to update and the one people forget.
+
+What the composite must never do is answer for the wrong generation, and the numbers are
+close enough that a mix-up would look plausible: Treecko evolves at 16 in Emerald and Snivy
+at 17 in Black. A test asks both and checks both answers.
+
+Gen 5 also brings evolutions that no amount of levelling reaches. Karrablast becomes
+Escavalier only by being traded for a Shelmet, so the card names the requirement and refuses
+to count down to a level that will never arrive — the honesty boundary of D-037, meeting the
+first generation that really tests it.
+
+**What this does not fix.** Recommendations are still Gen 3 only. The engine needs a
+reference preset catalog as well as a learn source, and there is no Gen 5 one: the window now
+says so on screen rather than showing an empty card. Learnsets were the cheaper half and they
+were worth having first — knowing that a Snivy learns Vine Whip next level is useful to
+someone playing tonight, in a way that an optimal level 100 build is not.
+
+**Alternatives considered:** one source per generation resolved by a registry keyed on
+`PokemonGeneration` (rejected: a game code, not a generation, is what identifies tables —
+Black and Black 2 are both Gen 5 and teach differently), and giving the analysers a list of
+sources to try (rejected: it puts the dispatch in every caller instead of in one place).

@@ -75,13 +75,15 @@ public sealed class ShowdownGen5MoveCatalog : IMoveReferenceCatalog
 
     private static void Validate(MoveDataRoot moveData)
     {
-        const int expectedMoves = 354;
+        // Gen 5 ends at Fusion Bolt, and every number in between must be present: a gap
+        // would mean a move nothing can name.
+        const int expectedMoves = 559;
 
-        if (moveData.Generation != 3 ||
+        if (moveData.Generation != 5 ||
             moveData.Revision != ShowdownGen3PresetCatalog.Revision ||
             moveData.Moves.Length != expectedMoves)
         {
-            throw new InvalidOperationException("The embedded Showdown Gen 3 move data is malformed.");
+            throw new InvalidOperationException("The embedded Showdown Gen 5 move data is malformed.");
         }
 
         var moveIds = new HashSet<string>(StringComparer.Ordinal);
@@ -91,11 +93,11 @@ public sealed class ShowdownGen5MoveCatalog : IMoveReferenceCatalog
             if (move.Number != index + 1 || move.Id != ShowdownIdentifier.Normalize(move.Id) ||
                 string.IsNullOrWhiteSpace(move.Name) ||
                 !Enum.TryParse(move.Type, out PokemonType type) ||
-                !Gen3Rules.Instance.TypeChart.Types.Contains(type) ||
+                !Gen5Rules.Instance.TypeChart.Types.Contains(type) ||
                 !moveIds.Add(move.Id))
             {
                 throw new InvalidOperationException(
-                    $"Invalid Showdown Gen 3 move entry: {move.Id}.");
+                    $"Invalid Showdown Gen 5 move entry: {move.Id}.");
             }
         }
     }

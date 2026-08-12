@@ -16,8 +16,8 @@ internal static class Program
     private static readonly TeamStrengthAnalyzer StrengthAnalyzer = new();
 
     private static readonly PokemonProgressAnalyzer ProgressAnalyzer = new(
-        PKHeXGen3MoveLearnSource.Instance,
-        PKHeXGen3EvolutionSource.Instance);
+        PKHeXSources.Learnsets,
+        PKHeXSources.Evolutions);
 
     private static async Task<int> Main(string[] args)
     {
@@ -93,7 +93,7 @@ internal static class Program
 
             var teamAnalyzer = new TeamAnalyzer();
             PokemonRecommendationEngine recommendationEngine =
-                PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance);
+                PokemonRecommendationEngine.CreateDefault(PKHeXSources.Learnsets);
 
             try
             {
@@ -146,7 +146,7 @@ internal static class Program
             analyze,
             profileKind,
             new TeamAnalyzer(),
-            PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance));
+            PokemonRecommendationEngine.CreateDefault(PKHeXSources.Learnsets));
         Console.WriteLine("└─");
         return 0;
     }
