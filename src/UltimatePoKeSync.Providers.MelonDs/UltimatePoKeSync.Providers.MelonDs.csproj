@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    melonDS provider: a GDB remote serial protocol client, for Gen 4 and 5 (D-039).
+    Where mGBA has a Lua script we wrote, melonDS has a debugger we have to speak to.
+    Depends only on Contracts: it knows neither PKHeX nor the game rules.
+  -->
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="UltimatePoKeSync.Providers.MelonDs.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
