@@ -125,6 +125,11 @@ public sealed class MainWindowViewModelTests
         Assert.Empty(viewModel.TeamImmune);
         Assert.False(viewModel.HasTeamImmunities);
         Assert.Equal(17, viewModel.TeamSuperEffective.Count + viewModel.TeamUnanswered.Count);
+        Assert.Equal(17, viewModel.TeamCoverageTiles.Count);
+        Assert.DoesNotContain(viewModel.TeamCoverageTiles, tile => tile.Type == "FAIRY");
+        Assert.Equal(viewModel.TeamCoverageTiles.Count(tile => tile.State == "gap"), viewModel.TeamGapCount);
+        Assert.False(string.IsNullOrWhiteSpace(viewModel.TeamCoverageNote));
+        Assert.All(viewModel.Slots, slot => Assert.False(string.IsNullOrWhiteSpace(slot.TeamAnalysisText)));
 
         // The placeholders under the coverage headings must agree with the chips beside
         // them: both were shown at once when the counts were read before the lists filled.

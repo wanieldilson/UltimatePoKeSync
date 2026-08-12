@@ -161,6 +161,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public ObservableCollection<TypeChip> TeamUnanswered { get; } = [];
 
+    public ObservableCollection<CoverageTileRow> TeamCoverageTiles { get; } = [];
+
+    public int TeamGapCount { get; private set; }
+
+    public string TeamGapBadgeText => TeamGapCount == 1 ? "1 GAP" : $"{TeamGapCount} GAPS";
+
+    public string TeamCoverageNote { get; private set; } = string.Empty;
+
     public ObservableCollection<StrengthRow> StrengthFactors { get; } = [];
 
     public IReadOnlyList<string> SetupSteps { get; }
@@ -195,7 +203,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// app stays usable between one screen and the next.
     /// </summary>
     public bool ShowsOldPanels => HasTeam && !IsPokemonTab && !IsStatsTab && !IsBuildTab
-        && !IsLearnsetTab;
+        && !IsLearnsetTab && !IsTeamTab;
 
     public bool IsStatsTab => SelectedTab == DashboardTab.Stats;
 
@@ -533,7 +541,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         // so the count has to be re-read rather than left at whatever it was at startup.
         OnPropertyChanged(nameof(PartyCountText));
         OnPropertyChanged(nameof(HasEmptyParty));
-        UpdateCoverage(analysis);
+        UpdateCoverage(analysis, recommendation);
         UpdateStrength(strength);
         SelectedSlot = Slots.FirstOrDefault(slot => slot.SlotIndex == selectedIndex);
         OnPropertyChanged(nameof(CurrentSlot));
@@ -564,11 +572,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         TeamImmune.Clear();
         TeamSuperEffective.Clear();
         TeamUnanswered.Clear();
+        TeamCoverageTiles.Clear();
+        TeamGapCount = 0;
+        TeamCoverageNote = string.Empty;
         StrengthFactors.Clear();
 
         UpdateEmptySlots(party.Count);
         OnPropertyChanged(nameof(HasTeam));
         OnPropertyChanged(nameof(HasEmptyParty));
+        OnPropertyChanged(nameof(TeamGapBadgeText));
+        OnPropertyChanged(nameof(TeamCoverageNote));
         SelectedSlot = null;
     }
 
@@ -697,7 +710,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private static string Plural(int count, string singular, string plural) =>
         count == 1 ? $"1 {singular}" : $"{count} {plural}";
 
-    private void UpdateCoverage(TeamAnalysis analysis)
+    private void UpdateCoverage(TeamAnalysis analysis, TeamRecommendation? recommendation)
     {
         TeamWeaknesses.Clear();
         TeamNeutral.Clear();
@@ -705,6 +718,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         TeamImmune.Clear();
         TeamSuperEffective.Clear();
         TeamUnanswered.Clear();
+        TeamCoverageTiles.Clear();
 
         foreach (DefensiveTypeCoverage entry in analysis.DefensiveCoverage)
         {
@@ -748,9 +762,66 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             }
         }
 
+        HashSet<PokemonType> defensiveGaps = [.. analysis.DefensiveGaps];
+        HashSet<PokemonType> offensiveAnswers =
+        [
+            .. analysis.OffensiveCoverage
+                .Where(entry => entry.IsCovered)
+                .Select(entry => entry.DefendingType),
+        ];
+
+        foreach (PokemonType type in analysis.OffensiveCoverage
+            .Select(entry => entry.DefendingType)
+            .Where(type => type is not PokemonType.None and not PokemonType.Fairy))
+        {
+            if (offensiveAnswers.Contains(type))
+            {
+                TeamCoverageTiles.Add(new CoverageTileRow(
+                    type.ToString().ToUpperInvariant(),
+                    "2×",
+                    new SolidColorBrush(Color.FromRgb(0x1F, 0x3D, 0x28)),
+                    new SolidColorBrush(Color.FromRgb(0xA6, 0xFF, 0xBC))));
+            }
+            else if (defensiveGaps.Contains(type))
+            {
+                TeamCoverageTiles.Add(new CoverageTileRow(
+                    type.ToString().ToUpperInvariant(),
+                    "gap",
+                    new SolidColorBrush(Color.FromRgb(0x5A, 0x1F, 0x1A)),
+                    new SolidColorBrush(Color.FromRgb(0xFF, 0xB3, 0xAA))));
+            }
+            else
+            {
+                TeamCoverageTiles.Add(new CoverageTileRow(
+                    type.ToString().ToUpperInvariant(),
+                    "ok",
+                    new SolidColorBrush(Color.FromRgb(0x2C, 0x27, 0x40)),
+                    new SolidColorBrush(Color.FromRgb(0xCF, 0xC7, 0xE6))));
+            }
+        }
+
+        HashSet<PokemonType> uncoveredGaps =
+        [
+            .. defensiveGaps.Where(type => !offensiveAnswers.Contains(type)),
+        ];
+        TeamGapCount = uncoveredGaps.Count;
+        BuildSlot? cheapest = recommendation?.Members
+            .SelectMany(member => member.Build.Slots)
+            .FirstOrDefault(slot => slot.Role is BuildSlotRole.Coverage or BuildSlotRole.TeamSupport);
+        string gaps = uncoveredGaps.Count == 0
+            ? "No shared defensive gaps."
+            : $"Gaps: {string.Join(", ", uncoveredGaps)}.";
+        TeamCoverageNote = cheapest is null
+            ? gaps
+            : $"{gaps} Cheapest fix in the current recommendations: "
+                + $"{cheapest.Move.Move.Name} — {cheapest.Reason}";
+
         OnPropertyChanged(nameof(HasSuperEffective));
         OnPropertyChanged(nameof(HasUnanswered));
         OnPropertyChanged(nameof(HasTeamImmunities));
+        OnPropertyChanged(nameof(TeamGapCount));
+        OnPropertyChanged(nameof(TeamGapBadgeText));
+        OnPropertyChanged(nameof(TeamCoverageNote));
     }
 
     private void UpdateStrength(TeamStrength strength)

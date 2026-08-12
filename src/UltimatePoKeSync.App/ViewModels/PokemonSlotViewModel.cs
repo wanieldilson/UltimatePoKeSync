@@ -136,6 +136,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
             ? ([], [], [])
             : BuildMatchups(member, analysis);
         MatchupNote = member.IsEgg ? string.Empty : BuildMatchupNote(member, analysis);
+        TeamAnalysisText = BuildTeamAnalysisText(member, recommendation, analysis);
 
         TypeChips = member.IsEgg
             ? []
@@ -553,6 +554,8 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public bool HasMatchupNote => MatchupNote.Length > 0;
 
+    public string TeamAnalysisText { get; }
+
     public string RoleText { get; }
 
     public string RoleReason { get; }
@@ -788,6 +791,35 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         }
 
         return $"Switch plan. {string.Join(" or ", answers)} can take the {type} hit instead.";
+    }
+
+    private static string BuildTeamAnalysisText(
+        PokemonSnapshot member,
+        PokemonRecommendation? recommendation,
+        TeamAnalysis analysis)
+    {
+        if (member.IsEgg)
+        {
+            return "Still an egg, so it is carried here but excluded from every battle analysis.";
+        }
+
+        if (member.IsFainted)
+        {
+            return "Fainted right now; heal it before counting on its matchups.";
+        }
+
+        string role = recommendation is null
+            ? "Its role is not available for this game."
+            : $"Acts as a {Humanise(recommendation.RoleAnalysis.Role).ToLowerInvariant()}.";
+        DefensiveTypeCoverage? exposed = analysis.DefensiveCoverage
+            .Where(entry => entry.IsGap && entry.Matchups.Any(matchup =>
+                matchup.Member.SlotIndex == member.SlotIndex && matchup.Multiplier > 1))
+            .OrderByDescending(entry => entry.WeakCount)
+            .FirstOrDefault();
+
+        return exposed is null
+            ? role + " The party has a switch for each of its doubled weaknesses."
+            : role + $" The party has no safe switch for its {exposed.AttackingType} weakness.";
     }
 
     private static string DescribeDistance(int levelsAway) => levelsAway == 1

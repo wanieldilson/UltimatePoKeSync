@@ -1406,6 +1406,121 @@
             </StackPanel>
           </ScrollViewer>
 
+          <!-- Team: every battler's job, then the combined 17-type coverage wall. -->
+          <ScrollViewer IsVisible="{Binding IsTeamTab}">
+            <StackPanel Spacing="18" Margin="22,20,24,30">
+              <StackPanel Orientation="Horizontal" Spacing="14">
+                <Panel>
+                  <TextBlock Text="THE WHOLE PARTY" Classes="display" FontSize="26"
+                             Foreground="{StaticResource Ink}"
+                             RenderTransform="translate(3px,3px)" />
+                  <TextBlock Text="THE WHOLE PARTY" Classes="display" FontSize="26"
+                             Foreground="White" />
+                </Panel>
+                <Border Classes="chip" BorderThickness="3" Padding="12,4"
+                        Background="{StaticResource Alert}" RenderTransform="rotate(2deg)">
+                  <TextBlock Text="{Binding TeamGapBadgeText}" FontSize="12.5"
+                             Foreground="{StaticResource Ink}" />
+                </Border>
+              </StackPanel>
+
+              <ItemsControl ItemsSource="{Binding Slots}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid Columns="3" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:PokemonSlotViewModel">
+                    <Border Classes="panel" Background="{Binding TileBrush}" Padding="16"
+                            Margin="0,0,16,16" RenderTransform="rotate(-0.3deg)"
+                            Opacity="{Binding CardOpacity}">
+                      <StackPanel Spacing="11">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{Binding SpeciesName}" Classes="display" FontSize="19" />
+                          <Border Grid.Column="1" Classes="chip" Background="{Binding SlotBadgeBrush}"
+                                  Padding="10,3">
+                            <TextBlock Text="{Binding LevelBadge}" FontSize="11"
+                                       Foreground="{StaticResource TextOnAccent}" />
+                          </Border>
+                        </Grid>
+                        <Border Height="96" BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                                CornerRadius="14" Background="{StaticResource PanelSunkenDeep}"
+                                ClipToBounds="True">
+                          <Panel>
+                            <TextBlock Text="{Binding Initials}" Classes="mono" FontSize="10"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       IsVisible="{Binding !HasSprite}" />
+                            <Image Source="{Binding Sprite}" IsVisible="{Binding HasSprite}"
+                                   RenderOptions.BitmapInterpolationMode="None"
+                                   Stretch="Uniform" Margin="3" />
+                          </Panel>
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding TypeChips}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <StackPanel Orientation="Horizontal" Spacing="5" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TypeChip">
+                              <Border Classes="chip" Background="{Binding Brush}">
+                                <TextBlock Text="{Binding UpperType}"
+                                           Foreground="{StaticResource TextOnAccent}" />
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding TeamAnalysisText}" FontSize="12.5"
+                                   Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <Panel>
+                <Border Classes="panel" Padding="20">
+                  <StackPanel Spacing="14" Margin="0,18,0,0">
+                    <ItemsControl ItemsSource="{Binding TeamCoverageTiles}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <UniformGrid Columns="9" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:CoverageTileRow">
+                          <Border BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                                  CornerRadius="11" Background="{Binding Background}"
+                                  Padding="4,9" Margin="0,0,8,8">
+                            <StackPanel HorizontalAlignment="Center">
+                              <TextBlock Text="{Binding Type}" FontWeight="Black" FontSize="10.5"
+                                         Foreground="{Binding Foreground}"
+                                         HorizontalAlignment="Center" />
+                              <TextBlock Text="{Binding State}" Classes="mono" FontSize="10.5"
+                                         Foreground="{Binding Foreground}"
+                                         HorizontalAlignment="Center" />
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                            CornerRadius="14" Background="{StaticResource PanelSunken}"
+                            Padding="14,12">
+                      <TextBlock Text="{Binding TeamCoverageNote}" FontSize="13"
+                                 Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" />
+                    </Border>
+                  </StackPanel>
+                </Border>
+                <Border Classes="badge" Background="{StaticResource Info}">
+                  <TextBlock Text="COVERAGE WALL · 17 TYPES" />
+                </Border>
+              </Panel>
+            </StackPanel>
+          </ScrollViewer>
+
           <!-- The screens not yet rebuilt still show the previous panels. -->
           <Grid IsVisible="{Binding ShowsOldPanels}" Margin="22,20" ColumnDefinitions="*">
       <ScrollViewer Grid.Column="1" Margin="16,0,0,0">

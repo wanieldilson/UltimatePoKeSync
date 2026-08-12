@@ -217,6 +217,13 @@ public sealed record LearnsetTimelineRow(
                 : Note;
 }
 
+/// <summary>One Gen 3 type on the team's combined coverage wall.</summary>
+public sealed record CoverageTileRow(
+    string Type,
+    string State,
+    IBrush Background,
+    IBrush Foreground);
+
 /// <summary>
 /// A move the next few levels bring. <c>Distance</c> is the half that gets acted on: a level
 /// number means nothing to someone who does not remember what level their Treecko is.
