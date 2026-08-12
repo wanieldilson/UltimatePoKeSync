@@ -37,6 +37,17 @@ public sealed class EggSlotTests
         Assert.DoesNotContain("Fire", slot.TypeText, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>An egg has no level to count from, so it gets no future either. See D-037.</summary>
+    [Fact]
+    public void NoComingUpCardForSomethingThatHasNotHatched()
+    {
+        PokemonSlotViewModel slot = EggSlot();
+
+        Assert.False(slot.HasProgress);
+        Assert.False(slot.HasEvolution);
+        Assert.Empty(slot.UpcomingMoves);
+    }
+
     /// <summary>The one number an egg does have. See D-036.</summary>
     [Fact]
     public void WhatIsShownInsteadOfStatsIsHowFarThereIsLeftToWalk()

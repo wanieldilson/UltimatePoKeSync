@@ -52,6 +52,17 @@ public sealed record BuildMoveRow(
     string Reason,
     IBrush Brush);
 
+/// <summary>
+/// A move the next few levels bring. <c>Distance</c> is the half that gets acted on: a level
+/// number means nothing to someone who does not remember what level their Treecko is.
+/// </summary>
+public sealed record UpcomingMoveRow(
+    string Name,
+    string Type,
+    string Level,
+    string Distance,
+    IBrush Brush);
+
 /// <summary>One contribution to the team strength score.</summary>
 public sealed record StrengthRow(string Name, int Points, int MaximumPoints, string Explanation)
 {

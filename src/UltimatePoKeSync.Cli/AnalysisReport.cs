@@ -62,6 +62,55 @@ internal static class AnalysisReport
         }
     }
 
+    /// <summary>
+    /// What the next few levels bring, for every member that can battle. Printed before the
+    /// recommendations because it is the nearer question: a best set at Lv.100 matters less
+    /// than a move three levels away. See D-037.
+    /// </summary>
+    public static void PrintUpcoming(PartySnapshot party, PokemonProgressAnalyzer analyzer)
+    {
+        Console.WriteLine("│");
+        Console.WriteLine("├─ Coming up");
+
+        foreach (PokemonSnapshot mon in party.Battlers)
+        {
+            PokemonProgress progress = analyzer.Analyze(party.Game, mon);
+            if (!progress.HasAnything)
+            {
+                continue;
+            }
+
+            Console.WriteLine("│");
+            Console.WriteLine($"│  [{mon.SlotIndex}] {mon.SpeciesName}  Lv.{mon.Level}");
+
+            if (progress.NextEvolution is EvolutionStep step)
+            {
+                string when = progress.EvolvesOnNextLevelUp
+                    ? "on the next level up"
+                    : step.Requirement;
+                Console.WriteLine($"│      Becomes  {step.IntoSpeciesName} {when}");
+
+                foreach (EvolutionStep other in progress.OtherEvolutions)
+                {
+                    Console.WriteLine($"│      or       {other.IntoSpeciesName} {other.Requirement}");
+                }
+            }
+
+            foreach (UpcomingMove move in progress.Moves)
+            {
+                string away = move.LevelsAway == 1 ? "next level" : $"in {move.LevelsAway} levels";
+                Console.WriteLine(
+                    $"│      Lv.{move.Level,-3}   {move.Move.Name,-16} {move.Move.Type,-8} {away}");
+            }
+
+            if (progress.MovesStopAtEvolution && progress.NextEvolution is EvolutionStep after)
+            {
+                Console.WriteLine(
+                    $"│      (nothing listed past that: it follows {after.IntoSpeciesName}'s learnset from then on)");
+            }
+        }
+    }
+
     public static void PrintRecommendations(TeamRecommendation recommendation)
     {
         Console.WriteLine("│");

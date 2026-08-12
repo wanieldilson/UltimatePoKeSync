@@ -170,6 +170,28 @@ public sealed class MainWindowViewModelTests
         Assert.True(viewModel.ShowTeamPanel);
     }
 
+    /// <summary>
+    /// The Treecko in the capture is Lv.5, so the card has something to say without any
+    /// prompting: what it learns next, and that Grovyle is eleven levels away. See D-037.
+    /// </summary>
+    [Fact]
+    public void TheDetailPanelSaysWhatTheNextLevelsBring()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+        source.RaiseParty(LoadRealParty());
+
+        PokemonSlotViewModel slot = viewModel.Slots[0];
+
+        Assert.True(slot.HasProgress);
+        Assert.Equal("Becomes Grovyle at Lv.16, 11 levels away.", slot.EvolutionText);
+        Assert.Contains("Grovyle's learnset", slot.EvolutionNote, StringComparison.Ordinal);
+        Assert.Empty(slot.OtherEvolutionsText);
+
+        Assert.NotEmpty(slot.UpcomingMoves);
+        Assert.All(slot.UpcomingMoves, move => Assert.StartsWith("Lv.", move.Level, StringComparison.Ordinal));
+        Assert.All(slot.UpcomingMoves, move => Assert.Contains("level", move.Distance, StringComparison.Ordinal));
+    }
+
     [Fact]
     public void TheBestSetIsHiddenUntilItIsAskedFor()
     {

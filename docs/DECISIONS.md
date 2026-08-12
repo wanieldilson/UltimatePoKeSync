@@ -1178,3 +1178,51 @@ show the species with a spoiler warning (rejected: the app's job is to reflect t
 the game hides it), and drop eggs from `Members` entirely so they never reach the window
 (rejected: the slot is occupied, and a party that shows five tiles when the game shows six
 looks like the bug this fixed rather than the fix).
+
+## D-037 — The next three levels beat the perfect level 100
+
+**Status:** Accepted · 2026-08-12
+
+The app could say what a Pokémon's best possible moveset is (D-031, D-032) and could not say
+what it learns tomorrow. Those are not the same question, and for anyone playing through a
+story the second one is the one being asked: whether to walk a bit more before the Gym,
+whether to keep a weak move for two more levels, whether the Treecko is about to stop being
+a Treecko. The optimal build answers a question you ask once; the next level answers one you
+ask every evening.
+
+It cost almost nothing. The per-game learn source of D-027 already knows the level of every
+level-up move, so the moves half is a filter. The evolution half needed a new source, kept
+behind `IEvolutionSource` in GameData for the same reason as the learnsets: the data is
+PKHeX's, and Analysis must not depend on PKHeX (D-007).
+
+**Where the honesty boundary falls.** A Treecko at Lv.10 learns Absorb at 6, Quick Attack at
+11 and Pursuit at 16, and its table also lists Agility at 23 — but at 16 it becomes a Grovyle
+and follows Grovyle's learnset from then on. Listing Agility would be a false promise with a
+precise number attached, which is worse than saying nothing (D-025). So the list stops at the
+evolution level and says why it stopped.
+
+The case that made the model honest was found by a test rather than by reasoning. A Treecko
+still a Treecko at Lv.30 has cancelled the evolution at every level since 16, and the game
+offers it again at 31 — so its future is *one level long*, and the first version of this
+happily listed its Lv.35 move. `EvolvesOnNextLevelUp` exists for that Pokémon.
+
+**What a level means, per trigger.** The evolution table's Level column is only trustworthy
+for some triggers, and its Argument column means a different thing for each: an item index
+for UseItem and TradeHeldItem, a beauty value for Feebas, and a copy of the level everywhere
+else. A level is recorded only where reaching it is genuinely sufficient — plain level ups,
+the Tyrogue stat split, the Wurmple personality fork, and Ninjask. It is deliberately absent
+for Shedinja (Lv.20 is when it *can* appear, not when it will), for stones, trades,
+friendship and beauty. Kadabra levels to 100 and stays a Kadabra; a card that counts down to
+a level it will never honour is worse than one that says "when traded".
+
+The trigger is grouped by what the player has to *do* rather than by the game's internal
+method, because LevelUpFriendshipMorning and LevelUpFriendshipNight are one decision to a
+player and two rows to a ROM.
+
+**Alternatives considered:** show the whole remaining learnset (rejected: it is the wrong
+species' learnset past the evolution, and a scrolling list is not a decision), reach through
+the evolution and show what the *evolved* form learns (rejected: it is a different Pokémon
+with different moves at different levels, and merging the two is how a player ends up
+waiting for a move that never comes — worth revisiting as a separate "after it evolves"
+section), and put this in the recommendation engine (rejected: it is a fact about a
+Pokémon, not a judgement about a build, and it must show for a game with no reference data).

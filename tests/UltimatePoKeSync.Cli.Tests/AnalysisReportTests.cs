@@ -1,6 +1,7 @@
 using System.Text.Json;
 using UltimatePoKeSync.Analysis;
 using UltimatePoKeSync.Contracts;
+using UltimatePoKeSync.GameData;
 using UltimatePoKeSync.GameData.Learnsets;
 using UltimatePoKeSync.Parsing;
 using Xunit;
@@ -102,6 +103,29 @@ public sealed class AnalysisReportTests
         Assert.Contains("Competitive profile", report, StringComparison.Ordinal);
         Assert.Contains("not a save claim", report, StringComparison.Ordinal);
         Assert.DoesNotContain("check availability in this save", report, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The console is where every analysis layer gets checked by hand (D-026), so the new
+    /// one has to be visible there too, not only in the window.
+    /// </summary>
+    [Fact]
+    public void TheConsoleSaysWhatTheNextLevelsBring()
+    {
+        PartySnapshot party = LoadRealParty();
+        var analyzer = new PokemonProgressAnalyzer(
+            PKHeXGen3MoveLearnSource.Instance,
+            PKHeXGen3EvolutionSource.Instance);
+
+        string report = Capture(() => AnalysisReport.PrintUpcoming(party, analyzer));
+
+        Assert.Contains("Coming up", report, StringComparison.Ordinal);
+        Assert.Contains("Becomes  Grovyle at Lv.16", report, StringComparison.Ordinal);
+        Assert.Contains("levels", report, StringComparison.Ordinal);
+
+        // And the boundary: nothing is listed past the level the species changes.
+        Assert.Contains("Grovyle's learnset", report, StringComparison.Ordinal);
+        Assert.All(report.Split('\n'), line => Assert.True(line.Length < 120, line));
     }
 
     /// <summary>Runs the printer with the console redirected, and gives back what it wrote.</summary>

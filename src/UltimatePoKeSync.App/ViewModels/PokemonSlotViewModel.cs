@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UltimatePoKeSync.Analysis;
 using UltimatePoKeSync.Contracts;
+using UltimatePoKeSync.GameData;
 
 namespace UltimatePoKeSync.App.ViewModels;
 
@@ -31,10 +32,12 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public PokemonSlotViewModel(
         PokemonSnapshot member,
         TeamAnalysis analysis,
-        PokemonRecommendation? recommendation)
+        PokemonRecommendation? recommendation,
+        PokemonProgress? progress = null)
     {
         Member = member;
         _recommendation = recommendation;
+        progress ??= PokemonProgress.Nothing;
 
         TypeText = member.IsEgg
             ? "not hatched yet"
@@ -127,6 +130,25 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         PresetText = recommendation?.MatchedPreset is null
             ? string.Empty
             : $"Matched reference role: {recommendation.MatchedPreset.Role}";
+
+        UpcomingMoves =
+        [
+            .. progress.Moves.Select(move => new UpcomingMoveRow(
+                move.Move.Name,
+                move.Move.Type.ToString(),
+                $"Lv.{move.Level}",
+                move.LevelsAway == 1 ? "next level" : $"in {move.LevelsAway} levels",
+                TypePalette.Brush(move.Move.Type))),
+        ];
+
+        (EvolutionText, EvolutionNote) = DescribeEvolution(progress, member.Level);
+        OtherEvolutionsText = progress.OtherEvolutions.Count == 0
+            ? string.Empty
+            : "Or " + string.Join(
+                ", ",
+                progress.OtherEvolutions.Select(step => $"{step.IntoSpeciesName} {step.Requirement}"))
+                + ".";
+        HasProgress = progress.HasAnything;
     }
 
     public PokemonSnapshot Member { get; }
@@ -304,8 +326,64 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public bool HasRecommendation => _recommendation is not null;
 
+    /// <summary>The next few levels, which is the question a player mid-story is asking.</summary>
+    public IReadOnlyList<UpcomingMoveRow> UpcomingMoves { get; }
+
+    public bool HasUpcomingMoves => UpcomingMoves.Count > 0;
+
+    public string EvolutionText { get; }
+
+    public bool HasEvolution => EvolutionText.Length > 0;
+
+    /// <summary>The caveat under the evolution line, when there is one worth making.</summary>
+    public string EvolutionNote { get; }
+
+    public bool HasEvolutionNote => EvolutionNote.Length > 0;
+
+    public string OtherEvolutionsText { get; }
+
+    public bool HasOtherEvolutions => OtherEvolutionsText.Length > 0;
+
+    public bool HasProgress { get; }
+
     [RelayCommand]
     private void ToggleBuild() => ShowBuild = !ShowBuild;
+
+    /// <summary>
+    /// The evolution line and its caveat. The countdown is the useful half — "at Lv.16"
+    /// means nothing to someone who does not remember what level their Treecko is.
+    /// </summary>
+    private static (string Line, string Note) DescribeEvolution(PokemonProgress progress, int level)
+    {
+        if (progress.NextEvolution is not EvolutionStep step)
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        if (progress.EvolvesOnNextLevelUp)
+        {
+            return (
+                $"Becomes {step.IntoSpeciesName} on the next level up.",
+                $"It is already past Lv.{step.Level}, so the game will offer it again every "
+                    + "level until it is accepted.");
+        }
+
+        if (step.Level is int at)
+        {
+            int away = at - level;
+            string line = $"Becomes {step.IntoSpeciesName} at Lv.{at}"
+                + (away == 1 ? ", one level away." : $", {away} levels away.");
+
+            return (
+                line,
+                progress.MovesStopAtEvolution
+                    ? "Moves past that level are not listed: from then on it follows "
+                        + $"{step.IntoSpeciesName}'s learnset, not this one."
+                    : string.Empty);
+        }
+
+        return ($"Becomes {step.IntoSpeciesName} {step.Requirement}.", string.Empty);
+    }
 
     partial void OnSpriteChanged(Bitmap? value) => OnPropertyChanged(nameof(HasSprite));
 

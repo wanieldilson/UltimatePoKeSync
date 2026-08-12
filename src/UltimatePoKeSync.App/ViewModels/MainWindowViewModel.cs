@@ -28,6 +28,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly PokemonRecommendationEngine _engine =
         PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance);
 
+    /// <summary>
+    /// What the next few levels bring. Cheap enough to run for every member on every
+    /// snapshot: it reads the same tables the engine already loaded. See D-037.
+    /// </summary>
+    private readonly PokemonProgressAnalyzer _progressAnalyzer = new(
+        PKHeXGen3MoveLearnSource.Instance,
+        PKHeXGen3EvolutionSource.Instance);
+
     private readonly RomSpriteSource? _sprites;
 
     private PartySnapshot? _party;
@@ -254,7 +262,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 member,
                 analysis,
                 recommendation?.Members.FirstOrDefault(
-                    entry => entry.Member.SlotIndex == member.SlotIndex)));
+                    entry => entry.Member.SlotIndex == member.SlotIndex),
+                _progressAnalyzer.Analyze(party.Game, member)));
         }
 
         UpdateEmptySlots(party.Count);

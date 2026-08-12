@@ -15,6 +15,10 @@ internal static class Program
 {
     private static readonly TeamStrengthAnalyzer StrengthAnalyzer = new();
 
+    private static readonly PokemonProgressAnalyzer ProgressAnalyzer = new(
+        PKHeXGen3MoveLearnSource.Instance,
+        PKHeXGen3EvolutionSource.Instance);
+
     private static async Task<int> Main(string[] args)
     {
         if (args.Contains("--help") || args.Contains("-h"))
@@ -211,6 +215,7 @@ internal static class Program
                 TeamAnalysis only = teamAnalyzer.Analyze(party);
                 AnalysisReport.PrintTeamAnalysis(only);
                 AnalysisReport.PrintTeamStrength(StrengthAnalyzer.Evaluate(only));
+                AnalysisReport.PrintUpcoming(party, ProgressAnalyzer);
                 return;
             }
 
@@ -226,6 +231,8 @@ internal static class Program
                 AnalysisReport.PrintTeamStrength(
                     StrengthAnalyzer.Evaluate(recommendation.TeamAnalysis));
             }
+
+            AnalysisReport.PrintUpcoming(party, ProgressAnalyzer);
 
             AnalysisReport.PrintRecommendations(recommendation);
         }
