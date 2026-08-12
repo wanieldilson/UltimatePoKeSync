@@ -853,6 +853,217 @@
             </StackPanel>
           </ScrollViewer>
 
+          <!-- Stats & IV/EV: first explain the current number, then luck, then training. -->
+          <ScrollViewer DataContext="{Binding CurrentSlot}"
+                        IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsStatsTab}">
+            <StackPanel Spacing="18" Margin="22,20,24,30">
+
+              <Panel IsVisible="{Binding ShowsBattleData}">
+                <Border Classes="panel" Padding="22,20">
+                  <StackPanel Spacing="14" Margin="0,14,0,0">
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Border Width="16" Height="12" BorderBrush="{StaticResource Ink}"
+                                BorderThickness="2" CornerRadius="3"
+                                Background="{StaticResource BaseStat}" />
+                        <TextBlock Text="base" FontSize="12" Foreground="{StaticResource TextMuted}" />
+                      </StackPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Border Width="16" Height="12" BorderBrush="{StaticResource Ink}"
+                                BorderThickness="2" CornerRadius="3"
+                                Background="{StaticResource Info}" />
+                        <TextBlock Text="IV (luck, fixed forever)" FontSize="12"
+                                   Foreground="{StaticResource TextMuted}" />
+                      </StackPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Border Width="16" Height="12" BorderBrush="{StaticResource Ink}"
+                                BorderThickness="2" CornerRadius="3"
+                                Background="{StaticResource Accent}" />
+                        <TextBlock Text="EV (training, yours to spend)" FontSize="12"
+                                   Foreground="{StaticResource TextMuted}" />
+                      </StackPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Border Width="16" Height="12" BorderBrush="{StaticResource Ink}"
+                                BorderThickness="2" CornerRadius="3"
+                                Background="{StaticResource Alert}" />
+                        <TextBlock Text="nature" FontSize="12"
+                                   Foreground="{StaticResource TextMuted}" />
+                      </StackPanel>
+                    </StackPanel>
+
+                    <ItemsControl ItemsSource="{Binding StatSources}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:StatSourceRow">
+                          <Grid ColumnDefinitions="44,*,52,190" ColumnSpacing="12"
+                                Margin="0,0,0,11">
+                            <TextBlock Text="{Binding Name}" Classes="display" FontSize="13"
+                                       Foreground="{StaticResource Lavender}"
+                                       VerticalAlignment="Center" />
+                            <Border Grid.Column="1" Height="26" BorderBrush="{StaticResource Ink}"
+                                    BorderThickness="3" CornerRadius="10"
+                                    Background="{StaticResource PanelSunkenDeep}"
+                                    ClipToBounds="True">
+                              <Grid>
+                                <Grid.ColumnDefinitions>
+                                  <ColumnDefinition Width="{Binding BaseWidth}" />
+                                  <ColumnDefinition Width="{Binding IvWidth}" />
+                                  <ColumnDefinition Width="{Binding EvWidth}" />
+                                  <ColumnDefinition Width="{Binding NatureWidth}" />
+                                  <ColumnDefinition Width="{Binding RemainingWidth}" />
+                                </Grid.ColumnDefinitions>
+                                <Border Background="{StaticResource BaseStat}" />
+                                <Border Grid.Column="1" Background="{StaticResource Info}" />
+                                <Border Grid.Column="2" Background="{StaticResource Accent}" />
+                                <Border Grid.Column="3" Background="{StaticResource Alert}"
+                                        Opacity="{Binding NatureOpacity}"
+                                        IsVisible="{Binding HasNatureContribution}" />
+                              </Grid>
+                            </Border>
+                            <TextBlock Grid.Column="2" Text="{Binding Current}" Classes="display"
+                                       FontSize="16" HorizontalAlignment="Right"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="{Binding Breakdown}" Classes="mono"
+                                       FontSize="11.5" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+                <Border Classes="badge">
+                  <TextBlock Text="WHERE EACH STAT COMES FROM" />
+                </Border>
+              </Panel>
+
+              <Grid ColumnDefinitions="1.15*,*" ColumnSpacing="18"
+                    IsVisible="{Binding ShowsBattleData}">
+                <Panel>
+                  <Border Classes="panel" Background="{StaticResource IvPanel}" Padding="20">
+                    <StackPanel Spacing="14" Margin="0,14,0,0">
+                      <TextBlock Text="{Binding IndividualValueIntro}" FontSize="13.5"
+                                 Foreground="{StaticResource IvText}" TextWrapping="Wrap" />
+                      <ItemsControl ItemsSource="{Binding IndividualValues}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:IvRow">
+                            <StackPanel Spacing="7" Margin="0,0,9,0">
+                              <Border Height="74" BorderBrush="{StaticResource Ink}"
+                                      BorderThickness="3" CornerRadius="12"
+                                      Background="{StaticResource IvWell}" ClipToBounds="True">
+                                <Grid>
+                                  <Grid.RowDefinitions>
+                                    <RowDefinition Height="{Binding Empty}" />
+                                    <RowDefinition Height="{Binding Filled}" />
+                                  </Grid.RowDefinitions>
+                                  <Border Grid.Row="1" Background="{Binding FillBrush}" />
+                                  <TextBlock Text="MAX" Classes="display" FontSize="10"
+                                             Foreground="{StaticResource TextOnAccent}"
+                                             HorizontalAlignment="Center" Margin="0,5,0,0"
+                                             IsVisible="{Binding IsPerfect}" />
+                                </Grid>
+                              </Border>
+                              <TextBlock Text="{Binding Label}" Classes="mono" FontSize="12"
+                                         Foreground="{StaticResource IvText}"
+                                         HorizontalAlignment="Center" />
+                            </StackPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Border BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                              CornerRadius="14" Background="{StaticResource IvWell}"
+                              Padding="13,11" IsVisible="{Binding HasIndividualValueNote}">
+                        <TextBlock Text="{Binding IndividualValueNote}" FontSize="13"
+                                   Foreground="{StaticResource IvText}" TextWrapping="Wrap" />
+                      </Border>
+                    </StackPanel>
+                  </Border>
+                  <Border Classes="badge" Background="{StaticResource Info}"
+                          RenderTransform="rotate(-2deg)">
+                    <TextBlock Text="IV — THE LUCK YOU WERE DEALT" />
+                  </Border>
+                </Panel>
+
+                <Panel Grid.Column="1">
+                  <Border Classes="panel" Background="{StaticResource EvPanel}" Padding="20">
+                    <StackPanel Spacing="12" Margin="0,14,0,0">
+                      <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="{Binding EffortValueTotalText}" Classes="display"
+                                   FontSize="34" Foreground="{StaticResource Accent}" />
+                        <TextBlock Text="{Binding EffortValueRemainingText}" Classes="mono"
+                                   FontSize="13" Foreground="{StaticResource EvText}"
+                                   VerticalAlignment="Bottom" Margin="0,0,0,4" />
+                      </StackPanel>
+                      <Border Height="16" BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                              CornerRadius="999" Background="{StaticResource EvTrough}"
+                              ClipToBounds="True">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{Binding EffortValueTotalFilled}" />
+                            <ColumnDefinition Width="{Binding EffortValueTotalRemaining}" />
+                          </Grid.ColumnDefinitions>
+                          <Border Background="{StaticResource Accent}" />
+                        </Grid>
+                      </Border>
+                      <ItemsControl ItemsSource="{Binding EffortValues}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:EvRow">
+                            <Grid ColumnDefinitions="40,*,76" ColumnSpacing="10"
+                                  Margin="0,0,0,9">
+                              <TextBlock Text="{Binding Name}" Classes="mono" FontSize="12"
+                                         Foreground="{StaticResource EvText}"
+                                         VerticalAlignment="Center" />
+                              <Panel Grid.Column="1" Height="16">
+                                <Border BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                                        CornerRadius="999" Background="{StaticResource EvTrough}"
+                                        ClipToBounds="True">
+                                  <Grid>
+                                    <Grid.ColumnDefinitions>
+                                      <ColumnDefinition Width="{Binding Filled}" />
+                                      <ColumnDefinition Width="{Binding Remaining}" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Background="{StaticResource Accent}" />
+                                  </Grid>
+                                </Border>
+                                <Rectangle Stroke="{StaticResource EvEmpty}" StrokeThickness="3"
+                                           StrokeDashArray="4,3" RadiusX="8" RadiusY="8"
+                                           Fill="{StaticResource EvTrough}"
+                                           IsVisible="{Binding IsEmpty}" />
+                              </Panel>
+                              <TextBlock Grid.Column="2" Text="{Binding ValueText}" Classes="mono"
+                                         FontSize="12" Foreground="White"
+                                         VerticalAlignment="Center" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Border BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                              CornerRadius="14" Background="{StaticResource EvTrough}"
+                              Padding="13,12">
+                        <TextBlock Text="{Binding EffortValueFarmNote}" FontSize="13"
+                                   Foreground="{StaticResource EvText}" TextWrapping="Wrap" />
+                      </Border>
+                      <Border BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                              CornerRadius="14" Background="{StaticResource BadBg}"
+                              Padding="13,11" IsVisible="{Binding HasEffortValueWarning}">
+                        <TextBlock Text="{Binding EffortValueWarning}" FontSize="13"
+                                   Foreground="{StaticResource WarningText}" TextWrapping="Wrap" />
+                      </Border>
+                    </StackPanel>
+                  </Border>
+                  <Border Classes="badge" Background="{StaticResource Accent}"
+                          RenderTransform="rotate(2deg)">
+                    <TextBlock Text="EV — THE PART YOU CONTROL" />
+                  </Border>
+                </Panel>
+              </Grid>
+            </StackPanel>
+          </ScrollViewer>
+
           <!-- The screens not yet rebuilt still show the previous panels. -->
           <Grid IsVisible="{Binding ShowsOldPanels}" Margin="22,20" ColumnDefinitions="*">
       <ScrollViewer Grid.Column="1" Margin="16,0,0,0">

@@ -40,6 +40,15 @@
   <SolidColorBrush x:Key="EmptyOutline" Color="#2F2B40" />
   <SolidColorBrush x:Key="EmptyRow" Color="#221E30" />
   <SolidColorBrush x:Key="EmptySpine" Color="#423B58" />
+  <SolidColorBrush x:Key="BaseStat" Color="#5A5473" />
+  <SolidColorBrush x:Key="IvPanel" Color="#16303A" />
+  <SolidColorBrush x:Key="IvWell" Color="#0F2229" />
+  <SolidColorBrush x:Key="IvText" Color="#C9E6EE" />
+  <SolidColorBrush x:Key="EvPanel" Color="#3A3218" />
+  <SolidColorBrush x:Key="EvTrough" Color="#241F0F" />
+  <SolidColorBrush x:Key="EvText" Color="#D8C88F" />
+  <SolidColorBrush x:Key="EvEmpty" Color="#6B5F31" />
+  <SolidColorBrush x:Key="WarningText" Color="#FFD9D3" />
 
   <SolidColorBrush x:Key="GoodBg" Color="#1C3524" />
   <SolidColorBrush x:Key="BadBg" Color="#4A2A26" />

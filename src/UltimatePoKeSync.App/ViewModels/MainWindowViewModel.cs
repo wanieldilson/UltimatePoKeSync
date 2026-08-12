@@ -193,7 +193,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// The screens still waiting to be rebuilt keep showing the previous dashboard, so the
     /// app stays usable between one screen and the next.
     /// </summary>
-    public bool ShowsOldPanels => HasTeam && !IsPokemonTab;
+    public bool ShowsOldPanels => HasTeam && !IsPokemonTab && !IsStatsTab;
 
     public bool IsStatsTab => SelectedTab == DashboardTab.Stats;
 

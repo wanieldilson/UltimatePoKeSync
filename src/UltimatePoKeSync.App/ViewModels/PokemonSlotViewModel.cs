@@ -64,6 +64,50 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
             new StatRow("Speed", member.BaseStats.Speed, member.IndividualValues.Speed, member.EffortValues.Speed, member.CurrentStats.Speed),
         ];
 
+        Stat[] statOrder =
+        [
+            Stat.Hp,
+            Stat.Attack,
+            Stat.Defense,
+            Stat.SpecialAttack,
+            Stat.SpecialDefense,
+            Stat.Speed,
+        ];
+        NatureInfo? currentNature = recommendation?.Nature.CurrentNature
+            ?? rules?.GetNature(member.NatureId);
+        int largestFinalStat = Math.Max(1, Stats.Max(stat => stat.Current));
+        StatSources =
+        [
+            .. statOrder.Select(stat => BuildStatSource(
+                stat,
+                member,
+                currentNature,
+                largestFinalStat)),
+        ];
+        IndividualValues =
+        [
+            .. statOrder.Select(stat => new IvRow(
+                Abbreviate(stat),
+                member.IndividualValues[stat])),
+        ];
+
+        HashSet<Stat> recommendedStats = recommendation is null
+            ? []
+            : recommendation.EffortValues.IsExactTarget
+                && recommendation.EffortValues.TargetSpread is StatBlock target
+                    ? [.. statOrder.Where(stat => target[stat] > 0)]
+                    : [.. recommendation.EffortValues.PriorityStats];
+        EffortValues =
+        [
+            .. statOrder.Select(stat => new EvRow(
+                Abbreviate(stat),
+                member.EffortValues[stat],
+                recommendedStats.Contains(stat))),
+        ];
+        EffortValueTotal = EffortValues.Sum(stat => stat.Value);
+        EffortValueWarning = BuildEffortValueWarning(EffortValues);
+        IndividualValueNote = BuildIndividualValueNote(IndividualValues, recommendedStats);
+
         string emptyMoveHint = progress.Moves.FirstOrDefault() is UpcomingMove nextMove
             ? $"{nextMove.Move.Name} is {DescribeDistance(nextMove.LevelsAway)}"
             : "ready for the next move";
@@ -378,6 +422,42 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     public IReadOnlyList<StatRow> Stats { get; }
 
+    public IReadOnlyList<StatSourceRow> StatSources { get; }
+
+    public IReadOnlyList<IvRow> IndividualValues { get; }
+
+    public IReadOnlyList<EvRow> EffortValues { get; }
+
+    public int EffortValueTotal { get; }
+
+    public int EffortValuesLeft => Math.Max(0, 510 - EffortValueTotal);
+
+    public string EffortValueTotalText => $"{EffortValueTotal}";
+
+    public string EffortValueRemainingText =>
+        $"of 510 spent · {EffortValuesLeft} left";
+
+    public GridLength EffortValueTotalFilled =>
+        new(EffortValueTotal, GridUnitType.Star);
+
+    public GridLength EffortValueTotalRemaining =>
+        new(EffortValuesLeft, GridUnitType.Star);
+
+    public string IndividualValueIntro =>
+        $"Each stat rolled 0–31 the moment this {SpeciesName} appeared, and never changes.";
+
+    public string IndividualValueNote { get; }
+
+    public bool HasIndividualValueNote => IndividualValueNote.Length > 0;
+
+    public string EffortValueFarmNote => HasRecommendation
+        ? $"What to farm next. {EffortValueText}. Four EVs become one stat point at level 100."
+        : "Four EVs become one stat point at level 100.";
+
+    public string EffortValueWarning { get; }
+
+    public bool HasEffortValueWarning => EffortValueWarning.Length > 0;
+
     /// <summary>The Pokémon's own types, as chips for the detail header.</summary>
     public IReadOnlyList<TypeChip> TypeChips { get; }
 
@@ -611,6 +691,78 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     private static string DescribeDistance(int levelsAway) => levelsAway == 1
         ? "1 level away"
         : $"{levelsAway} levels away";
+
+    private static StatSourceRow BuildStatSource(
+        Stat stat,
+        PokemonSnapshot member,
+        NatureInfo? nature,
+        int scaleMaximum)
+    {
+        int level = member.Level;
+        int iv = member.IndividualValues[stat];
+        int ev = member.EffortValues[stat];
+        int current = member.CurrentStats[stat];
+        int neutral = stat == Stat.Hp
+            ? (((2 * member.BaseStats[stat] + iv + (ev / 4)) * level) / 100) + level + 10
+            : (((2 * member.BaseStats[stat] + iv + (ev / 4)) * level) / 100) + 5;
+        int ivContribution = iv * level / 100;
+        int evContribution = (ev / 4) * level / 100;
+        int baseContribution = Math.Max(1, neutral - ivContribution - evContribution);
+        int natureContribution = stat == Stat.Hp ? 0 : current - neutral;
+        bool natureIsNegative = natureContribution < 0;
+
+        string breakdown = $"{member.BaseStats[stat]} base · IV {iv} · EV {ev}";
+        if (natureContribution != 0 && nature is not null)
+        {
+            breakdown += $" · {nature.Name} {(natureIsNegative ? '−' : '+')}10%";
+        }
+
+        return new StatSourceRow(
+            Abbreviate(stat).ToUpperInvariant(),
+            current,
+            baseContribution,
+            ivContribution,
+            evContribution,
+            natureContribution,
+            scaleMaximum,
+            breakdown,
+            natureIsNegative);
+    }
+
+    private static string BuildIndividualValueNote(
+        IReadOnlyList<IvRow> values,
+        IReadOnlySet<Stat> recommendedStats)
+    {
+        if (recommendedStats.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        HashSet<string> useful =
+        [
+            .. recommendedStats.Select(Abbreviate),
+        ];
+        IvRow? perfectElsewhere = values.FirstOrDefault(value =>
+            value.IsPerfect && !useful.Contains(value.Name));
+
+        return perfectElsewhere is null
+            ? string.Empty
+            : $"A perfect {perfectElsewhere.Name} IV is lucky, but this build does not spend that luck.";
+    }
+
+    private static string BuildEffortValueWarning(IReadOnlyList<EvRow> values)
+    {
+        EvRow[] misplaced = [.. values.Where(value => value.Value > 0 && !value.IsRecommended)];
+        if (misplaced.Length == 0 || values.All(value => !value.IsRecommended))
+        {
+            return string.Empty;
+        }
+
+        int total = misplaced.Sum(value => value.Value);
+        return $"{total} EVs were spent outside the recommended stats: "
+            + string.Join(", ", misplaced.Select(value => $"{value.Name} {value.Value}"))
+            + ".";
+    }
 
     private static string DescribeEffortValues(PokemonRecommendation? recommendation)
     {

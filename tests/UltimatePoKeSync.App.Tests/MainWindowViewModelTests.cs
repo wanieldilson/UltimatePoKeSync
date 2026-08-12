@@ -219,6 +219,24 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void TheStatsScreenIsBuiltFromTheCapturedStatsRatherThanMockNumbers()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+        source.RaiseParty(LoadRealParty());
+
+        PokemonSlotViewModel slot = viewModel.Slots[0];
+
+        Assert.Equal(6, slot.StatSources.Count);
+        Assert.Equal(slot.Stats.Select(stat => stat.Current), slot.StatSources.Select(stat => stat.Current));
+        Assert.Equal(
+            Enum.GetValues<Stat>().Select(stat => slot.Member.IndividualValues[stat]),
+            slot.IndividualValues.Select(stat => stat.Value));
+        Assert.Equal(slot.Member.EffortValues.Total, slot.EffortValueTotal);
+        Assert.Equal(510 - slot.EffortValueTotal, slot.EffortValuesLeft);
+        Assert.All(slot.StatSources, stat => Assert.Contains("base", stat.Breakdown, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void TheBestSetIsHiddenUntilItIsAskedFor()
     {
         (MainWindowViewModel viewModel, FakeSource source) = Create();

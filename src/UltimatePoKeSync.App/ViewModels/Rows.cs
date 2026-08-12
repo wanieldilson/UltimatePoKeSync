@@ -30,6 +30,58 @@ public sealed record StatRow(string Name, int Base, int Iv, int Ev, int Current)
 }
 
 /// <summary>
+/// The teaching bar for a stat. Segment lengths are point contributions at the current
+/// level, all measured against the largest final stat on the screen.
+/// </summary>
+public sealed record StatSourceRow(
+    string Name,
+    int Current,
+    int BaseContribution,
+    int IvContribution,
+    int EvContribution,
+    int NatureContribution,
+    int ScaleMaximum,
+    string Breakdown,
+    bool NatureIsNegative)
+{
+    private int TotalWidth => BaseContribution + IvContribution + EvContribution
+        + Math.Abs(NatureContribution);
+
+    public GridLength BaseWidth => new(BaseContribution, GridUnitType.Star);
+    public GridLength IvWidth => new(IvContribution, GridUnitType.Star);
+    public GridLength EvWidth => new(EvContribution, GridUnitType.Star);
+    public GridLength NatureWidth => new(Math.Abs(NatureContribution), GridUnitType.Star);
+    public GridLength RemainingWidth =>
+        new(Math.Max(0, ScaleMaximum - TotalWidth), GridUnitType.Star);
+    public bool HasNatureContribution => NatureContribution != 0;
+    public double NatureOpacity => NatureIsNegative ? 0.55 : 1;
+}
+
+/// <summary>One immutable 0–31 IV, drawn as a well filled from the bottom.</summary>
+public sealed record IvRow(string Name, int Value)
+{
+    public GridLength Empty => new(31 - Value, GridUnitType.Star);
+    public GridLength Filled => new(Value, GridUnitType.Star);
+    public bool IsPerfect => Value == 31;
+    public string Label => $"{Name} {Value}";
+    public IBrush FillBrush => Value switch
+    {
+        31 => new SolidColorBrush(Color.FromRgb(0xFF, 0xD2, 0x3F)),
+        >= 24 => new SolidColorBrush(Color.FromRgb(0x45, 0xD0, 0xE0)),
+        _ => new SolidColorBrush(Color.FromRgb(0x3A, 0x7F, 0x8C)),
+    };
+}
+
+/// <summary>One controllable 0–252 EV allocation.</summary>
+public sealed record EvRow(string Name, int Value, bool IsRecommended)
+{
+    public GridLength Filled => new(Value, GridUnitType.Star);
+    public GridLength Remaining => new(252 - Value, GridUnitType.Star);
+    public string ValueText => $"{Value} / 252";
+    public bool IsEmpty => Value == 0;
+}
+
+/// <summary>
 /// One move a Pokémon knows now. <c>Detail</c> is the line under the name — type, category
 /// and power — which is what says whether a move runs off Attack or Special Attack. From
 /// Gen 4 that is a property of the move rather than of its type (D-041), so it is read from
