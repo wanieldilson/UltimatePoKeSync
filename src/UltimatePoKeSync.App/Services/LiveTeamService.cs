@@ -27,7 +27,10 @@ public sealed class LiveTeamService : ILiveTeamSource
     private readonly CancellationTokenSource _cancellation = new();
     private readonly object _gate = new();
 
+    private readonly Dictionary<Watched, EmulatorConnectionState> _states = [];
+
     private Watched? _active;
+    private EmulatorConnectionState _reported = EmulatorConnectionState.Idle;
     private Task? _loops;
 
     public LiveTeamService()
@@ -119,24 +122,55 @@ public sealed class LiveTeamService : ILiveTeamSource
             name,
             new PartyTracker(provider, PartyParserResolver.CreateDefault()));
 
-        // Only the emulator that is actually feeding us gets to report a state. Otherwise
-        // the one that is not running would keep announcing that it is reconnecting, over
-        // the top of the one that is working perfectly well.
-        provider.StateChanged += (_, state) =>
-        {
-            lock (_gate)
-            {
-                if (_active is not null && _active != watched)
-                {
-                    return;
-                }
-            }
-
-            StateChanged?.Invoke(this, state);
-        };
+        provider.StateChanged += (_, state) => Report(watched, state);
 
         _watched.Add(watched);
     }
+
+    /// <summary>
+    /// One connection state out of two emulators, and the best one wins.
+    /// </summary>
+    /// <remarks>
+    /// The emulator that is not open never stops trying, so it announces that it is
+    /// reconnecting for ever. Passing every state straight through means that chatter lands
+    /// on top of the one that is working, and the window says the connection was lost while
+    /// a party is arriving on it every second. Reported once when the summary changes, so a
+    /// dead provider's retries are silent while a live one is streaming.
+    /// </remarks>
+    private void Report(Watched watched, EmulatorConnectionState state)
+    {
+        EmulatorConnectionState summary;
+
+        lock (_gate)
+        {
+            _states[watched] = state;
+            summary = _states.Values.MinBy(Rank);
+
+            if (summary == _reported)
+            {
+                return;
+            }
+
+            _reported = summary;
+        }
+
+        StateChanged?.Invoke(this, summary);
+    }
+
+    /// <summary>
+    /// How good a state is, best first. Internal so a test can check this ordering rather
+    /// than a copy of it. The enum is declared in lifecycle order rather than
+    /// in this one, so ordering by its value would rank "never started" above "streaming".
+    /// </summary>
+    internal static int Rank(EmulatorConnectionState state) => state switch
+    {
+        EmulatorConnectionState.Streaming => 0,
+        EmulatorConnectionState.ConnectedNoGame => 1,
+        EmulatorConnectionState.Connecting => 2,
+        EmulatorConnectionState.Reconnecting => 3,
+        EmulatorConnectionState.Idle => 4,
+        _ => 5,
+    };
 
     private async Task RunAsync(Watched watched)
     {

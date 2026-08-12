@@ -22,6 +22,10 @@
     <None Include="..\UltimatePoKeSync.Parsing.Tests\Fixtures\emerald-it-treecko.json"
           Link="Fixtures\emerald-it-treecko.json"
           CopyToOutputDirectory="PreserveNewest" />
+    <!-- And the Gen 5 one, for the generation whose recommendations do not exist yet. -->
+    <None Include="..\UltimatePoKeSync.Parsing.Tests\Fixtures\black-it-snivy.json"
+          Link="Fixtures\black-it-snivy.json"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

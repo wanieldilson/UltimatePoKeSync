@@ -242,11 +242,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         IsConnected = state == EmulatorConnectionState.Streaming;
         ConnectionText = state switch
         {
-            EmulatorConnectionState.Connecting => "Looking for mGBA…",
-            EmulatorConnectionState.Streaming => "Connected",
+            EmulatorConnectionState.Connecting => "Looking for mGBA and melonDS…",
+            // The name is only known once a party has arrived, so the plain word has to
+            // stand on its own until then rather than trailing a "via " with nothing after it.
+            EmulatorConnectionState.Streaming => ConnectedVia.Length > 0
+                ? $"Connected via {ConnectedVia}"
+                : "Connected",
             EmulatorConnectionState.Reconnecting => "Connection lost, retrying…",
             EmulatorConnectionState.Faulted => "Stopped after an unrecoverable error",
-            _ => "Waiting for mGBA…",
+            _ => "Waiting for an emulator…",
         };
     }
 
@@ -258,23 +262,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         TeamAnalysis analysis;
         TeamStrength strength;
-        TeamRecommendation? recommendation = null;
 
         try
         {
             analysis = _teamAnalyzer.Analyze(party);
             strength = _strengthAnalyzer.Evaluate(analysis);
-
-            if (!party.IsEmpty)
-            {
-                recommendation = _engine.Recommend(
-                    party,
-                    IsCompetitive
-                        ? RecommendationProfileKind.Competitive
-                        : RecommendationProfileKind.Playthrough);
-            }
-
-            AnalysisError = string.Empty;
         }
         catch (NotSupportedException ex)
         {
@@ -283,6 +275,31 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             ShowPartyWithoutAnalysis(party);
             return;
         }
+
+        // Recommendations are attempted separately, and their absence costs only
+        // themselves. A generation with no reference sets — Gen 5 today — used to take the
+        // whole analysis down with it: the window showed a team with no matchups and a
+        // strength of zero, while the console showed 32 out of 100 for the same party.
+        TeamRecommendation? recommendation = null;
+        string missing = string.Empty;
+
+        if (!party.IsEmpty)
+        {
+            try
+            {
+                recommendation = _engine.Recommend(
+                    party,
+                    IsCompetitive
+                        ? RecommendationProfileKind.Competitive
+                        : RecommendationProfileKind.Playthrough);
+            }
+            catch (NotSupportedException ex)
+            {
+                missing = $"{ex.Message} Type coverage and team strength are still shown.";
+            }
+        }
+
+        AnalysisError = missing;
 
         int selectedIndex = SelectedSlot?.SlotIndex ?? -1;
 

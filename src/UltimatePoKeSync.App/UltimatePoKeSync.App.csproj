@@ -15,6 +15,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- So the tests can reach the connection-state ranking, which is worth checking
+         against the real thing rather than against a copy of it. -->
+    <InternalsVisibleTo Include="UltimatePoKeSync.App.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
