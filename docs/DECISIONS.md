@@ -1391,3 +1391,51 @@ something that parses (rejected for the third time, D-005 and D-019 and D-035 al
 because data that merely looks valid is how a wrong answer becomes a confident one), and
 trust the community's published Black/White addresses (rejected: they are for other regions,
 and this cartridge is Italian — exactly the case that moved the party in D-035).
+
+## D-041 — Gen 5 rules, and the one line that is not a copy
+
+**Status:** Accepted · 2026-08-12
+
+Gen 5 battle rules exist now, and most of them are the Gen 3 ones: the type chart did not
+change between the second generation and the fifth, the twenty-five natures did not change,
+and the stat formula did not change. What did change is the thing that decides every
+recommendation the app makes.
+
+**The physical/special split moved from the type to the move.** In Gen 3, Bite was a special
+attack because Dark was a special type; from Gen 4 onwards Bite is physical because Bite is.
+Copying `Gen3Rules` and swapping the number would have sent every Dark and Ghost attacker off
+the wrong stat, and with it the role, the nature and the EV spread recommended for it — an
+error with no visible symptom, since the output would still look like advice. `Gen5Rules`
+reads a category per move, and a test asserts that the two generations disagree about Bite
+and agree about Earthquake.
+
+**Base power is per generation as well.** Tackle is 35 in Emerald, 50 in Black, and 40 today.
+Showdown stores the current generation's numbers and walks backwards through per-generation
+mods, so reading `data/moves.ts` alone gives Gen 9 values wearing Gen 5 names. The importer
+applies gen8, gen7, gen6 and gen5 overrides in that order; it was Tackle that proved the
+chain works, arriving at 50 through the gen6 mod because gen5 does not mention it.
+
+**What is duplicated on purpose.** The type chart and the nature table ship as one file per
+generation even though the two are byte-identical, so a number can always be traced to the
+generation it belongs to instead of borrowing another's. A test compares the two charts entry
+by entry, which turns the duplication from a risk into a checked fact. What is *not*
+duplicated is code: the stat formula and the nature reader are shared, because two copies of
+a calculation that drift apart are a bug in one of them and nothing else.
+
+**Found by running it.** The console crashed on the first real Gen 5 party, because the team
+analyser walks all four move slots and an empty slot carries no type — `Gen5Rules` validated
+the type before the move id, where Gen 3 does the opposite. The tests all passed at the time.
+A generation is not supported because its rules compile; it is supported when a party from a
+real cartridge goes through the whole chain, which this one now does: Snivy, Grass, five
+unanswered weaknesses, 32 out of 100.
+
+**What Gen 5 still does not have.** No reference presets and no learn source, so the
+competitive profile and the "Coming up" card have nothing to work from and say so rather than
+guessing. Recommendations are Gen 3 only until a Gen 5 preset catalog exists.
+
+**Alternatives considered:** derive the category from the type as Gen 3 does and accept the
+error for Dark and Ghost (rejected: it is wrong for roughly half the movepool and invisible
+in the output), take move data from PKHeX (rejected: it carries move type and PP but neither
+base power nor category, so it cannot answer the question), and share one type chart file
+between the generations (rejected: it saves a kilobyte and costs the ability to say which
+generation a multiplier belongs to — the duplication is checked by a test instead).

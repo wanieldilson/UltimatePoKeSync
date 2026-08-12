@@ -69,17 +69,23 @@ internal static class AnalysisReport
     /// </summary>
     public static void PrintUpcoming(PartySnapshot party, PokemonProgressAnalyzer analyzer)
     {
+        // A generation with no learnset data of its own has nothing to say here, and an
+        // empty heading says it worse than saying nothing.
+        var progresses = party.Battlers
+            .Select(mon => (Mon: mon, Progress: analyzer.Analyze(party.Game, mon)))
+            .Where(entry => entry.Progress.HasAnything)
+            .ToList();
+
+        if (progresses.Count == 0)
+        {
+            return;
+        }
+
         Console.WriteLine("│");
         Console.WriteLine("├─ Coming up");
 
-        foreach (PokemonSnapshot mon in party.Battlers)
+        foreach ((PokemonSnapshot mon, PokemonProgress progress) in progresses)
         {
-            PokemonProgress progress = analyzer.Analyze(party.Game, mon);
-            if (!progress.HasAnything)
-            {
-                continue;
-            }
-
             Console.WriteLine("│");
             Console.WriteLine($"│  [{mon.SlotIndex}] {mon.SpeciesName}  Lv.{mon.Level}");
 

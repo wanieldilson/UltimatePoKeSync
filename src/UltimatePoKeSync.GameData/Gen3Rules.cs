@@ -45,7 +45,7 @@ public sealed class Gen3Rules : IGenerationRules
     private Gen3Rules()
     {
         var chartData = EmbeddedJson.Load<TypeChartData>("gen3-type-chart.json");
-        TypeChart = new Gen3TypeChart(chartData);
+        TypeChart = new TableTypeChart(chartData, PokemonGeneration.Gen3);
 
         var moveData = EmbeddedJson.Load<MovePowerData>("gen3-move-power.json");
         if (moveData.Generation != 3 || moveData.BasePowers.Length != 355 ||
@@ -57,7 +57,7 @@ public sealed class Gen3Rules : IGenerationRules
         _moveBasePowers = moveData.BasePowers;
 
         var natureData = EmbeddedJson.Load<NatureData>("gen3-natures.json");
-        _natures = ParseNatures(natureData);
+        _natures = NatureTable.Parse(natureData, PokemonGeneration.Gen3);
         Natures = Array.AsReadOnly(_natures);
     }
 
@@ -107,47 +107,9 @@ public sealed class Gen3Rules : IGenerationRules
         StatBlock baseStats,
         StatBlock individualValues,
         StatBlock effortValues,
-        int natureId)
-    {
-        if (level is < 1 or > 100)
-        {
-            throw new ArgumentOutOfRangeException(nameof(level));
-        }
-
-        ValidateStats(baseStats, 1, 255, nameof(baseStats));
-        ValidateStats(individualValues, 0, 31, nameof(individualValues));
-        ValidateStats(effortValues, 0, 255, nameof(effortValues));
-        if (effortValues.Total > 510)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(effortValues), "Gen 3 effort values cannot exceed 510 in total.");
-        }
-
-        NatureInfo nature = GetNature(natureId);
-
-        int hp = baseStats.Hp == 1
-            ? 1 // Shedinja is the only Gen 3 species with this special case.
-            : CalculateUnmodifiedStat(
-                level, baseStats.Hp, individualValues.Hp, effortValues.Hp) + level + 10;
-
-        return new StatBlock(
-            hp,
-            CalculateNonHpStat(
-                Stat.Attack, level, baseStats.Attack, individualValues.Attack,
-                effortValues.Attack, nature),
-            CalculateNonHpStat(
-                Stat.Defense, level, baseStats.Defense, individualValues.Defense,
-                effortValues.Defense, nature),
-            CalculateNonHpStat(
-                Stat.SpecialAttack, level, baseStats.SpecialAttack,
-                individualValues.SpecialAttack, effortValues.SpecialAttack, nature),
-            CalculateNonHpStat(
-                Stat.SpecialDefense, level, baseStats.SpecialDefense,
-                individualValues.SpecialDefense, effortValues.SpecialDefense, nature),
-            CalculateNonHpStat(
-                Stat.Speed, level, baseStats.Speed, individualValues.Speed,
-                effortValues.Speed, nature));
-    }
+        int natureId) =>
+        ModernStatFormula.Calculate(
+            level, baseStats, individualValues, effortValues, GetNature(natureId));
 
     public double GetDefensiveMultiplier(
         PokemonType attackingType,
@@ -181,87 +143,7 @@ public sealed class Gen3Rules : IGenerationRules
         return multiplier;
     }
 
-    private static NatureInfo[] ParseNatures(NatureData data)
-    {
-        if (data.Generation != 3 || data.Natures.Length != 25)
-        {
-            throw new InvalidOperationException("The embedded Gen 3 nature data is malformed.");
-        }
 
-        var result = new NatureInfo[data.Natures.Length];
-        for (int id = 0; id < data.Natures.Length; id++)
-        {
-            NatureDataRow row = data.Natures[id];
-            if (row.Id != id || string.IsNullOrWhiteSpace(row.Name))
-            {
-                throw new InvalidOperationException("The embedded Gen 3 nature data is malformed.");
-            }
-
-            Stat? increased = ParseNatureStat(row.IncreasedStat);
-            Stat? decreased = ParseNatureStat(row.DecreasedStat);
-            if ((increased is null) != (decreased is null) ||
-                (increased is not null && increased == decreased))
-            {
-                throw new InvalidOperationException("The embedded Gen 3 nature data is malformed.");
-            }
-
-            result[id] = new NatureInfo(id, row.Name, increased, decreased);
-        }
-
-        return result;
-    }
-
-    private static Stat? ParseNatureStat(string? value)
-    {
-        if (value is null)
-        {
-            return null;
-        }
-
-        if (!Enum.TryParse(value, ignoreCase: false, out Stat stat) || stat == Stat.Hp)
-        {
-            throw new InvalidOperationException($"Invalid nature stat: {value}");
-        }
-
-        return stat;
-    }
-
-    private static int CalculateNonHpStat(
-        Stat stat,
-        int level,
-        int baseStat,
-        int individualValue,
-        int effortValue,
-        NatureInfo nature)
-    {
-        int unmodified = CalculateUnmodifiedStat(
-            level, baseStat, individualValue, effortValue) + 5;
-        return nature.Apply(stat, unmodified);
-    }
-
-    private static int CalculateUnmodifiedStat(
-        int level,
-        int baseStat,
-        int individualValue,
-        int effortValue) =>
-        ((2 * baseStat + individualValue + effortValue / 4) * level) / 100;
-
-    private static void ValidateStats(
-        StatBlock stats,
-        int minimum,
-        int maximum,
-        string parameterName)
-    {
-        foreach (Stat stat in Enum.GetValues<Stat>())
-        {
-            if (stats[stat] < minimum || stats[stat] > maximum)
-            {
-                throw new ArgumentOutOfRangeException(
-                    parameterName,
-                    $"{stat} must be between {minimum} and {maximum}.");
-            }
-        }
-    }
 }
 
 internal sealed record MovePowerData(int Generation, int[] BasePowers);

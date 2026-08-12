@@ -8,6 +8,15 @@ Pokémon Showdown:
 - Source: https://github.com/smogon/pokemon-showdown
 - File: https://github.com/smogon/pokemon-showdown/blob/db93869dcc216c0be39e7f86e9a64edcc7496d89/data/random-battles/gen3/sets.json
 - Move metadata: https://github.com/smogon/pokemon-showdown/blob/db93869dcc216c0be39e7f86e9a64edcc7496d89/data/moves.ts
+
+## Pokémon Showdown Gen 5 move metadata
+
+The same pinned commit. Gen 5 values are reconstructed by applying Showdown's own
+per-generation overrides — `data/mods/gen8`, `gen7`, `gen6`, `gen5` — over `data/moves.ts`,
+because the base file holds the current generation's numbers. See D-041.
+
+- Files: `data/moves.ts`, `data/mods/gen{8,7,6,5}/moves.ts`
+- Importer: `tools/import-showdown-gen5-data.mjs`
 - Revision: `db93869dcc216c0be39e7f86e9a64edcc7496d89`
 - Retrieved: 2026-08-10
 
