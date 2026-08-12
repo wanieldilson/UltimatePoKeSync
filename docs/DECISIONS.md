@@ -1334,3 +1334,60 @@ all, so it would not help even if it landed), BizHawk with the melonDS core (rej
 own README says Apple Silicon is not available — D-001 again, three years on), and running DS
 games under a 3DS emulator (rejected: a 3DS switches to separate DS hardware rather than
 emulating it, and Azahar's loader accepts no `.nds` file).
+
+## D-040 — Pokémon Black, found the way Ruby was found
+
+**Status:** Accepted · 2026-08-12
+
+The first Gen 5 game read end to end, and the method is the one D-035 left behind: dump the
+memory, slide a parser across every four-byte offset, and believe whatever survives a
+checksum. 4 MB of main RAM came out of melonDS in 273 seconds with no lost blocks, and five
+records passed PKHeX's `PK5` validation. Four were noise — a 16-bit checksum over a million
+offsets produces coincidences, and a level 100 Wurmple with a nickname in Chinese characters
+is one. The fifth was the Snivy that was actually in the party, level 6, HP 17/22, nickname
+and all.
+
+The finder was tested before it was trusted: a `PK5` we built ourselves, encrypted the way
+the game writes it, was hidden in random bytes and had to be found. Without that, "nothing
+found" would have meant either "no Pokémon" or "broken tool", and there would have been no
+way to tell.
+
+**The layout.** A party is a header and six fixed slots, with `PK5`'s 220-byte party form:
+
+```
+head + 0   capacity, always 6
+head + 4   how many are carried
+head + 8   slot 0, then 220 bytes each
+```
+
+**The address is reached through a pointer, not hardcoded.** The head sits at `0x022348AC`,
+and exactly one word in all of main RAM points at it: `0x0224F88C`, the third entry in a
+table of eighteen pointers that is plainly the game's own directory of save blocks. The
+duplicate copy of the party found at `0x02268494` is pointed at by nothing, which is what
+made it identifiable as an orphan rather than an alternative.
+
+Both survived a ROM restart unchanged, so this game's heap is laid out deterministically and
+a hardcoded address would work today. The pointer is still what gets followed, for the same
+reason as D-005: it is the route the game itself takes, it costs one extra read of four
+bytes, and it is the only one of the two that can still be right if the allocation ever
+differs. What is read is then checked — capacity 6, count at most 6 — so a pointer that goes
+somewhere wrong fails loudly rather than producing a party out of noise (D-008).
+
+**The game says who it is, as in Gen 3.** The DS firmware copies the cartridge header into
+main RAM at `0x027FFE00`, which mirrors to `0x023FFE00` in the 4 MB a DS actually has. Title
+at +0, four-character game code at +0x0C, revision at +0x1E. This cartridge reads
+`POKEMON B` / **`IRBI`** — Black, Italian — which is the same identification mechanism as
+D-005, at a different address.
+
+**What is not known.** One ROM, one language. D-035 exists because a single sample supported
+two explanations and the wrong one was picked, so nothing here is generalised to White, to
+Black 2 and White 2, or to any other language: `0x0224F88C` is recorded as the entry for
+`IRBI` and for nothing else. The next Gen 5 cartridge is what turns one address into a rule
+or into a table.
+
+**Alternatives considered:** hardcode the party address (rejected: it works today and says
+nothing about tomorrow, and the pointer costs one frame), search memory at run time for
+something that parses (rejected for the third time, D-005 and D-019 and D-035 all exist
+because data that merely looks valid is how a wrong answer becomes a confident one), and
+trust the community's published Black/White addresses (rejected: they are for other regions,
+and this cartridge is Italian — exactly the case that moved the party in D-035).
