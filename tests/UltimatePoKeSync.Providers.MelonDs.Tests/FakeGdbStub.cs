@@ -21,9 +21,15 @@ internal sealed class FakeGdbStub : IAsyncDisposable
     private readonly uint _baseAddress;
 
     public FakeGdbStub(uint baseAddress = 0x02000000, int size = 4096)
+        : this(baseAddress, [.. Enumerable.Range(0, size).Select(i => (byte)(i * 31 % 251))])
+    {
+    }
+
+    /// <summary>Serves memory somebody else laid out, for the tests that need it to mean something.</summary>
+    public FakeGdbStub(uint baseAddress, byte[] memory)
     {
         _baseAddress = baseAddress;
-        _memory = [.. Enumerable.Range(0, size).Select(i => (byte)(i * 31 % 251))];
+        _memory = memory;
 
         _listener = new Socket(SocketType.Stream, ProtocolType.Tcp);
         _listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
