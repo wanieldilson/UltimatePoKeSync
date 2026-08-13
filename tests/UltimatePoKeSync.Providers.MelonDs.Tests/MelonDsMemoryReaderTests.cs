@@ -21,7 +21,10 @@ public sealed class MelonDsMemoryReaderTests
 
         Assert.NotNull(read);
         Assert.Equal(stub.MemoryAt(0x02000000, 1408), read);
-        Assert.Equal(6, stub.Commands.Count(command => command.StartsWith('m')));
+
+        // Six for the party, and one before them: connecting asks the stub something small
+        // to find out whether it is a wedged one that only shakes hands. See D-039.
+        Assert.Equal(7, stub.Commands.Count(command => command.StartsWith('m')));
     }
 
     [Fact]

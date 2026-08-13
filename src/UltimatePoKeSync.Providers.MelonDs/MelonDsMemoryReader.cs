@@ -7,12 +7,12 @@ namespace UltimatePoKeSync.Providers.MelonDs;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Three melonDS facts shape this class. It connects to the **ARM7** stub, on port 3334,
-/// because the ARM9 one closes the connection on every command; main RAM is shared between
-/// the processors, so nothing is lost. Reads are capped at 256 bytes each and longer ranges
-/// are split here rather than by the caller. And one connection is held open for the whole
-/// session, because connecting halts the emulated CPU and disconnecting badly leaves the
-/// game frozen.
+/// Three melonDS facts shape this class. Either CPU's stub can serve a party, because they
+/// share main RAM, so both are tried — a stub whose last client vanished without detaching
+/// still shakes hands and then hangs up, and the other one is usually fine. Reads are capped
+/// at 256 bytes each and longer ranges are split here rather than by the caller. And one
+/// connection is held open for the whole session, because connecting halts the emulated CPU
+/// and disconnecting badly is what wedges a stub in the first place.
 /// </para>
 /// <para>
 /// A read returns null rather than throwing when the emulator is not there, matching the
@@ -21,22 +21,34 @@ namespace UltimatePoKeSync.Providers.MelonDs;
 /// </remarks>
 public sealed class MelonDsMemoryReader : IEmulatorMemoryReader, IAsyncDisposable
 {
-    /// <summary>melonDS's default ARM7 stub port. The ARM9's 3333 does not work. See D-039.</summary>
-    public const int DefaultPort = 3334;
+    /// <summary>melonDS's two stub ports: the ARM9 and the ARM7. See D-039.</summary>
+    public const int Arm9Port = 3333;
+
+    public const int Arm7Port = 3334;
+
+    /// <summary>Kept for callers that name a port; the reader tries both by default.</summary>
+    public const int DefaultPort = Arm7Port;
 
     private readonly SemaphoreSlim _connecting = new(1, 1);
     private readonly string _host;
-    private readonly int _port;
+    private readonly IReadOnlyList<int> _ports;
 
     private GdbRemoteClient? _client;
     private bool _disposed;
 
-    public MelonDsMemoryReader(string host = "127.0.0.1", int port = DefaultPort)
+    /// <summary>
+    /// Talks to whichever of melonDS's two stubs answers. Both CPUs share main RAM, so
+    /// either can read a party — and either can be left wedged by a client that died
+    /// without detaching, in which case it completes the handshake and then hangs up on
+    /// the first command. Trying both is what makes that survivable without asking the
+    /// player to restart their emulator. See D-039.
+    /// </summary>
+    public MelonDsMemoryReader(string host = "127.0.0.1", int? port = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(host);
 
         _host = host;
-        _port = port;
+        _ports = port is int chosen ? [chosen] : [Arm7Port, Arm9Port];
     }
 
     public string Name => "melonDS";
@@ -97,9 +109,7 @@ public sealed class MelonDsMemoryReader : IEmulatorMemoryReader, IAsyncDisposabl
         {
             if (_client is null && !_disposed)
             {
-                _client = await GdbRemoteClient
-                    .ConnectAsync(_host, _port, cancellationToken)
-                    .ConfigureAwait(false);
+                _client = await ConnectToWorkingStubAsync(cancellationToken).ConfigureAwait(false);
             }
 
             return _client;
@@ -114,6 +124,39 @@ public sealed class MelonDsMemoryReader : IEmulatorMemoryReader, IAsyncDisposabl
         {
             _connecting.Release();
         }
+    }
+
+    /// <summary>
+    /// Opens each stub in turn and asks it something, because a wedged one still shakes
+    /// hands. The question is the cartridge header, which every DS game has.
+    /// </summary>
+    private async Task<GdbRemoteClient?> ConnectToWorkingStubAsync(CancellationToken cancellationToken)
+    {
+        foreach (int port in _ports)
+        {
+            GdbRemoteClient? candidate = null;
+
+            try
+            {
+                candidate = await GdbRemoteClient
+                    .ConnectAsync(_host, port, cancellationToken)
+                    .ConfigureAwait(false);
+
+                await candidate.ReadMemoryAsync(0x02000000, 16, cancellationToken)
+                    .ConfigureAwait(false);
+
+                return candidate;
+            }
+            catch (Exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                if (candidate is not null)
+                {
+                    await candidate.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+        }
+
+        return null;
     }
 
     private async Task DropAsync()

@@ -1,0 +1,171 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:UltimatePoKeSync.App.ViewModels"
+             x:Class="UltimatePoKeSync.App.Views.BridgeView"
+             x:DataType="vm:MainWindowViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Button.ink.reveal">
+      <Setter Property="Background" Value="{StaticResource Info}" />
+      <Setter Property="Foreground" Value="#061417" />
+    </Style>
+    <Style Selector="Button.ink.reveal:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource Info}" />
+      <Setter Property="Foreground" Value="#061417" />
+      <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    </Style>
+    <Style Selector="Button.ink.copy">
+      <Setter Property="Background" Value="{StaticResource PanelAltDeep}" />
+      <Setter Property="Foreground" Value="{StaticResource Bone}" />
+    </Style>
+    <Style Selector="Button.ink.copy:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource PanelAltDeep}" />
+      <Setter Property="Foreground" Value="{StaticResource Bone}" />
+      <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel MaxWidth="820" Spacing="18">
+    <!-- The live state: one water-tinted stamped card, with no soft shadow anywhere. -->
+    <Border BorderBrush="{StaticResource Ink}" BorderThickness="4" CornerRadius="22"
+            Background="#1D2C3A" BoxShadow="{StaticResource ShadowHero}"
+            Padding="26" ClipToBounds="True">
+      <Panel>
+        <Border Background="{StaticResource Halftone}" IsHitTestVisible="False" />
+        <StackPanel Spacing="8">
+          <StackPanel Orientation="Horizontal" Spacing="16">
+            <Panel Width="20" Height="20" VerticalAlignment="Center">
+              <!-- Only the live dot blinks. The alert dot remains still when the bridge drops. -->
+              <Ellipse Width="20" Height="20" Fill="{StaticResource Good}"
+                       Stroke="{StaticResource Ink}" StrokeThickness="3"
+                       IsVisible="{Binding IsConnected}">
+                <Ellipse.Styles>
+                  <Style Selector="Ellipse">
+                    <Style.Animations>
+                      <Animation Duration="0:0:1.8" IterationCount="Infinite">
+                        <KeyFrame Cue="0%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+                        <KeyFrame Cue="50%"><Setter Property="Opacity" Value="0.25" /></KeyFrame>
+                        <KeyFrame Cue="100%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+                      </Animation>
+                    </Style.Animations>
+                  </Style>
+                </Ellipse.Styles>
+              </Ellipse>
+              <Ellipse Width="20" Height="20" Fill="{StaticResource Alert}"
+                       Stroke="{StaticResource Ink}" StrokeThickness="3"
+                       IsVisible="{Binding !IsConnected}" />
+            </Panel>
+
+            <!-- Avalonia has no text-shadow property, so the ink copy is stamped underneath. -->
+            <Panel Height="40">
+              <TextBlock Text="{Binding BridgeHeading}" Classes="display" FontSize="28"
+                         Foreground="{StaticResource Ink}" Margin="3,3,0,0" />
+              <TextBlock Text="{Binding BridgeHeading}" Classes="display" FontSize="28"
+                         Foreground="White" />
+            </Panel>
+          </StackPanel>
+
+          <TextBlock FontSize="14" Foreground="#C9DCED" LineHeight="22.4"
+                     TextWrapping="Wrap" MaxWidth="650" HorizontalAlignment="Left"
+                     IsVisible="{Binding IsConnected}">
+            <Run Text="{Binding BridgeSourceName}" />
+            <Run Text=" is talking to the app on " />
+            <Run Text="{Binding BridgeSocketAddress}" FontFamily="{StaticResource Mono}"
+                 Foreground="{StaticResource Accent}" />
+            <Run Text=". Read-only: the app never writes a byte back into your game." />
+          </TextBlock>
+
+          <TextBlock FontSize="14" Foreground="#C9DCED" LineHeight="22.4"
+                     TextWrapping="Wrap" MaxWidth="650" HorizontalAlignment="Left"
+                     IsVisible="{Binding !IsConnected}">
+            <Run Text="Listening on " />
+            <Run Text="{Binding BridgeSocketAddress}" FontFamily="{StaticResource Mono}"
+                 Foreground="{StaticResource Accent}" />
+            <Run Text=". Read-only: the app never writes a byte back into your game." />
+          </TextBlock>
+
+          <Grid ColumnDefinitions="*,*,*" ColumnSpacing="22" Margin="0,10,0,0">
+            <StackPanel>
+              <TextBlock Text="GAME" Classes="mono" FontSize="11" Foreground="{StaticResource BridgeMuted}"
+                         LetterSpacing="0.88" />
+              <TextBlock Text="{Binding BridgeGameIdentity}" Classes="strong" FontSize="15"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+              <TextBlock Text="LAST PACKET" Classes="mono" FontSize="11"
+                         Foreground="{StaticResource BridgeMuted}" LetterSpacing="0.88" />
+              <TextBlock Text="{Binding BridgeLastPacket}" Classes="strong" FontSize="15" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="PARTY BYTES" Classes="mono" FontSize="11"
+                         Foreground="{StaticResource BridgeMuted}" LetterSpacing="0.88" />
+              <TextBlock Text="{Binding BridgePartyPayload}" Classes="strong" FontSize="15"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+      </Panel>
+    </Border>
+
+    <Border BorderBrush="{StaticResource Ink}" BorderThickness="4" CornerRadius="20"
+            Background="{StaticResource Panel}" BoxShadow="{StaticResource ShadowPanel}"
+            Padding="22">
+      <StackPanel Spacing="14">
+        <TextBlock Text="IF IT EVER DROPS" Classes="display" FontSize="14"
+                   Foreground="#8D86A6" LetterSpacing="1.4" Margin="0,0,0,4" />
+
+        <Grid ColumnDefinitions="34,*" ColumnSpacing="14">
+          <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{StaticResource Ink}"
+                  BorderThickness="3" Background="{StaticResource Accent}"
+                  VerticalAlignment="Top">
+            <TextBlock Text="1" Classes="display" FontSize="14" Foreground="{StaticResource TextOnAccent}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="3">
+            <TextBlock Text="Open mGBA → Tools → Scripting…" Classes="strong" FontSize="15" />
+            <TextBlock Text="The script only runs while that window stays open."
+                       FontSize="13" Foreground="{StaticResource TextMuted}" />
+          </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="34,*" ColumnSpacing="14">
+          <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{StaticResource Ink}"
+                  BorderThickness="3" Background="{StaticResource Accent}"
+                  VerticalAlignment="Top">
+            <TextBlock Text="2" Classes="display" FontSize="14" Foreground="{StaticResource TextOnAccent}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="8">
+            <TextBlock Text="Load this file" Classes="strong" FontSize="15" />
+            <WrapPanel Orientation="Horizontal" ItemHeight="42">
+              <Border BorderBrush="{StaticResource Ink}" BorderThickness="3" CornerRadius="12"
+                      Background="{StaticResource TabBg}" Padding="13,9" Margin="0,0,10,0">
+                <SelectableTextBlock Text="{Binding ScriptPath}" FontFamily="{StaticResource Mono}"
+                                     FontSize="12.5" Foreground="{StaticResource Accent}"
+                                     VerticalAlignment="Center" />
+              </Border>
+              <Button Content="Reveal" Classes="ink reveal" Margin="0,0,10,0"
+                      Command="{Binding RevealScriptCommand}" />
+              <Button Name="CopyPathButton" Content="Copy path" Classes="ink copy"
+                      Click="CopyScriptPath" />
+            </WrapPanel>
+          </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="34,*" ColumnSpacing="14">
+          <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{StaticResource Ink}"
+                  BorderThickness="3" Background="{StaticResource Accent}"
+                  VerticalAlignment="Top">
+            <TextBlock Text="3" Classes="display" FontSize="14" Foreground="{StaticResource TextOnAccent}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="3">
+            <TextBlock Text="Play. The party shows up on its own." Classes="strong" FontSize="15" />
+            <TextBlock FontSize="13" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
+                       Text="Silence usually means an unrecognised ROM — the script refuses to read a memory map it does not know rather than invent Pokémon." />
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

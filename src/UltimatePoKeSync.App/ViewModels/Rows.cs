@@ -38,6 +38,7 @@ public sealed record StatRow(string Name, int Base, int Iv, int Ev, int Current)
 public sealed record StatSourceRow(
     string Name,
     int Current,
+    int FlatContribution,
     int BaseContribution,
     int IvContribution,
     int EvContribution,
@@ -46,8 +47,16 @@ public sealed record StatSourceRow(
     string Breakdown,
     bool NatureIsNegative)
 {
-    private int TotalWidth => BaseContribution + IvContribution + EvContribution
-        + Math.Abs(NatureContribution);
+    private int TotalWidth => FlatContribution + BaseContribution + IvContribution
+        + EvContribution + Math.Abs(NatureContribution);
+
+    /// <summary>
+    /// The part nobody earns. Every stat has a constant in its formula — five for most,
+    /// level plus ten for HP — and at low levels that constant is most of the bar. Folded
+    /// into the base segment it read as "your Pokémon's base stat is enormous", which is
+    /// the opposite of what this panel is for.
+    /// </summary>
+    public GridLength FlatWidth => new(FlatContribution, GridUnitType.Star);
 
     public GridLength BaseWidth => new(BaseContribution, GridUnitType.Star);
     public GridLength IvWidth => new(IvContribution, GridUnitType.Star);

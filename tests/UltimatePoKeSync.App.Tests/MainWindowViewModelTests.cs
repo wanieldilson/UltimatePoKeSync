@@ -102,6 +102,41 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void TabCommandSwitchesEveryDashboardScreen()
+    {
+        (MainWindowViewModel viewModel, _) = Create();
+
+        foreach (DashboardTab tab in Enum.GetValues<DashboardTab>())
+        {
+            viewModel.ShowTabCommand.Execute(tab);
+            Assert.Equal(tab, viewModel.SelectedTab);
+        }
+    }
+
+    [Fact]
+    public void BridgeDiagnosticsComeFromTheLiveSourceAndSnapshot()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+
+        Assert.Equal("Waiting for the bridge", viewModel.BridgeHeading);
+        Assert.Equal("127.0.0.1:8888", viewModel.BridgeSocketAddress);
+        Assert.Equal("No game detected", viewModel.BridgeGameIdentity);
+        Assert.Equal("No party bytes yet", viewModel.BridgePartyPayload);
+
+        source.ActiveEmulator = "mGBA";
+        source.RaiseState(EmulatorConnectionState.Streaming);
+        source.RaiseParty(LoadRealParty());
+
+        Assert.Equal("Bridge is live", viewModel.BridgeHeading);
+        Assert.Equal("mGBA", viewModel.BridgeSourceName);
+        Assert.Contains("BPEI", viewModel.BridgeGameIdentity, StringComparison.Ordinal);
+        Assert.StartsWith("600 · signature ", viewModel.BridgePartyPayload, StringComparison.Ordinal);
+
+        viewModel.SelectedTab = DashboardTab.Bridge;
+        Assert.False(viewModel.ShowsConnectedEmptyState);
+    }
+
+    [Fact]
     public void APartyFromRealRam_FillsTheTeamPanel()
     {
         (MainWindowViewModel viewModel, FakeSource source) = Create();
@@ -111,6 +146,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(viewModel.HasTeam);
         Assert.True(viewModel.ShowTeamPanel);
         Assert.Equal("TREECKO", Assert.Single(viewModel.Slots).SpeciesName);
+        Assert.Equal("Treecko", Assert.Single(viewModel.Slots).DisplaySpeciesName);
         Assert.Contains("BPEI", viewModel.GameText, StringComparison.Ordinal);
 
         // 17 attacking types must be accounted for exactly once across the three buckets.
@@ -173,6 +209,8 @@ public sealed class MainWindowViewModelTests
         PokemonSlotViewModel slot = viewModel.Slots[0];
         Assert.True(slot.HasStatus);
         Assert.Equal("PSN", slot.StatusText);
+        Assert.Equal("PSN", slot.RailBadgeText);
+        Assert.Contains(slot.TypeChips, chip => chip.UpperType == "GRASS");
     }
 
     [Fact]
@@ -239,6 +277,11 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(slot.Member.EffortValues.Total, slot.EffortValueTotal);
         Assert.Equal(510 - slot.EffortValueTotal, slot.EffortValuesLeft);
         Assert.All(slot.StatSources, stat => Assert.Contains("base", stat.Breakdown, StringComparison.Ordinal));
+        Assert.True(slot.HasIndividualValueNote);
+        Assert.Contains("Treecko", slot.IndividualValueNote, StringComparison.Ordinal);
+        Assert.False(string.IsNullOrWhiteSpace(slot.EffortValueFarmNote));
+        Assert.False(string.IsNullOrWhiteSpace(slot.MatchupNoteTitle));
+        Assert.False(string.IsNullOrWhiteSpace(slot.MatchupNote));
     }
 
     [Fact]

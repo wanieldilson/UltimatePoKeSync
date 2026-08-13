@@ -1670,3 +1670,29 @@ memory.
 and rightly: the app would gain a browser to draw six panels), and keep the native title bar
 and drop the design's (rejected: the bar is the first thing the design establishes, and the
 lamps work now).
+
+## D-048 — The floor is not a base stat
+
+**Status:** Accepted · 2026-08-13
+
+The Stats screen breaks each stat into where it came from, and the HP bar was full for every
+Pokémon, always. Two things caused it, and only one is a bug.
+
+Every stat formula has a constant: `+5` for most stats, `+level+10` for HP. It was being
+folded into the base-stat segment, so a level 6 Snivy's HP read as twenty-two points of
+"base" when sixteen of them are the floor any Pokémon of that level receives. That is the
+opposite of what the panel is for, so the floor is now its own segment, dimmer than the
+rest, with its own legend entry: *floor (every Pokémon gets it)*.
+
+The second cause is not a defect. Bars are scaled against the largest final stat on screen,
+which is the design's own rule, and HP is nearly always that stat — so the HP row fills the
+width by construction. Splitting the floor out is what makes a full bar informative again:
+it now shows how little of that width the species actually earned.
+
+This adds one colour to a legend the design fixed at four, which is a deviation — asked for
+by name after the bar was seen against a real party, rather than invented.
+
+**Alternatives considered:** scale each row against its own final value (rejected: the rows
+stop being comparable, which is the only reason to draw them together), and leave the floor
+inside the base segment and explain it in a note (rejected: the picture would still say
+something false, and a note under a wrong picture is not a fix).

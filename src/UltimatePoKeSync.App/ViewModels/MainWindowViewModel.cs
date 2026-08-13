@@ -51,6 +51,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// <summary>Stops the running animations when the window closes.</summary>
     private readonly CancellationTokenSource _animations = new();
 
+    private Task? _bridgeMonitor;
+
     private PartySnapshot? _party;
 
     [ObservableProperty]
@@ -98,6 +100,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// </summary>
     [ObservableProperty]
     private bool _hasReceivedParty;
+
+    [ObservableProperty]
+    private string _liveText = "LIVE · 0 reads/s";
 
     public MainWindowViewModel()
         : this(new LiveTeamService(), action => Dispatcher.UIThread.Post(action))
@@ -202,8 +207,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     /// The screens still waiting to be rebuilt keep showing the previous dashboard, so the
     /// app stays usable between one screen and the next.
     /// </summary>
-    public bool ShowsOldPanels => HasTeam && !IsPokemonTab && !IsStatsTab && !IsBuildTab
-        && !IsLearnsetTab && !IsTeamTab;
+    public bool ShowsOldPanels => false;
 
     public bool IsStatsTab => SelectedTab == DashboardTab.Stats;
 
@@ -214,6 +218,58 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public bool IsTeamTab => SelectedTab == DashboardTab.Team;
 
     public bool IsBridgeTab => SelectedTab == DashboardTab.Bridge;
+
+    public bool ShowsConnectedEmptyState => IsConnected && !HasTeam && !IsBridgeTab;
+
+    public string BridgeHeading => IsConnected ? "Bridge is live" : "Waiting for the bridge";
+
+    public string BridgeSourceName => ConnectedVia.Length > 0 ? ConnectedVia : "mGBA";
+
+    public string BridgeSocketAddress => $"127.0.0.1:{_live.Port}";
+
+    public string BridgeGameIdentity => _party is null
+        ? "No game detected"
+        : $"{_party.Game.Title} · {_party.Game.GameCode}";
+
+    public string BridgeLastPacket
+    {
+        get
+        {
+            if (_party is null)
+            {
+                return "No packet yet";
+            }
+
+            TimeSpan age = DateTimeOffset.UtcNow - _party.CapturedAt;
+            if (age.TotalSeconds < 1)
+            {
+                return $"{Math.Max(0, (int)age.TotalMilliseconds)} ms ago";
+            }
+
+            if (age.TotalMinutes < 1)
+            {
+                return $"{Math.Max(1, (int)age.TotalSeconds)} s ago";
+            }
+
+            return $"{Math.Max(1, (int)age.TotalMinutes)} min ago";
+        }
+    }
+
+    public string BridgePartyPayload
+    {
+        get
+        {
+            if (_party is null)
+            {
+                return "No party bytes yet";
+            }
+
+            int bytes = _party.Game.Generation == PokemonGeneration.Gen5
+                ? 220 * 6
+                : 100 * 6;
+            return $"{bytes} · signature {ComputePartySignature(_party)}";
+        }
+    }
 
     /// <summary>
     /// The line under the app name: which game, and which emulator it came through. Both
@@ -300,13 +356,30 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public bool HasAnalysisError => AnalysisError.Length > 0;
 
-    public void Start() => _live.Start();
+    public void Start()
+    {
+        _live.Start();
+        _bridgeMonitor ??= MonitorBridgeAsync();
+    }
 
     public async ValueTask DisposeAsync()
     {
         // The animations outlive nothing: a timer still swapping frames into a closed
         // window is a leak with a picture attached.
         await _animations.CancelAsync().ConfigureAwait(false);
+
+        if (_bridgeMonitor is not null)
+        {
+            try
+            {
+                await _bridgeMonitor.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // The window closed between bridge refreshes.
+            }
+        }
+
         _animations.Dispose();
 
         await _live.DisposeAsync().ConfigureAwait(false);
@@ -337,7 +410,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                  {
                      nameof(IsPokemonTab), nameof(IsStatsTab), nameof(IsBuildTab),
                      nameof(IsLearnsetTab), nameof(IsTeamTab), nameof(IsBridgeTab),
-                     nameof(ShowsOldPanels),
+                     nameof(ShowsOldPanels), nameof(ShowsConnectedEmptyState),
                  })
         {
             OnPropertyChanged(name);
@@ -432,7 +505,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
     }
 
-    partial void OnIsConnectedChanged(bool value) => OnPropertyChanged(nameof(ConnectionBrush));
+    partial void OnIsConnectedChanged(bool value)
+    {
+        foreach (string name in new[]
+                 {
+                     nameof(ConnectionBrush), nameof(BridgeHeading),
+                     nameof(ShowsConnectedEmptyState),
+                 })
+        {
+            OnPropertyChanged(name);
+        }
+    }
 
     [RelayCommand]
     private void ChooseProfile(string? profile) =>
@@ -458,6 +541,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private void OnStateChanged(EmulatorConnectionState state)
     {
         OnPropertyChanged(nameof(ConnectedVia));
+        OnPropertyChanged(nameof(BridgeSourceName));
         IsConnected = state == EmulatorConnectionState.Streaming;
         ConnectionText = state switch
         {
@@ -479,6 +563,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         HasReceivedParty = true;
         GameText = $"{party.Game.Title} [{party.Game.GameCode}]";
         OnPropertyChanged(nameof(IdentityLine));
+        OnPropertyChanged(nameof(BridgeGameIdentity));
+        OnPropertyChanged(nameof(BridgeLastPacket));
+        OnPropertyChanged(nameof(BridgePartyPayload));
 
         TeamAnalysis analysis;
         TeamStrength strength;
@@ -536,6 +623,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         UpdateEmptySlots(party.Count);
         OnPropertyChanged(nameof(HasTeam));
+        OnPropertyChanged(nameof(ShowsConnectedEmptyState));
 
         // The rail heading counts the cards, and the cards are rebuilt on every snapshot,
         // so the count has to be re-read rather than left at whatever it was at startup.
@@ -579,6 +667,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         UpdateEmptySlots(party.Count);
         OnPropertyChanged(nameof(HasTeam));
+        OnPropertyChanged(nameof(ShowsConnectedEmptyState));
         OnPropertyChanged(nameof(HasEmptyParty));
         OnPropertyChanged(nameof(TeamGapBadgeText));
         OnPropertyChanged(nameof(TeamCoverageNote));
@@ -684,6 +773,67 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         OnPropertyChanged(nameof(HasEmptySlots));
         OnPropertyChanged(nameof(EmptySlotsText));
+    }
+
+    private async Task MonitorBridgeAsync()
+    {
+        while (true)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1), _animations.Token).ConfigureAwait(false);
+            _post(() =>
+            {
+                LiveText = $"LIVE · {_live.ReadsPerSecond} reads/s";
+                OnPropertyChanged(nameof(BridgeLastPacket));
+            });
+        }
+    }
+
+    /// <summary>
+    /// A short stable fingerprint over the same non-volatile facts that drive analysis.
+    /// It is diagnostic, not cryptographic: a changed party should simply look changed.
+    /// </summary>
+    private static string ComputePartySignature(PartySnapshot party)
+    {
+        uint hash = 2166136261;
+
+        void Mix(uint value)
+        {
+            for (int shift = 0; shift < 32; shift += 8)
+            {
+                hash ^= (byte)(value >> shift);
+                hash *= 16777619;
+            }
+        }
+
+        foreach (char character in party.Game.GameCode)
+        {
+            Mix(character);
+        }
+
+        foreach (PokemonSnapshot member in party.Members)
+        {
+            Mix((uint)member.SlotIndex);
+            Mix((uint)member.SpeciesId);
+            Mix(member.PersonalityValue);
+            Mix((uint)member.Level);
+            Mix((uint)member.NatureId);
+            Mix((uint)member.AbilityId);
+            Mix((uint)member.HeldItemId);
+            Mix(member.IsEgg ? 1u : 0u);
+
+            foreach (Stat stat in Enum.GetValues<Stat>())
+            {
+                Mix((uint)member.IndividualValues[stat]);
+                Mix((uint)member.EffortValues[stat]);
+            }
+
+            foreach (MoveSlot move in member.Moves)
+            {
+                Mix((uint)move.MoveId);
+            }
+        }
+
+        return (hash & 0xFFFF).ToString("x4", CultureInfo.InvariantCulture);
     }
 
     /// <summary>

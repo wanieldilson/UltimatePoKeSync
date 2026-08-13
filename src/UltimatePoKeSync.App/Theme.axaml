@@ -54,6 +54,12 @@
   <SolidColorBrush x:Key="NatureGoodText" Color="#C9F0D3" />
   <SolidColorBrush x:Key="CoverageRole" Color="#E0954A" />
 
+  <!--
+    The constant in every stat formula, drawn apart from the base stat because it is not
+    one: +5 for most stats, +level+10 for HP. Dimmer than the rest, since nobody earned it.
+  -->
+  <SolidColorBrush x:Key="StatFloor" Color="#3A3450" />
+
   <SolidColorBrush x:Key="GoodBg" Color="#1C3524" />
   <SolidColorBrush x:Key="BadBg" Color="#4A2A26" />
 
@@ -82,6 +88,27 @@
               TileMode="Tile"
               SourceRect="0,0,14,14"
               DestinationRect="0,0,14,14" />
+
+  <!-- Header/content variant from the HTML: one 3 px dot on a 12 px grid. Keeping the
+       dot in the drawing itself avoids the doubled pattern produced by layered tiles. -->
+  <DrawingBrush x:Key="HalftoneBold"
+                TileMode="Tile"
+                SourceRect="0,0,12,12"
+                DestinationRect="0,0,12,12"
+                Stretch="None"
+                AlignmentX="Left"
+                AlignmentY="Top">
+    <DrawingBrush.Drawing>
+      <DrawingGroup>
+        <GeometryDrawing Brush="Transparent" Geometry="M 0,0 L 12,0 12,12 0,12 Z" />
+        <GeometryDrawing Brush="#12FFFFFF">
+          <GeometryDrawing.Geometry>
+            <EllipseGeometry Center="1.8,1.8" RadiusX="1.8" RadiusY="1.8" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+      </DrawingGroup>
+    </DrawingBrush.Drawing>
+  </DrawingBrush>
 
   <!-- Hard offsets, never a blur. The element looks stamped rather than floating. -->
   <BoxShadows x:Key="ShadowChip">3 3 0 0 #08070C</BoxShadows>

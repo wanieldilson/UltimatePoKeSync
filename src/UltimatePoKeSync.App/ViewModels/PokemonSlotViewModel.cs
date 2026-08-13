@@ -106,7 +106,10 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         ];
         EffortValueTotal = EffortValues.Sum(stat => stat.Value);
         EffortValueWarning = BuildEffortValueWarning(EffortValues);
-        IndividualValueNote = BuildIndividualValueNote(IndividualValues, recommendedStats);
+        IndividualValueNote = BuildIndividualValueNote(
+            IndividualValues,
+            recommendedStats,
+            DisplaySpeciesName);
 
         string emptyMoveHint = progress.Moves.FirstOrDefault() is UpcomingMove nextMove
             ? $"{nextMove.Move.Name} is {DescribeDistance(nextMove.LevelsAway)}"
@@ -135,7 +138,9 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         (Weaknesses, Resistances, Immunities) = member.IsEgg
             ? ([], [], [])
             : BuildMatchups(member, analysis);
-        MatchupNote = member.IsEgg ? string.Empty : BuildMatchupNote(member, analysis);
+        (MatchupNoteTitle, MatchupNote) = member.IsEgg
+            ? (string.Empty, string.Empty)
+            : BuildMatchupNote(member, analysis);
         TeamAnalysisText = BuildTeamAnalysisText(member, recommendation, analysis);
 
         TypeChips = member.IsEgg
@@ -339,6 +344,27 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     /// </summary>
     public string SpeciesName => IsEgg ? "Egg" : Member.SpeciesName;
 
+    /// <summary>
+    /// Cartridge name tables are uppercase. The rail is prose, not a ROM dump, so it uses
+    /// the title case drawn in the handoff while the raw name remains available to analysis.
+    /// </summary>
+    public string DisplaySpeciesName
+    {
+        get
+        {
+            if (IsEgg)
+            {
+                return "Egg";
+            }
+
+            string title = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(
+                Member.SpeciesName.ToLowerInvariant());
+            return title.EndsWith("'D", StringComparison.Ordinal)
+                ? title[..^1] + "d"
+                : title;
+        }
+    }
+
     public bool IsEgg => Member.IsEgg;
 
     public bool CanBattle => Member.CanBattle;
@@ -483,6 +509,15 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         ? new SolidColorBrush(Color.FromRgb(0x45, 0xD0, 0xE0))
         : StatusBrush;
 
+    /// <summary>
+    /// The bright status pills use ink text, exactly like the type chips. Darker conditions
+    /// keep white text, so the three-letter signal is never lost to its colour.
+    /// </summary>
+    public IBrush RailBadgeForeground => IsEgg || Member.Status is StatusCondition.Poison
+        or StatusCondition.BadPoison or StatusCondition.Freeze or StatusCondition.Paralysis
+            ? new SolidColorBrush(Color.FromRgb(0x12, 0x06, 0x1C))
+            : new SolidColorBrush(Colors.White);
+
     public bool HasHeldItem => Member.HeldItemId > 0 && Member.HeldItemName != "-";
 
     public string FriendshipText => $"{Member.Friendship}/255";
@@ -518,7 +553,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public bool HasIndividualValueNote => IndividualValueNote.Length > 0;
 
     public string EffortValueFarmNote => HasRecommendation
-        ? $"What to farm next. {EffortValueText}. Four EVs become one stat point at level 100."
+        ? $"{UppercaseFirst(EffortValueText)}. Every 4 EVs become one stat point at level 100."
         : "Four EVs become one stat point at level 100.";
 
     public string EffortValueWarning { get; }
@@ -551,6 +586,8 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     public bool HasImmunities => Immunities.Count > 0;
 
     public string MatchupNote { get; }
+
+    public string MatchupNoteTitle { get; }
 
     public bool HasMatchupNote => MatchupNote.Length > 0;
 
@@ -762,7 +799,9 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         return (weak, resisted, immune);
     }
 
-    private static string BuildMatchupNote(PokemonSnapshot member, TeamAnalysis analysis)
+    private static (string Title, string Body) BuildMatchupNote(
+        PokemonSnapshot member,
+        TeamAnalysis analysis)
     {
         DefensiveTypeCoverage? worst = analysis.DefensiveCoverage
             .Where(entry => entry.Matchups.Any(matchup =>
@@ -773,7 +812,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
         if (worst is null)
         {
-            return "No doubled weakness needs a switch plan.";
+            return ("No forced switch.", "No doubled weakness needs a switch plan.");
         }
 
         string type = worst.AttackingType.ToString();
@@ -787,10 +826,11 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
         if (answers.Length == 0)
         {
-            return $"Team gap. Nothing else in the party resists {type}.";
+            return ("Team gap.", $"Nothing else in the party resists {type}.");
         }
 
-        return $"Switch plan. {string.Join(" or ", answers)} can take the {type} hit instead.";
+        return ("Switch plan.",
+            $"{string.Join(" or ", answers)} can take the {type} hit instead.");
     }
 
     private static string BuildTeamAnalysisText(
@@ -869,7 +909,13 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
             : (((2 * member.BaseStats[stat] + iv + (ev / 4)) * level) / 100) + 5;
         int ivContribution = iv * level / 100;
         int evContribution = (ev / 4) * level / 100;
-        int baseContribution = Math.Max(1, neutral - ivContribution - evContribution);
+
+        // The constant in the formula: +5 for most stats, +level+10 for HP. It is not a
+        // contribution of the base stat and must not be drawn as one — at level 6 it is
+        // sixteen of a Snivy's twenty-two HP.
+        int flatContribution = stat == Stat.Hp ? level + 10 : 5;
+        int baseContribution = Math.Max(
+            1, neutral - flatContribution - ivContribution - evContribution);
         int natureContribution = stat == Stat.Hp ? 0 : current - neutral;
         bool natureIsNegative = natureContribution < 0;
 
@@ -882,6 +928,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         return new StatSourceRow(
             Abbreviate(stat).ToUpperInvariant(),
             current,
+            flatContribution,
             baseContribution,
             ivContribution,
             evContribution,
@@ -893,11 +940,12 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     private static string BuildIndividualValueNote(
         IReadOnlyList<IvRow> values,
-        IReadOnlySet<Stat> recommendedStats)
+        IReadOnlySet<Stat> recommendedStats,
+        string speciesName)
     {
         if (recommendedStats.Count == 0)
         {
-            return string.Empty;
+            return $"IVs are fixed at capture. Use these rolls when comparing another {speciesName}.";
         }
 
         HashSet<string> useful =
@@ -907,10 +955,35 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         IvRow? perfectElsewhere = values.FirstOrDefault(value =>
             value.IsPerfect && !useful.Contains(value.Name));
 
-        return perfectElsewhere is null
-            ? string.Empty
-            : $"A perfect {perfectElsewhere.Name} IV is lucky, but this build does not spend that luck.";
+        if (perfectElsewhere is not null)
+        {
+            return $"A perfect {perfectElsewhere.Name} IV is lucky, but this build does not "
+                + $"spend that luck. Nothing here is trainable; compare it with another {speciesName}.";
+        }
+
+        IvRow? bestUseful = values
+            .Where(value => useful.Contains(value.Name))
+            .OrderByDescending(value => value.Value)
+            .FirstOrDefault();
+        if (bestUseful is null)
+        {
+            return $"IVs are fixed at capture. Use these rolls when comparing another {speciesName}.";
+        }
+
+        string quality = bestUseful.Value switch
+        {
+            31 => "perfect",
+            >= 24 => "strong",
+            >= 16 => "middling",
+            _ => "low",
+        };
+        return $"{bestUseful.Name} {bestUseful.Value} is the {quality} roll this build can use best. "
+            + $"Nothing here is trainable; compare it with another {speciesName}.";
     }
+
+    private static string UppercaseFirst(string value) => string.IsNullOrEmpty(value)
+        ? value
+        : char.ToUpperInvariant(value[0]) + value[1..];
 
     private static string BuildEffortValueWarning(IReadOnlyList<EvRow> values)
     {

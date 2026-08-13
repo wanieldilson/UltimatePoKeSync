@@ -40,6 +40,7 @@
 
   <!-- Nunito at its heaviest is what the design uses for anything that must be read first. -->
   <Style Selector="TextBlock.strong">
+    <Setter Property="FontFamily" Value="{StaticResource Body}" />
     <Setter Property="FontWeight" Value="Black" />
   </Style>
 
@@ -71,6 +72,7 @@
   </Style>
 
   <Style Selector="Border.chip > TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource Body}" />
     <Setter Property="FontWeight" Value="Black" />
     <Setter Property="FontSize" Value="10.5" />
   </Style>
@@ -131,6 +133,7 @@
     put, so it appears to pop off the page rather than to glow.
   -->
   <Style Selector="Button.ink">
+    <Setter Property="FontFamily" Value="{StaticResource Body}" />
     <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
     <Setter Property="BorderThickness" Value="3" />
     <Setter Property="CornerRadius" Value="11" />
@@ -165,6 +168,7 @@
     background change, which is what keeps the strip flat and the bar the only signal.
   -->
   <Style Selector="Button.tab">
+    <Setter Property="FontFamily" Value="{StaticResource Body}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="16,14,16,12" />
@@ -177,6 +181,7 @@
         <Panel>
           <ContentPresenter Content="{TemplateBinding Content}" Padding="{TemplateBinding Padding}"
                             Foreground="{TemplateBinding Foreground}"
+                            FontFamily="{TemplateBinding FontFamily}"
                             FontWeight="{TemplateBinding FontWeight}"
                             FontSize="{TemplateBinding FontSize}"
                             VerticalAlignment="Center" />
@@ -207,6 +212,7 @@
 
   <!-- Half of the profile switch. The chosen half is filled; the other is not. -->
   <Style Selector="Button.segment">
+    <Setter Property="FontFamily" Value="{StaticResource Body}" />
     <Setter Property="Background" Value="#2A2637" />
     <Setter Property="Foreground" Value="#A49EC0" />
     <Setter Property="BorderThickness" Value="0" />
@@ -230,6 +236,7 @@
     card inside it: no chrome of its own, and the lift on hover belongs to the whole card.
   -->
   <Style Selector="Button.railcard">
+    <Setter Property="FontFamily" Value="{StaticResource Body}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />
