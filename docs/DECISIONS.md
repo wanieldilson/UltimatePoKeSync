@@ -1756,8 +1756,8 @@ The design now lives where it is enforced: the tokens in `Theme.axaml`, the shap
 `Styles.axaml`, and the screens themselves. Those cannot drift from the app, because they are the
 app. The 888 KB of mock, and the duplicate copy of the icon inside it, are gone.
 
-`.claude/` is now ignored rather than merely untracked, so local tool state cannot be committed
-by an absent-minded `git add -A`.
+Local editor and tool state is now ignored rather than merely untracked, so it cannot be
+committed by an absent-minded `git add -A`.
 
 **Alternatives considered:** move the mock under `docs/` (rejected: the same stale second
 description, filed more tidily), and keep it and mark it historical (rejected: a folder nobody
