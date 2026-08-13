@@ -3,8 +3,8 @@ using UltimatePoKeSync.Contracts;
 namespace UltimatePoKeSync.GameData;
 
 /// <summary>
-/// A type chart read from an embedded table. Gen 2 through Gen 5 all use the same one — the
-/// chart changed with Fairy and with Steel losing its resistances, both in Gen 6 — but each
+/// A type chart read from an embedded table. Gen 2 through Gen 5 all use the same one (the
+/// chart changed with Fairy and with Steel losing its resistances, both in Gen 6), but each
 /// generation declares its own file rather than borrowing another's, and a test pins that
 /// the two we ship agree. A shared file would save a kilobyte and cost the ability to say
 /// which generation a number belongs to.

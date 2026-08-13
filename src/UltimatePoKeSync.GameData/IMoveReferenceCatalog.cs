@@ -3,7 +3,7 @@ using UltimatePoKeSync.Contracts;
 namespace UltimatePoKeSync.GameData;
 
 /// <summary>
-/// Move identity — number, name and type. Keyed by generation, because a move's type can
+/// Move identity: number, name and type. Keyed by generation, because a move's type can
 /// be retconned: Charm is Normal in Gen 3 and Fairy from Gen 6.
 /// </summary>
 public interface IMoveReferenceCatalog
@@ -23,7 +23,7 @@ public interface IMoveReferenceCatalog
 /// <remarks>
 /// Within one generation the games disagree, and not only on levels: 42 of the 386 Gen 3
 /// species learn at least one move at a different level in Ruby/Sapphire, Emerald and
-/// FireRed/LeafGreen, and the tutor lists differ far more than that — Charizard has twenty
+/// FireRed/LeafGreen, and the tutor lists differ far more than that. Charizard has twenty
 /// tutor moves in Emerald and one in FireRed. Merging them produces an answer that is wrong
 /// for the game actually running, and wrong in the worst way: plausible. See D-027 and D-030.
 /// </remarks>

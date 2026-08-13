@@ -10,7 +10,7 @@ namespace UltimatePoKeSync.Parsing;
 /// them is set rather than at a value of its own; the rest are one flag each. Badly poisoned
 /// is checked before poisoned, because the game sets both.
 ///
-/// Cross-checked against PKHeX's own <c>StatusCondition</c> — Sleep1 to Sleep7, Poison 8,
+/// Cross-checked against PKHeX's own <c>StatusCondition</c>. Sleep1 to Sleep7, Poison 8,
 /// Burn 16, Freeze 32, Paralysis 64, PoisonBad 128. Ours is separate because Contracts must
 /// not depend on PKHeX (D-007), and pinned by a test for the same reason as D-014. Shared
 /// between the parsers rather than copied, because a difference between them would be a bug

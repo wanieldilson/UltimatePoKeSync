@@ -51,8 +51,8 @@ public sealed record StatSourceRow(
         + EvContribution + Math.Abs(NatureContribution);
 
     /// <summary>
-    /// The part nobody earns. Every stat has a constant in its formula — five for most,
-    /// level plus ten for HP — and at low levels that constant is most of the bar. Folded
+    /// The part nobody earns. Every stat has a constant in its formula (five for most,
+    /// level plus ten for HP), and at low levels that constant is most of the bar. Folded
     /// into the base segment it read as "your Pokémon's base stat is enormous", which is
     /// the opposite of what this panel is for.
     /// </summary>
@@ -93,8 +93,8 @@ public sealed record EvRow(string Name, int Value, bool IsRecommended)
 }
 
 /// <summary>
-/// One move a Pokémon knows now. <c>Detail</c> is the line under the name — type, category
-/// and power — which is what says whether a move runs off Attack or Special Attack. From
+/// One move a Pokémon knows now. <c>Detail</c> is the line under the name (type, category
+/// and power), which is what says whether a move runs off Attack or Special Attack. From
 /// Gen 4 that is a property of the move rather than of its type (D-041), so it is read from
 /// the generation's rules rather than guessed from the colour.
 /// </summary>

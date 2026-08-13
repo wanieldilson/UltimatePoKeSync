@@ -62,7 +62,7 @@ public sealed class Gen5RulesTests
 
     /// <summary>
     /// An empty move slot has no type, and the team analyser walks all four slots. Asking
-    /// about it must give a boring answer rather than an exception — which is how this was
+    /// about it must give a boring answer rather than an exception, which is how this was
     /// found, by running the console against the real party.
     /// </summary>
     [Fact]
@@ -95,8 +95,8 @@ public sealed class Gen5RulesTests
     }
 
     /// <summary>
-    /// The chart did not change between the two generations — Fairy and Steel's lost
-    /// resistances both arrived in Gen 6 — so the two files we ship must agree everywhere.
+    /// The chart did not change between the two generations: Fairy and Steel's lost
+    /// resistances both arrived in Gen 6, so the two files we ship must agree everywhere.
     /// A difference would mean one of them was edited by hand.
     /// </summary>
     [Fact]

@@ -7,8 +7,8 @@ namespace UltimatePoKeSync.App.Tests;
 /// Taking an animated GIF apart into frames. See D-045.
 /// </summary>
 /// <remarks>
-/// The fixture is a two-frame GIF built by hand — four pixels of red, then four of blue, at
-/// fifty milliseconds each — rather than a real sprite, so the test owns everything it
+/// The fixture is a two-frame GIF built by hand (four pixels of red, then four of blue, at
+/// fifty milliseconds each) rather than a real sprite, so the test owns everything it
 /// asserts and needs no Pokémon art in the repository.
 /// </remarks>
 public sealed class AnimatedSpriteTests

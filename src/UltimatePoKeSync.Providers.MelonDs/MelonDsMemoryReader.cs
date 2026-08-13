@@ -8,7 +8,7 @@ namespace UltimatePoKeSync.Providers.MelonDs;
 /// <remarks>
 /// <para>
 /// Three melonDS facts shape this class. Either CPU's stub can serve a party, because they
-/// share main RAM, so both are tried — a stub whose last client vanished without detaching
+/// share main RAM, so both are tried: a stub whose last client vanished without detaching
 /// still shakes hands and then hangs up, and the other one is usually fine. Reads are capped
 /// at 256 bytes each and longer ranges are split here rather than by the caller. And one
 /// connection is held open for the whole session, because connecting halts the emulated CPU
@@ -38,7 +38,7 @@ public sealed class MelonDsMemoryReader : IEmulatorMemoryReader, IAsyncDisposabl
 
     /// <summary>
     /// Talks to whichever of melonDS's two stubs answers. Both CPUs share main RAM, so
-    /// either can read a party — and either can be left wedged by a client that died
+    /// either can read a party, and either can be left wedged by a client that died
     /// without detaching, in which case it completes the handshake and then hangs up on
     /// the first command. Trying both is what makes that survivable without asking the
     /// player to restart their emulator. See D-039.

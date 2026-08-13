@@ -25,7 +25,7 @@ public sealed class PartyTracker
     /// </summary>
     /// <remarks>
     /// Skipping inconsistent snapshots protects against torn reads, but taken literally it
-    /// would stall forever on a party that is genuinely broken — a bad egg, say, which is
+    /// would stall forever on a party that is genuinely broken (a bad egg, say), which is
     /// a real and permanent state. After this many attempts the tracker concludes the
     /// problem is the party rather than the timing, and reports what it sees.
     /// </remarks>

@@ -3,12 +3,12 @@
 
 The app never ships Pokémon artwork and never will: it belongs to Nintendo, Game Freak and
 Creatures, and the collections that gather it state no licence of their own. What the app
-does is read sprites you already have — from your cartridge where it can (D-033), and
+does is read sprites you already have: from your cartridge where it can (D-033), and
 otherwise from a folder on your disk. This fetches that folder.
 
 The sprites come from PokeAPI's public repository, in the Black and White animated style, so
 one set covers every generation from the first to the fifth. The whole set of fronts is
-27 MB, and the shiny ones another 27 MB — which is why shinies are not fetched unless asked
+27 MB, and the shiny ones another 27 MB, which is why shinies are not fetched unless asked
 for: a shiny falls back to the ordinary sprite, and the tile marks it with a star anyway.
 
 Recompressing was measured and abandoned: animated WebP saves 6% on these files, because a

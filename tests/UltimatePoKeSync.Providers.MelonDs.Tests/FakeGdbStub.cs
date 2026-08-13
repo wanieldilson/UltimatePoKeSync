@@ -8,8 +8,8 @@ namespace UltimatePoKeSync.Providers.MelonDs.Tests;
 /// A stand-in for melonDS's GDB stub, faithful to the parts that bite. See D-039.
 /// </summary>
 /// <remarks>
-/// It insists on the leading acknowledgement the way melonDS does — a client that opens with
-/// a packet has its <c>$</c> swallowed and gets hung up on — because that was a real bug
+/// It insists on the leading acknowledgement the way melonDS does: a client that opens with
+/// a packet has its <c>$</c> swallowed and gets hung up on, because that was a real bug
 /// found against the real emulator, and a fake that forgives it would let it back in.
 /// </remarks>
 internal sealed class FakeGdbStub : IAsyncDisposable

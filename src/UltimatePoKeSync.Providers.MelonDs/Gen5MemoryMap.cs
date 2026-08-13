@@ -9,15 +9,15 @@ namespace UltimatePoKeSync.Providers.MelonDs;
 /// <remarks>
 /// <para>
 /// The equivalent of the Lua script's game table (D-005), on the other side of the wire.
-/// One entry per game code, and an unrecognised code is refused rather than guessed at —
-/// the whole reason that rule exists is that D-035 found an Italian cartridge keeping its
+/// One entry per game code, and an unrecognised code is refused rather than guessed at.
+/// The whole reason that rule exists is that D-035 found an Italian cartridge keeping its
 /// party sixteen bytes away from where the American one does.
 /// </para>
 /// <para>
 /// The party is not at a fixed address here: what is recorded is the entry in the game's own
 /// table of save blocks, and the address is read from there. The one Gen 5 cartridge run so
 /// far kept its party at the same place across restarts, so the pointer is not strictly
-/// needed today — it is followed because it is the route the game itself takes, and it costs
+/// needed today: it is followed because it is the route the game itself takes, and it costs
 /// four bytes.
 /// </para>
 /// </remarks>

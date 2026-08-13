@@ -22,7 +22,7 @@ public interface IEvolutionSource
 
 /// <summary>
 /// One evolution and what it costs. <paramref name="Requirement"/> is the sentence a player
-/// can act on — the trigger alone does not say which stone, or how much friendship.
+/// can act on: the trigger alone does not say which stone, or how much friendship.
 /// </summary>
 public sealed record EvolutionStep(
     int IntoSpeciesId,

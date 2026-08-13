@@ -11,7 +11,7 @@ namespace UltimatePoKeSync.App.Services;
 /// <para>
 /// Nothing is bundled and nothing is guessed. The pointer tables move with every build of
 /// every localisation, so they are found by scanning, and the scan needs the bytes the
-/// tables live in — which is what the read command exists for. See D-033.
+/// tables live in, which is what the read command exists for. See D-033.
 /// </para>
 /// <para>
 /// It reads a window rather than the whole cartridge. Sixteen megabytes over the wire would
@@ -87,8 +87,8 @@ public sealed class RomSpriteSource
     /// </summary>
     /// <remarks>
     /// The game is a parameter rather than a constructor argument because a player can
-    /// swap the cartridge under a running app. Everything here — the ROM image, the table
-    /// offsets, the decoded sprites — belongs to one game, and keeping it across a change
+    /// swap the cartridge under a running app. Everything here (the ROM image, the table
+    /// offsets, the decoded sprites) belongs to one game, and keeping it across a change
     /// means decoding FireRed with Ruby's tables. See issue #17.
     /// </remarks>
     public async Task<DecodedSprite?> TryGetAsync(
@@ -214,7 +214,7 @@ public sealed class RomSpriteSource
     /// <summary>
     /// Picks the front table out of the candidates the scan found. Front and back tables
     /// are identical in shape; only their data tells them apart, and the data is elsewhere
-    /// in the ROM — so each candidate's first sprite has to be fetched before it can be
+    /// in the ROM, so each candidate's first sprite has to be fetched before it can be
     /// judged. This is the step that cannot happen inside the reader, which only ever sees
     /// the bytes it was handed. See D-033.
     /// </summary>
@@ -267,7 +267,7 @@ public sealed class RomSpriteSource
         // Ruby, Sapphire, FireRed and LeafGreen do not animate, so every candidate holds
         // one frame and the test above decides nothing. The tables are emitted in
         // declaration order and the front one is declared first, so the lowest address is
-        // it — which also picks Emerald's still-front table when the animated one is
+        // it, which also picks Emerald's still-front table when the animated one is
         // missed. Verified on Emerald only; the other four remain unchecked. See issue #3.
         if (firstReadable is not null)
         {

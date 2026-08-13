@@ -12,7 +12,7 @@ Pokémon Showdown:
 ## Pokémon Showdown Gen 5 move metadata
 
 The same pinned commit. Gen 5 values are reconstructed by applying Showdown's own
-per-generation overrides — `data/mods/gen8`, `gen7`, `gen6`, `gen5` — over `data/moves.ts`,
+per-generation overrides (`data/mods/gen8`, `gen7`, `gen6`, `gen5`) over `data/moves.ts`,
 because the base file holds the current generation's numbers. See D-041.
 
 - Files: `data/moves.ts`, `data/mods/gen{8,7,6,5}/moves.ts`
@@ -60,7 +60,7 @@ The three typefaces of the dashboard, under the SIL Open Font License 1.1, which
 bundling them with software. They ship in `src/UltimatePoKeSync.App/Assets/Fonts` and are the
 only files in this repository that somebody else wrote.
 
-- Bungee — Copyright 2023 The Bungee Project Authors (https://github.com/djrrb/Bungee)
-- Nunito — Copyright The Nunito Project Authors (https://github.com/googlefonts/nunito)
-- DM Mono — Copyright The DM Mono Project Authors (https://github.com/googlefonts/dm-mono)
+- Bungee: Copyright 2023 The Bungee Project Authors (https://github.com/djrrb/Bungee)
+- Nunito: Copyright The Nunito Project Authors (https://github.com/googlefonts/nunito)
+- DM Mono: Copyright The DM Mono Project Authors (https://github.com/googlefonts/dm-mono)
 - Licence: https://openfontlicense.org

@@ -12,8 +12,8 @@ namespace UltimatePoKeSync.Providers.MGba.Protocol;
 internal static class MemoryMessage
 {
     /// <summary>
-    /// Returns <see langword="false"/> for anything that is not a reply — a party message,
-    /// most of the time — so the caller can go on treating it as one.
+    /// Returns <see langword="false"/> for anything that is not a reply (a party message,
+    /// most of the time), so the caller can go on treating it as one.
     /// </summary>
     public static bool TryParse(
         string line,

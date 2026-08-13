@@ -8,7 +8,7 @@ namespace UltimatePoKeSync.Providers.MelonDs.Tests;
 /// </summary>
 /// <remarks>
 /// Laid out at the real addresses rather than convenient ones, so the test exercises the
-/// arithmetic the provider actually does — including the mirror the cartridge header is read
+/// arithmetic the provider actually does, including the mirror the cartridge header is read
 /// through.
 /// </remarks>
 internal static class Gen5Ram

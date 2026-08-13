@@ -8,7 +8,7 @@ namespace UltimatePoKeSync.App.Services;
 /// <remarks>
 /// <para>
 /// mGBA has no command-line option to load a script, so this step cannot be automated
-/// away — only made short and unambiguous. See D-028.
+/// away, only made short and unambiguous. See D-028.
 /// </para>
 /// <para>
 /// The script is copied to a stable per-user folder rather than shown where the executable

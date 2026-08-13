@@ -4,8 +4,8 @@ namespace UltimatePoKeSync.GameData;
 
 /// <summary>English Gen 5 move metadata, pinned for offline recommendations. See D-041.</summary>
 /// <remarks>
-/// Move identity only: number, name and type. What a move does — its power and whether it
-/// is physical or special — lives in <see cref="Gen5Rules"/>, because that is a battle rule
+/// Move identity only: number, name and type. What a move does, its power and whether it
+/// is physical or special, lives in <see cref="Gen5Rules"/>, because that is a battle rule
 /// and this is a name table.
 /// </remarks>
 public sealed class ShowdownGen5MoveCatalog : IMoveReferenceCatalog

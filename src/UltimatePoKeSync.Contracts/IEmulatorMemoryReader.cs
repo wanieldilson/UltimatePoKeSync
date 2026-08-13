@@ -10,7 +10,7 @@ namespace UltimatePoKeSync.Contracts;
 /// </remarks>
 public interface IEmulatorMemoryReader
 {
-    /// <summary>Whether a request could be served right now — that is, whether we are connected.</summary>
+    /// <summary>Whether a request could be served right now, that is, whether we are connected.</summary>
     bool CanRead { get; }
 
     /// <summary>

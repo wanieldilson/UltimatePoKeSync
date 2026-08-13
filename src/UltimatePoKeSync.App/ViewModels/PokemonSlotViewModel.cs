@@ -339,7 +339,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     /// <summary>
     /// An egg shows as an egg. Its species is in the bytes, and the game deliberately does
-    /// not show it — telling the player what is inside would spoil the one thing hatching
+    /// not show it: telling the player what is inside would spoil the one thing hatching
     /// is for. See D-036.
     /// </summary>
     public string SpeciesName => IsEgg ? "Egg" : Member.SpeciesName;
@@ -454,7 +454,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     /// <summary>
     /// The bar as two proportional columns rather than a ProgressBar. Fluent's has a
     /// minimum width of its own, wider than the team strip, and Avalonia does not clip
-    /// children — so it drew straight through the side of the tile.
+    /// children, so it drew straight through the side of the tile.
     /// </summary>
     public GridLength HpFilled => new(Member.HpFraction, GridUnitType.Star);
 
@@ -680,7 +680,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     private void ToggleBuild() => ShowBuild = !ShowBuild;
 
     /// <summary>
-    /// The evolution line and its caveat. The countdown is the useful half — "at Lv.16"
+    /// The evolution line and its caveat. The countdown is the useful half: "at Lv.16"
     /// means nothing to someone who does not remember what level their Treecko is.
     /// </summary>
     private static (string Line, string Note) DescribeEvolution(PokemonProgress progress, int level)
@@ -727,7 +727,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
 
     /// <summary>
     /// Plays an animated sprite, one frame at a time, at the speeds the file itself
-    /// declares. A single-frame image simply becomes the sprite and no timer is started —
+    /// declares. A single-frame image simply becomes the sprite and no timer is started,
     /// six idle timers for six still pictures would be six timers too many. See D-045.
     /// </summary>
     public void Play(AnimatedSprite sprite, Action<Action> post, CancellationToken cancellationToken)
@@ -911,7 +911,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         int evContribution = (ev / 4) * level / 100;
 
         // The constant in the formula: +5 for most stats, +level+10 for HP. It is not a
-        // contribution of the base stat and must not be drawn as one — at level 6 it is
+        // contribution of the base stat and must not be drawn as one: at level 6 it is
         // sixteen of a Snivy's twenty-two HP.
         int flatContribution = stat == Stat.Hp ? level + 10 : 5;
         int baseContribution = Math.Max(

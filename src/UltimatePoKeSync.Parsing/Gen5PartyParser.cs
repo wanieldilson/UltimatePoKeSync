@@ -17,7 +17,7 @@ namespace UltimatePoKeSync.Parsing;
 /// Three things genuinely differ from Gen 3, and each one is a place where copying the
 /// older parser would have been wrong. Nature is stored rather than derived from the
 /// personality value. The physical/special split is per move rather than per type, from
-/// Gen 4 onwards — which this parser does not decide, but the rules above it do. And there
+/// Gen 4 onwards, which this parser does not decide, but the rules above it do. And there
 /// is no <c>FlagHasSpecies</c> to lean on: a Gen 5 slot is empty when its species is zero,
 /// and nothing else says so.
 /// </para>
@@ -123,7 +123,7 @@ public sealed class Gen5PartyParser : IPartyParser
                 pk.Stat_HPMax, pk.Stat_ATK, pk.Stat_DEF, pk.Stat_SPA, pk.Stat_SPD, pk.Stat_SPE),
 
             // Unlike Gen 3, nature is a field of its own here rather than the personality
-            // value modulo 25 — the two can disagree, and the stored one is the true one.
+            // value modulo 25: the two can disagree, and the stored one is the true one.
             NatureId = (int)pk.Nature,
             NatureName = Lookup(_strings.Natures, (int)pk.Nature, "?"),
 
@@ -179,7 +179,7 @@ public sealed class Gen5PartyParser : IPartyParser
 
     /// <summary>
     /// Black and White share a table; Black 2 and White 2 have their own. The fourth letter
-    /// of the code is the region, and it does not change the stats — but every code is
+    /// of the code is the region, and it does not change the stats, but every code is
     /// listed rather than matched by prefix, so an unknown one is refused instead of being
     /// guessed at. Only IRBI has been run against a real cartridge. See D-040.
     /// </summary>

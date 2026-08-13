@@ -43,7 +43,7 @@ public sealed class Gen5DashboardTests
     /// <summary>
     /// Gen 5 has reference sets of its own now, so the window offers a build for it and
     /// reports nothing missing. This test used to assert the opposite, which was true for
-    /// about an hour; what it guards has not changed — that the window and the analysis
+    /// about an hour; what it guards has not changed: that the window and the analysis
     /// agree about what exists.
     /// </summary>
     [Fact]
@@ -68,7 +68,7 @@ public sealed class Gen5DashboardTests
 
     /// <summary>
     /// What the next levels bring, in the window rather than the console. Snivy becomes
-    /// Servine at 17, which is one level later than the Gen 3 starters — a difference that
+    /// Servine at 17, which is one level later than the Gen 3 starters, a difference that
     /// only shows if the Gen 5 tables are the ones answering. See D-043.
     /// </summary>
     [Fact]

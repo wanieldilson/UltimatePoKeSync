@@ -6,8 +6,8 @@ import fs from "node:fs";
 // Showdown stores the *current* generation's data and walks backwards through per-generation
 // mods, each overriding only what changed after it. Reading data/moves.ts alone therefore
 // gives Gen 9 numbers wearing Gen 5 names: Assurance is 60 today and was 50 in Black, and
-// nothing in the base file says so. The overrides are applied newest first — gen8, gen7,
-// gen6, then gen5 — so the last word belongs to the generation being imported.
+// nothing in the base file says so. The overrides are applied newest first (gen8, gen7,
+// gen6, then gen5), so the last word belongs to the generation being imported.
 //
 // Usage:
 //   node tools/import-showdown-gen5-data.mjs <moves.ts> <gen8> <gen7> <gen6> <gen5>
@@ -76,7 +76,7 @@ if (missing.length > 0) {
 
 // Showdown lists every Hidden Power type under the same move number, and a few other
 // moves twice. One entry per number, the shortest id winning, exactly as the Gen 3 import
-// does — otherwise the catalog cannot be indexed by number at all.
+// does; otherwise the catalog cannot be indexed by number at all.
 const byNumber = new Map();
 for (const move of catalog) {
   const existing = byNumber.get(move.number);

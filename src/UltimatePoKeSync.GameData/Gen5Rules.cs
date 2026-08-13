@@ -94,7 +94,7 @@ public sealed class Gen5Rules : IGenerationRules
 
     /// <summary>
     /// The move's own category, read from the table. The type is accepted for the shape of
-    /// the interface and checked, but it does not decide anything here — which is the whole
+    /// the interface and checked, but it does not decide anything here, which is the whole
     /// difference between this generation and Gen 3.
     /// </summary>
     public MoveCategory GetMoveCategory(int moveId, PokemonType moveType)
@@ -142,7 +142,7 @@ public sealed class Gen5Rules : IGenerationRules
         double multiplier = TypeChart.GetMultiplier(attackingType, primaryType, secondaryType);
 
         // Gen 4 and 5 added several abilities that turn a hit into nothing at all, and two
-        // of them — Lightning Rod and Storm Drain — only became immunities in Gen 5. In
+        // of them, Lightning Rod and Storm Drain, only became immunities in Gen 5. In
         // Gen 3 and 4 they merely redirected the move.
         bool immune = abilityId switch
         {

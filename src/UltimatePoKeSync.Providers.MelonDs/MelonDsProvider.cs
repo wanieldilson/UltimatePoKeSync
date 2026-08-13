@@ -108,7 +108,7 @@ public sealed class MelonDsProvider : IEmulatorProvider, IEmulatorMemoryReader
 
     /// <summary>
     /// One poll: who is this game, where does its party live, and what is in it. Returns
-    /// null for anything that is not a complete, plausible answer — a half-read party is
+    /// null for anything that is not a complete, plausible answer: a half-read party is
     /// worse than none, because it parses.
     /// </summary>
     private async Task<RawPartySnapshot?> ReadPartyAsync(CancellationToken cancellationToken)
@@ -140,7 +140,7 @@ public sealed class MelonDsProvider : IEmulatorProvider, IEmulatorMemoryReader
         if (head is < 0x02000000 or >= 0x02400000)
         {
             // The pointer does not point into main RAM, so the game has not built its save
-            // blocks yet — it is still on the title screen, or mid-load.
+            // blocks yet: it is still on the title screen, or mid-load.
             return null;
         }
 

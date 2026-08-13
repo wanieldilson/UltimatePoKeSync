@@ -61,7 +61,7 @@ public sealed class AppSettingsTests : IDisposable
     }
 
     /// <summary>
-    /// A window saved at 40×20 — by a crash, or a hand-edited file — must not reopen at
+    /// A window saved at 40×20 (by a crash, or a hand-edited file) must not reopen at
     /// 40×20, because there is no way to get out of it.
     /// </summary>
     [Fact]

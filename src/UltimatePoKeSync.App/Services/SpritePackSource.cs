@@ -9,7 +9,7 @@ namespace UltimatePoKeSync.App.Services;
 /// <para>
 /// The app ships no Pokémon artwork: it belongs to Nintendo, Game Freak and Creatures, and
 /// the collections that gather it state no licence of their own. So the art comes from the
-/// player, exactly as D-033 already had it come from their cartridge — this is the same
+/// player, exactly as D-033 already had it come from their cartridge; this is the same
 /// principle with a second source, and the one that works for a DS game whose ROM is not
 /// mapped into memory at all. See D-045.
 /// </para>

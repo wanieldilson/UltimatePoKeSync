@@ -2,8 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
   <!--
-    The shapes the design repeats. Named by what they are in the design language — panel,
-    chip, badge — so a screen reads as the mock describes it rather than as a pile of
+    The shapes the design repeats. Named by what they are in the design language (panel,
+    chip, badge) so a screen reads as the mock describes it rather than as a pile of
     borders. Everything here draws its colours from Theme.axaml.
   -->
 

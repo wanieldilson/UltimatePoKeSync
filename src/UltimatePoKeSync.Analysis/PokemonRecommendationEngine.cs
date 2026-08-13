@@ -94,7 +94,7 @@ public sealed class PokemonRecommendationEngine
         }
 
         // Members are built in party order rather than independently, and each one is told
-        // what the team already answers — the types its current moves cover, plus whatever
+        // what the team already answers: the types its current moves cover, plus whatever
         // the builds chosen before it added. Without this, six Pokémon each pick the same
         // move for the same hole and the team ends up no wider than one of them. See D-031.
         var answered = new HashSet<PokemonType>(

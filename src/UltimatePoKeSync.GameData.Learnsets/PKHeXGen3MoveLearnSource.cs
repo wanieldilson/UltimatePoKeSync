@@ -4,7 +4,7 @@ using UltimatePoKeSync.Contracts;
 namespace UltimatePoKeSync.GameData.Learnsets;
 
 /// <summary>
-/// Every Gen 3 move source — level up, machines and tutors — read per game from PKHeX.
+/// Every Gen 3 move source (level up, machines and tutors), read per game from PKHeX.
 /// </summary>
 /// <remarks>
 /// <para>

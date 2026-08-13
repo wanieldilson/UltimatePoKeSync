@@ -311,7 +311,7 @@
                               CommandParameter="{Binding}">
                         <!--
                           The transparent 250 px stage contains the overhangs. They still sit
-                          9/11 px above the green card, but never leave the Button's bounds —
+                          9/11 px above the green card, but never leave the Button's bounds,
                           otherwise Avalonia's presenter clips them during the hover lift.
                         -->
                         <Panel>

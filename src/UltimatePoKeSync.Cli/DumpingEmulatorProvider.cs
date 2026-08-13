@@ -8,7 +8,7 @@ namespace UltimatePoKeSync.Cli;
 /// </summary>
 /// <remarks>
 /// A small demonstration that the provider abstraction earns its keep: capturing fixtures
-/// needed no change to the mGBA provider, the parser or the tracker — just another
+/// needed no change to the mGBA provider, the parser or the tracker, just another
 /// <see cref="IEmulatorProvider"/> in front of the real one.
 /// </remarks>
 internal sealed class DumpingEmulatorProvider : IEmulatorProvider

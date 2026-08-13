@@ -4,7 +4,7 @@
 
 ## Requirements
 
-mGBA **0.10.0 or later** — Lua scripting does not exist in earlier versions. Tested with
+mGBA **0.10.0 or later**. Lua scripting does not exist in earlier versions. Tested with
 0.10.5.
 
 ## Usage
@@ -26,7 +26,7 @@ mGBA **0.10.0 or later** — Lua scripting does not exist in earlier versions. T
    ```
 
 Order does not matter: the script works whether loaded before or after the ROM, and the
-app can start before mGBA — it waits and connects on its own.
+app can start before mGBA; it waits and connects on its own.
 
 ## Supported games
 
@@ -49,14 +49,14 @@ wrong map would produce plausible but invented Pokémon.
 
 ## Common problems
 
-**`port 8888 already in use`** — another mGBA instance is already running the bridge, or
+**`port 8888 already in use`**: another mGBA instance is already running the bridge, or
 another program holds the port. Change `UPS_PORT` at the top of the script, reload it, and
 start the app with `--port <the same port>`.
 
-**`unsupported game`** — the ROM is not in the table. Check the game code printed in the
+**`unsupported game`**: the ROM is not in the table. Check the game code printed in the
 console.
 
-**Nothing in the console** — the script was not loaded: the scripting window has to stay
+**Nothing in the console**. The script was not loaded: the scripting window has to stay
 open.
 
 ## What it does (and does not do)

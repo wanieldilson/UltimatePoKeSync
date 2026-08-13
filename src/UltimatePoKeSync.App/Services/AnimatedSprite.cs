@@ -8,8 +8,8 @@ namespace UltimatePoKeSync.App.Services;
 /// <remarks>
 /// <para>
 /// Avalonia draws a GIF's first frame and stops, so an animation has to be taken apart and
-/// played frame by frame. SkiaSharp does the decoding and is already inside Avalonia —
-/// <c>Avalonia.Skia</c> depends on it — so animated sprites cost no new dependency. See
+/// played frame by frame. SkiaSharp does the decoding and is already inside Avalonia
+/// (<c>Avalonia.Skia</c> depends on it), so animated sprites cost no new dependency. See
 /// D-045.
 /// </para>
 /// <para>

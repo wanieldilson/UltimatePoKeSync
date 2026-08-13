@@ -29,8 +29,8 @@ import statistics
 import sys
 import time
 
-# The ARM7, not the ARM9. Both CPUs get a stub, and the ARM9 one — the obvious
-# choice, since it runs the game logic — completes the handshake and then closes
+# The ARM7, not the ARM9. Both CPUs get a stub, and the ARM9 one (the obvious
+# choice, since it runs the game logic) completes the handshake and then closes
 # the connection on the first command, whatever the command is. The ARM7 stub
 # answers properly, and main RAM is shared between the two processors, so it can
 # read everything we care about anyway.

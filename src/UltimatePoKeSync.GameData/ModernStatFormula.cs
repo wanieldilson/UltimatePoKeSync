@@ -6,8 +6,8 @@ namespace UltimatePoKeSync.GameData;
 /// The stat formula shared by every generation from the third onwards.
 /// </summary>
 /// <remarks>
-/// Gen 1 and 2 are the ones that differ — they use DVs and stat experience, and Gen 1 has no
-/// Special Defense at all — so this is not "the formula", it is the modern one. Shared rather
+/// Gen 1 and 2 are the ones that differ (they use DVs and stat experience, and Gen 1 has no
+/// Special Defense at all), so this is not "the formula", it is the modern one. Shared rather
 /// than copied per generation, because two copies that drift apart would be a bug in one of
 /// them and nothing else.
 /// </remarks>

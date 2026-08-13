@@ -9,7 +9,7 @@ namespace UltimatePoKeSync.Analysis;
 /// </summary>
 /// <remarks>
 /// The pool is deliberately wider than the playthrough one, and read at level 100. A
-/// competitive Pokémon is a trained one — nobody battles with the level 5 it was caught at,
+/// competitive Pokémon is a trained one: nobody battles with the level 5 it was caught at,
 /// and a move it learns at 45 is a move it will have. Ranking against only the reference
 /// sets, as this profile used to, left every species without a Random Battle entry holding
 /// whatever it happened to know. See D-032.
@@ -64,7 +64,7 @@ public sealed class CompetitiveRecommendationProfile : IRecommendationProfile
                     candidate.LearnedAtLevel)),
         ];
 
-        // A reference set can name a move the learn source does not reach — an egg move,
+        // A reference set can name a move the learn source does not reach: an egg move,
         // most often. Kept, and marked as coming from the set rather than from the game.
         MoveRecommendation[] fromPreset =
         [

@@ -12,7 +12,7 @@ namespace UltimatePoKeSync.GameData.Learnsets;
 /// PKHeX keeps one forward table per generation, so the Gen 3 one answers for all thirteen
 /// game codes: no Gen 3 release differs here, unlike learnsets (D-027) and party addresses
 /// (D-035). It still takes a <see cref="GameIdentity"/>, because that stops being true the
-/// moment a later generation is added — Gen 7's Sun and Moon disagree about Rockruff.
+/// moment a later generation is added. Gen 7's Sun and Moon disagree about Rockruff.
 /// </para>
 /// <para>
 /// The table's Argument column means a different thing for each trigger: an item index for

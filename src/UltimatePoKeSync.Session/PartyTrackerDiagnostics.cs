@@ -5,8 +5,8 @@ namespace UltimatePoKeSync.Session;
 /// </summary>
 /// <remarks>
 /// These are not vanity metrics. They are the only way to tell apart three situations
-/// that look identical from the outside — "nothing is happening in the game", "the memory
-/// map is wrong" and "the emulator is not connected" — without attaching a debugger.
+/// that look identical from the outside ("nothing is happening in the game", "the memory
+/// map is wrong" and "the emulator is not connected") without attaching a debugger.
 /// A steady climb in <see cref="InconsistentDiscarded"/> means the addresses are wrong.
 /// </remarks>
 /// <param name="Received">Raw snapshots that arrived from the provider.</param>

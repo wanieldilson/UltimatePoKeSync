@@ -78,7 +78,7 @@ public sealed record PokemonSnapshot
     /// <summary>
     /// Whether this can take part in a battle at all. An egg occupies a slot and carries a
     /// species, types and stats in its bytes, but it cannot switch in, cannot attack and
-    /// cannot be given a move — so counting it towards the team's coverage credits the
+    /// cannot be given a move, so counting it towards the team's coverage credits the
     /// party with a resistance it does not have. See D-036.
     /// </summary>
     public bool CanBattle => !IsEgg;

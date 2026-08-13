@@ -1,5 +1,5 @@
 --[[
-  UltimatePoKeSync — mGBA -> app bridge
+  UltimatePoKeSync: mGBA -> app bridge
 
   Reads the party from RAM and ships it over TCP as RAW bytes.
   This script interprets nothing: it does not decrypt, does not validate checksums,

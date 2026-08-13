@@ -9,7 +9,7 @@ namespace UltimatePoKeSync.Session;
 /// <remarks>
 /// <para>
 /// Deliberately excludes the volatile fields: current PP, current HP and any other battle
-/// state. Those change constantly during play — a single battle turn moves PP — and none
+/// state. Those change constantly during play (a single battle turn moves PP), and none
 /// of them changes a single recommendation about EVs, nature, moves or items.
 /// </para>
 /// <para>

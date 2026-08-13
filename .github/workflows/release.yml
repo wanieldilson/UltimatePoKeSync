@@ -56,7 +56,7 @@ jobs:
           path: artifacts/*
 
   # macOS builds must be produced on macOS. Apple Silicon refuses to execute an unsigned
-  # binary — the kernel kills it outright, and Finder reports the app as "damaged" — and
+  # binary (the kernel kills it outright, and Finder reports the app as "damaged") and
   # `codesign` only exists here. The .NET SDK ad-hoc signs the apphost when it publishes
   # on macOS; the bundle is then signed as a whole.
   macos:

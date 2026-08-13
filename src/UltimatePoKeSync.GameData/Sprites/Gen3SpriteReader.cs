@@ -25,8 +25,8 @@ public sealed record Gen3SpriteTables(int FrontPicTable, int PaletteTable, int E
 /// <remarks>
 /// <para>
 /// The table addresses are not constants. They move with every build of every
-/// localisation — the Italian Emerald keeps its front-sprite table at ROM offset
-/// <c>0x300DDC</c>, and no other release is obliged to agree — so shipping a table of
+/// localisation (the Italian Emerald keeps its front-sprite table at ROM offset
+/// <c>0x300DDC</c>, and no other release is obliged to agree), so shipping a table of
 /// addresses would be shipping a guess. They are found instead from the shape of the data:
 /// a front-pic table is a run of eight-byte records, each a valid ROM pointer, a size of
 /// <c>0x800</c>, and a tag counting up from zero. Nothing else in the ROM looks like that

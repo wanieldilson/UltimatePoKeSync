@@ -80,7 +80,7 @@ public sealed class RomSpriteSourceTests
     /// <summary>
     /// Issue #17. Swapping the cartridge under a running app left the tables and the
     /// decoded sprites of the previous game in place, so the next one was decoded with the
-    /// wrong offsets — or served someone else's sprite outright.
+    /// wrong offsets, or served someone else's sprite outright.
     /// </summary>
     [Fact]
     public async Task ChangingGameThrowsAwayWhatBelongedToTheLastOne()

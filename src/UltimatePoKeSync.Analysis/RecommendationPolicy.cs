@@ -255,7 +255,7 @@ internal static class RecommendationPolicy
         };
     }
 
-    /// <summary>The types this move newly reaches — not the ones already answered.</summary>
+    /// <summary>The types this move newly reaches, not the ones already answered.</summary>
     private static string DescribeTargets(
         RecommendationContext context,
         PokemonType moveType,

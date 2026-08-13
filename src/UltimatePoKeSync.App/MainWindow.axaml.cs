@@ -80,8 +80,8 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Where the window was last time. A stored size that is too small to use is ignored —
-    /// a window saved at 40×20 by a crash or a hand-edited file would reopen unusable — but
+    /// Where the window was last time. A stored size that is too small to use is ignored,
+    /// because a window saved at 40×20 by a crash or a hand-edited file would reopen unusable, but
     /// a stored maximised state is honoured either way. See D-038.
     /// </summary>
     private void RestoreLayout(AppSettings settings)

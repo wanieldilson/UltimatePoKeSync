@@ -122,7 +122,7 @@ public sealed class PartyTrackerTests
     public async Task StopsHoldingOutIfTheProblemIsPersistent()
     {
         // Skipping inconsistent snapshots is right for a torn read, but a genuinely broken
-        // party — a bad egg, say — is permanent. Held literally, the rule would stall the
+        // party (a bad egg, say) is permanent. Held literally, the rule would stall the
         // display forever, so after a few attempts the tracker reports what it sees.
         var parser = new ScriptedParser(raw =>
             Build.Party(raw.Sequence, [Build.Mon()], [new RejectedSlot(1, "bad egg")]));

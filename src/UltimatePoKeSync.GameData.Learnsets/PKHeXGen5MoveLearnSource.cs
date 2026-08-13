@@ -5,7 +5,7 @@ using UltimatePoKeSync.GameData;
 namespace UltimatePoKeSync.GameData.Learnsets;
 
 /// <summary>
-/// Every Gen 5 move source — level up, machines and tutors — read per game from PKHeX.
+/// Every Gen 5 move source (level up, machines and tutors), read per game from PKHeX.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -14,8 +14,8 @@ namespace UltimatePoKeSync.GameData.Learnsets;
 /// mean picking one and being wrong about the other.
 /// </para>
 /// <para>
-/// Egg moves are absent here too. A Pokémon already in the party cannot acquire one — it had
-/// to hatch with it — so offering it would be exactly the false certainty D-025 exists to
+/// Egg moves are absent here too. A Pokémon already in the party cannot acquire one; it had
+/// to hatch with it, so offering it would be exactly the false certainty D-025 exists to
 /// prevent.
 /// </para>
 /// <para>
@@ -168,7 +168,7 @@ public sealed class PKHeXGen5MoveLearnSource : IMoveLearnSource
 
     /// <summary>
     /// Language does not change a learnset, so every localisation of a pair shares one
-    /// source — but each code is listed rather than matched by prefix, because an
+    /// source, but each code is listed rather than matched by prefix, because an
     /// unrecognised game must be refused rather than guessed at (D-005).
     /// </summary>
     private static ILearnSource? ResolveSource(string gameCode) => gameCode switch

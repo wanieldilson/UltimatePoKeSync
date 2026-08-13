@@ -72,8 +72,8 @@ public sealed record AppSettings
     }
 
     /// <summary>
-    /// Whether a stored size is worth restoring. A window saved at 40×20 — from a crash, a
-    /// disconnected second monitor, or a hand-edited file — would reopen unusable.
+    /// Whether a stored size is worth restoring. A window saved at 40×20 (from a crash, a
+    /// disconnected second monitor, or a hand-edited file) would reopen unusable.
     /// </summary>
     public bool HasUsableSize =>
         WindowWidth >= MinimumWidth && WindowHeight >= MinimumHeight;

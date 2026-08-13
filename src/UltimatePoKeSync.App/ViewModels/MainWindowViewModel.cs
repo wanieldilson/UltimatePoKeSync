@@ -331,8 +331,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public bool HasEmptySlots => EmptySlots.Count > 0;
 
     /// <summary>
-    /// One line instead of five cards. The free slots are worth stating — a party of one is
-    /// a party of one — but they were taking as much of the strip as the Pokémon in it.
+    /// One line instead of five cards. The free slots are worth stating (a party of one is
+    /// a party of one), but they were taking as much of the strip as the Pokémon in it.
     /// See D-038.
     /// </summary>
     public string EmptySlotsText => EmptySlots.Count == 1
@@ -585,7 +585,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         // Recommendations are attempted separately, and their absence costs only
-        // themselves. A generation with no reference sets — Gen 5 today — used to take the
+        // themselves. A generation with no reference sets, Gen 5 today, used to take the
         // whole analysis down with it: the window showed a team with no matchups and a
         // strength of zero, while the console showed 32 out of 100 for the same party.
         TeamRecommendation? recommendation = null;
@@ -778,7 +778,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     /// <summary>
     /// Keeps "last packet" honest. It is an age, so it grows on its own between snapshots
-    /// and has to be re-read even when nothing arrives — which is exactly when a player is
+    /// and has to be re-read even when nothing arrives, which is exactly when a player is
     /// looking at it.
     /// </summary>
     private async Task MonitorBridgeAsync()

@@ -21,7 +21,7 @@ something in the party.
 
 ## The `party` message
 
-Emitted only when the party bytes or the count **actually change** — not every frame. The
+Emitted only when the party bytes or the count **actually change**, not every frame. The
 script compares a 32-bit FNV-1a of the raw bytes.
 
 ```json
@@ -90,7 +90,7 @@ The reply, or an `error` message with the same `id`:
 ### Why the app is allowed to ask
 
 Sprite data lives in the ROM behind pointer tables whose addresses move with every build of
-every localisation — the Italian Emerald keeps its front-sprite table at `0x08300DDC`, and
+every localisation: the Italian Emerald keeps its front-sprite table at `0x08300DDC`, and
 no other release is obliged to agree. They cannot be shipped as constants, so the app finds
 them by scanning the ROM's own structure, and to scan it has to read. The same command is
 what will later reach the bag and the badge flags, which is the missing input behind every

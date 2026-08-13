@@ -8,7 +8,7 @@ namespace UltimatePoKeSync.App.Services;
 /// <remarks>
 /// <para>
 /// The same files <c>tools/fetch-sprites.py</c> downloads, put in the same place, for people
-/// who have an executable rather than a clone of the repository — which is almost everybody.
+/// who have an executable rather than a clone of the repository, which is almost everybody.
 /// Without this the sprites were a developer feature: the release carries no <c>tools</c>
 /// folder, so there was no script to run and no Python to run it with.
 /// </para>

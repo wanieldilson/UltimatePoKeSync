@@ -6,7 +6,7 @@
 Why this exists. Addresses cannot be read off a ROM directly, but they are compiled into
 it: every routine that touches the party loads the address from a literal pool, so the
 value appears in the image hundreds of times. A value the game never uses appears zero
-times — a random 32-bit constant is expected 0.004 times in sixteen megabytes.
+times: a random 32-bit constant is expected 0.004 times in sixteen megabytes.
 
 That gives a test with no false positives to speak of. Run it against a ROM whose
 addresses are already verified and you get a large count; run the same address against a
