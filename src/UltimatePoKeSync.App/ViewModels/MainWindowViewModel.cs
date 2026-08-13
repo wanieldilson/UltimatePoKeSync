@@ -101,8 +101,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     [ObservableProperty]
     private bool _hasReceivedParty;
 
-    [ObservableProperty]
-    private string _liveText = "LIVE · 0 reads/s";
 
     public MainWindowViewModel()
         : this(new LiveTeamService(), action => Dispatcher.UIThread.Post(action))
@@ -778,16 +776,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         OnPropertyChanged(nameof(EmptySlotsText));
     }
 
+    /// <summary>
+    /// Keeps "last packet" honest. It is an age, so it grows on its own between snapshots
+    /// and has to be re-read even when nothing arrives — which is exactly when a player is
+    /// looking at it.
+    /// </summary>
     private async Task MonitorBridgeAsync()
     {
         while (true)
         {
             await Task.Delay(TimeSpan.FromSeconds(1), _animations.Token).ConfigureAwait(false);
-            _post(() =>
-            {
-                LiveText = $"LIVE · {_live.ReadsPerSecond} reads/s";
-                OnPropertyChanged(nameof(BridgeLastPacket));
-            });
+            _post(() => OnPropertyChanged(nameof(BridgeLastPacket)));
         }
     }
 

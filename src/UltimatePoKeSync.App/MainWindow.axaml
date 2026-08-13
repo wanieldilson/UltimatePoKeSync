@@ -229,7 +229,7 @@
                     </Style>
                   </Ellipse.Styles>
                 </Ellipse>
-                <TextBlock Text="{Binding LiveText}" Classes="strong" FontSize="13.5"
+                <TextBlock Text="LIVE" Classes="strong" FontSize="13.5"
                            Foreground="#B6F5C6" />
               </StackPanel>
             </Border>

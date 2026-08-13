@@ -1666,6 +1666,12 @@ at all — sits at the foot of the rail while the folder is empty; and the live 
 would be the first decoration in an app whose rule is that every number on screen came from
 memory.
 
+A real counter was built later and removed again: it sampled the tracker's diagnostics, and
+since the DS provider only emits when the party changes, it read `LIVE · 0 reads/s` while a
+party was arriving perfectly well. A number that is usually zero says the bridge is broken
+when it is not, so the pill is a word and the measurement is gone rather than left computing
+for nobody.
+
 **Alternatives considered:** port the design's HTML into a web view (rejected by the brief,
 and rightly: the app would gain a browser to draw six panels), and keep the native title bar
 and drop the design's (rejected: the bar is the first thing the design establishes, and the

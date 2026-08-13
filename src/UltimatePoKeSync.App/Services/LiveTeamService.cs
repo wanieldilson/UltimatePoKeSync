@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using UltimatePoKeSync.Contracts;
 using UltimatePoKeSync.Parsing;
 using UltimatePoKeSync.Providers.MelonDs;
@@ -33,9 +32,6 @@ public sealed class LiveTeamService : ILiveTeamSource
     private Watched? _active;
     private EmulatorConnectionState _reported = EmulatorConnectionState.Idle;
     private Task? _loops;
-    private ulong _lastReadSample;
-    private long _lastReadSampleAt = Stopwatch.GetTimestamp();
-    private int _readsPerSecond;
 
     public LiveTeamService()
         : this(new MGbaProviderOptions())
@@ -87,33 +83,6 @@ public sealed class LiveTeamService : ILiveTeamSource
             lock (_gate)
             {
                 return _active?.Name;
-            }
-        }
-    }
-
-    /// <summary>
-    /// The cadence of the emulator that actually owns the party. This counts every raw
-    /// packet, including the quiet ones the tracker correctly suppresses before analysis.
-    /// </summary>
-    public int ReadsPerSecond
-    {
-        get
-        {
-            lock (_gate)
-            {
-                long now = Stopwatch.GetTimestamp();
-                double elapsed = Stopwatch.GetElapsedTime(_lastReadSampleAt, now).TotalSeconds;
-                if (elapsed < 0.25)
-                {
-                    return _readsPerSecond;
-                }
-
-                ulong received = _active?.Tracker.Diagnostics.Received ?? 0;
-                ulong delta = received >= _lastReadSample ? received - _lastReadSample : received;
-                _readsPerSecond = (int)Math.Round(delta / elapsed, MidpointRounding.AwayFromZero);
-                _lastReadSample = received;
-                _lastReadSampleAt = now;
-                return _readsPerSecond;
             }
         }
     }

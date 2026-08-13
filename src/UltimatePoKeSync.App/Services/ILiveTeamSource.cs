@@ -30,11 +30,5 @@ public interface ILiveTeamSource : IAsyncDisposable
     /// </summary>
     string? ActiveEmulator { get; }
 
-    /// <summary>
-    /// Raw party snapshots received in the last second. Replay sources may leave the
-    /// default at zero; the live service reads the active tracker's diagnostics.
-    /// </summary>
-    int ReadsPerSecond => 0;
-
     void Start();
 }
