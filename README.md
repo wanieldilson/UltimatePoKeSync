@@ -20,7 +20,7 @@ from.
 [Install](#install) · [Learning by playing](#learning-by-playing) · [What it does](#what-it-does) ·
 [Sprites](#sprites) · [How it works](#how-it-works) · [Documentation](#documentation)
 
-<img src="docs/assets/screenshot.png" width="900" alt="The dashboard while Pokémon Black is running: the party rail on the left with the team score, and the selected Snivy with its types, HP, moves, matchups and what the next levels bring">
+<img src="docs/assets/screenshot.png" width="900" alt="The dashboard while Pokémon Black is running: the party rail on the left with the team score, and the selected Snivy with its types, HP, current moves, matchups and what the next levels bring">
 
 </div>
 
@@ -37,21 +37,49 @@ This app is that missing explanation, attached to **your** Pokémon rather than 
 example. It reads the party you are actually playing and, beside every number, says where
 the number came from.
 
-- **A stat is not one thing.** The *Stats & IV/EV* screen breaks each stat into the floor
-  every Pokémon gets, the base stat of its species, the IVs it was born with, the EVs you
-  trained, and what its nature did. One bar, five sources, and you can see which of them you
-  can still change.
+- **A stat is not one thing.** Each one is the floor every Pokémon gets, plus the base stat
+  of its species, plus the IVs it was born with, plus the EVs you trained, plus what its
+  nature did — and only two of those five can still be changed.
 - **Luck and effort are different things.** IVs are drawn once and fixed for ever; EVs are
-  the part you control, capped at 510 in total and 252 per stat. The app labels them that
-  way rather than printing two rows of numbers that look alike.
+  the part you control, capped at 510 in total and 252 per stat.
 - **Type matchups, on your team.** Not a chart to memorise: the types *nothing in your party*
-  resists, and the types nothing of yours can hit hard — with the Pokémon responsible named.
-- **What is about to happen.** The next level-up moves with how many levels away they are,
-  and what your Pokémon evolves into. Nothing is promised past the evolution, because from
-  then on it follows a different learnset.
+  resists, and the types nothing of yours can hit hard, with the Pokémon responsible named.
+- **What is about to happen.** The next level-up moves and how far away they are, and what
+  your Pokémon evolves into.
 - **Advice that gives its reasons.** Every recommended move says why it earned the slot and
-  how you would obtain it; every rejected one says why it lost. Nature advice says plainly
-  that nature is fixed at capture, so it is guidance for the next catch and never a task.
+  how you would obtain it; every rejected one says why it lost.
+
+### Stats & IV/EV — where a number comes from
+
+<img src="docs/assets/stats.png" width="900" alt="The Stats and IV/EV screen: one stacked bar per stat split into floor, base, IV, EV and nature, the six IVs drawn as wells with the values rolled at capture, and the effort values with how much of the 510 is left">
+
+A level 6 Snivy has 22 HP. Sixteen of them are the floor any Pokémon of that level gets, and
+only six come from being a Snivy — which the bar says out loud instead of calling it all
+"base". Beside it, the IVs it was dealt and the EVs still left to spend, labelled as the two
+different things they are.
+
+### Learnset — what the next levels bring
+
+<img src="docs/assets/learnset.png" width="900" alt="The Learnset screen: the evolution line from Snivy to Servine to Serperior with the levels between them, and a timeline of the moves still to come with the next one marked">
+
+The evolution line with the level of each step, and the moves still ahead on a timeline.
+Nothing is promised past the evolution, because from then on the Pokémon follows a different
+learnset — and when holding it back buys a move, the app says so.
+
+### Best set — what to change, and what you cannot
+
+<img src="docs/assets/best-set.png" width="900" alt="The Best set screen: what the Pokémon has now beside what is recommended, with the number of changes between them, and the nature comparison explaining what each one costs">
+
+What it has now beside what it wants, with the differences counted. The nature block is
+deliberate: it explains what the nature you rolled is costing, and then states that nature is
+fixed at capture — advice for the next catch, never a task for this one.
+
+### Team — the wall of seventeen types
+
+<img src="docs/assets/team.png" width="900" alt="The Team screen: a card per party member with one sentence of analysis, and a wall of all 17 types marked ok or gap, with the gaps named and the cheapest fix suggested">
+
+Every type your party can answer, and every one it cannot, with the gaps named and the
+cheapest fix taken from the recommendations already on screen.
 
 If you already know all this, the same screens work as a fast read on a team you are
 building. Beginners get the explanation; everyone else gets the numbers.
