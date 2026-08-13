@@ -35,11 +35,16 @@ public sealed class MainWindowViewModelTests
 
         Assert.Contains(viewModel.SetupSteps, step => step.Contains("mGBA", StringComparison.Ordinal));
         Assert.NotEmpty(viewModel.DsSetupSteps);
-        Assert.Contains(viewModel.DsSetupSteps, step => step.Contains("melonDS", StringComparison.Ordinal));
-        Assert.Contains(viewModel.DsSetupSteps, step => step.Contains("GDB stub", StringComparison.Ordinal));
+        Assert.Contains(viewModel.DsSetupSteps, step => step.Text.Contains("melonDS", StringComparison.Ordinal));
+        Assert.Contains(viewModel.DsSetupSteps, step => step.Text.Contains("GDB stub", StringComparison.Ordinal));
 
         // And it must not tell a DS player to leave the JIT on, which silences the stub.
-        Assert.Contains(viewModel.DsSetupSteps, step => step.Contains("JIT", StringComparison.Ordinal));
+        Assert.Contains(viewModel.DsSetupSteps, step => step.Text.Contains("JIT", StringComparison.Ordinal));
+
+        // Numbered from one, because the column draws them beside a numbered circle.
+        Assert.Equal(
+            [.. Enumerable.Range(1, viewModel.DsSetupSteps.Count)],
+            [.. viewModel.DsSetupSteps.Select(step => step.Number)]);
     }
 
     /// <summary>

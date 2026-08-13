@@ -271,4 +271,15 @@
     <Setter Property="CornerRadius" Value="7" />
   </Style>
 
+  <!-- The numbered circle beside a setup step. -->
+  <Style Selector="Border.stepnumber">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="CornerRadius" Value="17" />
+    <Setter Property="BorderBrush" Value="{StaticResource Ink}" />
+    <Setter Property="BorderThickness" Value="3" />
+    <Setter Property="Background" Value="{StaticResource Accent}" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+  </Style>
+
 </Styles>

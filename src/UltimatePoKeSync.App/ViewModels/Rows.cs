@@ -271,6 +271,9 @@ public sealed record CandidateMoveRow(
 /// </summary>
 public sealed record FactChip(string Label, string Value);
 
+/// <summary>A numbered step, for the columns on the Bridge screen. See D-049.</summary>
+public sealed record NumberedStep(int Number, string Text);
+
 /// <summary>One contribution to the team strength score.</summary>
 public sealed record StrengthRow(string Name, int Points, int MaximumPoints, string Explanation)
 {

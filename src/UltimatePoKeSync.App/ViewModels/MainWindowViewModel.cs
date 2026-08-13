@@ -122,7 +122,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _post = post;
 
         SetupSteps = SetupGuide.Steps(live.Port);
-        DsSetupSteps = SetupGuide.DsSteps();
+        DsSetupSteps =
+        [
+            .. SetupGuide.DsSteps().Select((step, index) => new NumberedStep(index + 1, step)),
+        ];
         ScriptPath = SetupGuide.ScriptPath;
         PlatformName = SetupGuide.PlatformName;
         PortHelp = SetupGuide.PortHelp(live.Port);
@@ -179,7 +182,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public IReadOnlyList<string> SetupSteps { get; }
 
     /// <summary>The other emulator's steps, for the DS games.</summary>
-    public IReadOnlyList<string> DsSetupSteps { get; }
+    public IReadOnlyList<NumberedStep> DsSetupSteps { get; }
 
     /// <summary>Which emulator is feeding the window, once one is.</summary>
     public string ConnectedVia => _live.ActiveEmulator ?? string.Empty;

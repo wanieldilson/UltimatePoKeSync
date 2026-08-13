@@ -1696,3 +1696,29 @@ by name after the bar was seen against a real party, rather than invented.
 stop being comparable, which is the only reason to draw them together), and leave the floor
 inside the base segment and explain it in a note (rejected: the picture would still say
 something false, and a note under a wrong picture is not a fix).
+
+## D-049 — The DS instructions existed and nobody could see them
+
+**Status:** Accepted · 2026-08-13
+
+D-042 put both emulators' setup steps on the screen shown before a bridge answers. The
+redesign then gave the disconnected state its own full-window Bridge screen, drawn over
+everything else — and that screen only knew about mGBA. The melonDS steps were still in the
+code, still bound, still built on every launch, and unreachable: covered when disconnected,
+hidden when connected. Someone playing Black was told to open a scripting window melonDS
+does not have and load a file that cannot help them.
+
+The Bridge screen now carries the two columns the decision called for: mGBA with its script
+path, Reveal and Copy path, and melonDS with its checkbox and its warning about the JIT,
+each numbered, each under its own tilted heading. The unreachable markup is gone rather than
+left to rot — 73 lines that compiled, bound and rendered nothing.
+
+The lesson is not about melonDS. A screen that is covered rather than deleted still passes
+every build, and the test that guarded these steps checked the view model, which was
+faithfully producing text nobody could read. What was missing was looking at the running
+app on the machine it was written for — which is how it was found.
+
+**Alternatives considered:** show the steps for the active emulator only (rejected: when
+nothing is connected there is no active emulator, which is exactly when the steps are
+needed), and keep the old setup screen and show it before the Bridge one (rejected: two
+screens explaining the same thing, and the design gives that job to the Bridge).
