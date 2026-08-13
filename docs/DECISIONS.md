@@ -1728,3 +1728,24 @@ app on the machine it was written for — which is how it was found.
 nothing is connected there is no active emulator, which is exactly when the steps are
 needed), and keep the old setup screen and show it before the Bridge one (rejected: two
 screens explaining the same thing, and the design gives that job to the Bridge).
+
+## D-050 — The brief is not part of the product
+
+**Status:** Accepted · 2026-08-13
+
+`design_handoff_pokedex_ui/` held the brief for the redesign: a prompt, a rendered HTML mock
+and the script that drove it. It was scaffolding — read once, worked from, then finished.
+Keeping it in the tree left the repository with two descriptions of how the app looks, and
+the one that is not compiled is the one that goes stale. Somebody reading the HTML a year
+from now would be reading a proposal, not the product, with nothing on the page saying so.
+
+The design now lives where it is enforced: the tokens in `Theme.axaml`, the shapes in
+`Styles.axaml`, and the screens themselves. Those cannot drift from the app, because they
+are the app. The 888 KB of mock, and the duplicate copy of the icon inside it, are gone.
+
+`.claude/` is now ignored rather than merely untracked, so local tool state cannot be
+committed by an absent-minded `git add -A`.
+
+**Alternatives considered:** move the mock under `docs/` (rejected: the same stale second
+description, filed more tidily), and keep it and mark it historical (rejected: a folder
+nobody may trust is a folder nobody should have to read past).
