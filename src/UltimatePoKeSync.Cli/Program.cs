@@ -13,7 +13,7 @@ namespace UltimatePoKeSync.Cli;
 /// </summary>
 internal static class Program
 {
-    private static readonly TeamStrengthAnalyzer StrengthAnalyzer = new();
+    private static readonly TeamStrengthAnalyzer StrengthAnalyzer = new(PKHeXSources.All);
 
     private static readonly PokemonProgressAnalyzer ProgressAnalyzer = new(
         PKHeXSources.Learnsets,
@@ -93,7 +93,7 @@ internal static class Program
 
             var teamAnalyzer = new TeamAnalyzer();
             PokemonRecommendationEngine recommendationEngine =
-                PokemonRecommendationEngine.CreateDefault(PKHeXSources.Learnsets);
+                PokemonRecommendationEngine.CreateDefault(PKHeXSources.All);
 
             try
             {
@@ -146,7 +146,7 @@ internal static class Program
             analyze,
             profileKind,
             new TeamAnalyzer(),
-            PokemonRecommendationEngine.CreateDefault(PKHeXSources.Learnsets));
+            PokemonRecommendationEngine.CreateDefault(PKHeXSources.All));
         Console.WriteLine("└─");
         return 0;
     }

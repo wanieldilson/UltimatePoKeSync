@@ -8,7 +8,7 @@ namespace UltimatePoKeSync.Analysis.Tests;
 public sealed class PokemonRecommendationEngineTests
 {
     private readonly PokemonRecommendationEngine _engine =
-        PokemonRecommendationEngine.CreateDefault(PKHeXGen3MoveLearnSource.Instance);
+        PokemonRecommendationEngine.CreateDefault(PKHeXSources.All);
 
     [Fact]
     public void CompetitiveProfile_CombinesLiveRoleWithMatchedPreset()
@@ -17,6 +17,7 @@ public sealed class PokemonRecommendationEngineTests
             primaryType: PokemonType.Water,
             secondaryType: PokemonType.Flying,
             speciesName: "Gyarados",
+            speciesId: 130,
             baseStats: new StatBlock(95, 125, 79, 60, 100, 81),
             moves:
             [
@@ -37,7 +38,7 @@ public sealed class PokemonRecommendationEngineTests
         Assert.Equal("Adamant", result.Nature.PreferredNatures[0].Name);
         Assert.Equal(new StatBlock(4, 252, 0, 0, 0, 252), result.EffortValues.TargetSpread);
         Assert.Equal(
-            new StatBlock(171, 194, 99, 72, 120, 133),
+            new StatBlock(332, 383, 194, 140, 236, 261),
             result.EffortValues.ProjectedStats);
         Assert.Contains(result.ItemCandidates, item => item.Name == "Choice Band");
         Assert.Contains(
@@ -52,12 +53,12 @@ public sealed class PokemonRecommendationEngineTests
     }
 
     [Fact]
-    public void PlaythroughProfile_OnlyAddsLevelUpMovesAtOrBelowCurrentLevel()
+    public void PlaythroughProfile_LooksAheadButStopsAtTheEvolutionBoundary()
     {
         PokemonSnapshot treecko = AnalysisTestData.Member(
             primaryType: PokemonType.Grass,
             speciesName: "Treecko",
-            level: 11,
+            level: 12,
             baseStats: new StatBlock(40, 45, 35, 65, 55, 70),
             speciesId: 252,
             moves:
@@ -79,7 +80,14 @@ public sealed class PokemonRecommendationEngineTests
             result.MoveCandidates,
             move => move.Move.ReferenceId == "absorb" &&
                 move.Availability == RecommendationAvailability.KnownAvailable);
-        Assert.Contains(result.MoveCandidates, move => move.Move.ReferenceId == "pound");
+        Assert.Contains(
+            result.MoveCandidates,
+            move => move.Move.ReferenceId == "pursuit" &&
+                move.LearnedAtLevel == 16 &&
+                move.Availability == RecommendationAvailability.ArrivesWithLevelUp);
+        Assert.DoesNotContain(
+            result.MoveCandidates,
+            move => move.LearnedAtLevel > 16);
         Assert.DoesNotContain(result.MoveCandidates, move => move.Move.ReferenceId == "megadrain");
         Assert.Contains(
             result.ItemCandidates,
@@ -94,6 +102,7 @@ public sealed class PokemonRecommendationEngineTests
             primaryType: PokemonType.Poison,
             secondaryType: PokemonType.Ground,
             speciesName: "Nidoking",
+            speciesId: 34,
             baseStats: new StatBlock(81, 92, 77, 85, 75, 85),
             moves:
             [
@@ -114,11 +123,11 @@ public sealed class PokemonRecommendationEngineTests
     }
 
     /// <summary>
-    /// A species with no reference set used to be left holding whatever it happened to
-    /// know, which for competitive advice is worthless. See D-032.
+    /// An unevolved species has no reference set of its own, but competitive advice targets
+    /// the unambiguous final form rather than leaving it with whatever it knows now.
     /// </summary>
     [Fact]
-    public void CompetitiveProfile_UsesTheWholeLegalPoolWhenNoPresetMatches()
+    public void CompetitiveProfile_UsesTheFinalFormsWholeLegalPool()
     {
         PokemonSnapshot treecko = AnalysisTestData.Member(
             primaryType: PokemonType.Grass,
@@ -135,7 +144,8 @@ public sealed class PokemonRecommendationEngineTests
             .Members
             .Single();
 
-        Assert.Null(result.MatchedPreset);
+        Assert.NotNull(result.MatchedPreset);
+        Assert.Equal("Sceptile", result.RoleAnalysis.JudgedSpeciesName);
         Assert.True(result.MoveCandidates.Count > 1);
 
         // A level 5 Pokémon is still offered what it learns much later: nobody battles
@@ -152,11 +162,11 @@ public sealed class PokemonRecommendationEngineTests
     }
 
     /// <summary>
-    /// The competitive pool has to be at least as wide as the playthrough one. It used to
-    /// be narrower, which inverted the two profiles. See D-032.
+    /// The visible competitive shortlist has two more places than the playthrough one. It
+    /// used to be narrower, which inverted what the two screens exposed. See D-032.
     /// </summary>
     [Fact]
-    public void CompetitiveProfile_IsNeverNarrowerThanPlaythrough()
+    public void CompetitiveProfile_ShowsAtLeastAsManyCandidatesAsPlaythrough()
     {
         PokemonSnapshot treecko = AnalysisTestData.Member(
             primaryType: PokemonType.Grass,
@@ -204,7 +214,7 @@ public sealed class PokemonRecommendationEngineTests
     }
 
     [Fact]
-    public void Build_PicksFourMovesWithAReasonEachAndKeepsTheRest()
+    public void Build_PicksFourMovesWithAReasonInsideTheBoundedShortlist()
     {
         PokemonSnapshot gyarados = AnalysisTestData.Member(
             primaryType: PokemonType.Water,
@@ -254,6 +264,51 @@ public sealed class PokemonRecommendationEngineTests
         Assert.Equal(BuildSlotRole.SameType, build.Slots[0].Role);
     }
 
+    [Fact]
+    public void Build_TreatsSeismicTossAsDamageWithoutInventingCoverage()
+    {
+        PokemonSnapshot blissey = AnalysisTestData.Member(
+            primaryType: PokemonType.Normal,
+            speciesName: "Blissey",
+            speciesId: 242,
+            level: 84,
+            baseStats: new StatBlock(255, 10, 10, 75, 135, 55),
+            moves: [AnalysisTestData.Move(69, "Seismic Toss", PokemonType.Fighting)]);
+
+        PokemonRecommendation result = _engine
+            .Recommend(AnalysisTestData.Party(blissey), RecommendationProfileKind.Competitive)
+            .Members
+            .Single();
+
+        BuildSlot seismicToss = Assert.Single(
+            result.Build.Slots,
+            slot => slot.Move.Move.ReferenceId == "seismictoss");
+
+        Assert.Equal(BuildSlotRole.DirectDamage, seismicToss.Role);
+        Assert.DoesNotContain("non-damaging", seismicToss.Reason, StringComparison.OrdinalIgnoreCase);
+        Assert.True(result.RoleAnalysis.PhysicalMoveCount > 0);
+    }
+
+    [Fact]
+    public void CompetitiveProjectionIsForTheTrainedLevelHundredFinalForm()
+    {
+        PokemonSnapshot treecko = AnalysisTestData.Member(
+            primaryType: PokemonType.Grass,
+            speciesName: "Treecko",
+            speciesId: 252,
+            level: 5,
+            baseStats: new StatBlock(40, 45, 35, 65, 55, 70),
+            moves: [AnalysisTestData.Move(71, "Absorb", PokemonType.Grass)]);
+
+        PokemonRecommendation result = _engine
+            .Recommend(AnalysisTestData.Party(treecko), RecommendationProfileKind.Competitive)
+            .Members
+            .Single();
+
+        Assert.Equal("Sceptile", result.RoleAnalysis.JudgedSpeciesName);
+        Assert.True(result.EffortValues.ProjectedStats!.Value.Hp >= 200);
+    }
+
     /// <summary>
     /// The point of reading machines at all: in Gen 3 the coverage a playthrough team is
     /// missing usually arrives on a TM, not from levelling. See D-030.
@@ -278,12 +333,17 @@ public sealed class PokemonRecommendationEngineTests
         Assert.Contains(result.MoveCandidates, move => move.Source == MoveCandidateSource.Machine);
         Assert.Contains(result.MoveCandidates, move => move.Source == MoveCandidateSource.Tutor);
 
-        // Everything that is not already on the Pokémon has to be checked against the save.
+        // Machines and tutors still have to be checked against the save.
         Assert.All(
-            result.MoveCandidates.Where(move => move.Source != MoveCandidateSource.CurrentMoveset),
+            result.MoveCandidates.Where(move =>
+                move.Source is MoveCandidateSource.Machine or MoveCandidateSource.Tutor),
             move => Assert.Equal(
                 RecommendationAvailability.RequiresAvailabilityCheck,
                 move.Availability));
+
+        Assert.Contains(
+            result.MoveCandidates,
+            move => move.Availability == RecommendationAvailability.ArrivesWithLevelUp);
 
         // And a machine move is good enough to take a slot away from Ember.
         Assert.Contains(

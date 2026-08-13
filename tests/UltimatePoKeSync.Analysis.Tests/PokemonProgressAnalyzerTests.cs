@@ -123,6 +123,16 @@ public sealed class PokemonProgressAnalyzerTests
         Assert.Equal("when traded", progress.NextEvolution.Requirement);
     }
 
+    [Fact]
+    public void ShedinjaIsNotShownAsAnAlternativeDestinationForNincada()
+    {
+        PokemonProgress progress = Analyze(speciesId: 290, level: 15);
+
+        Assert.Equal("Ninjask", progress.NextEvolution!.IntoSpeciesName);
+        Assert.DoesNotContain(progress.OtherEvolutions,
+            evolution => evolution.IntoSpeciesName == "Shedinja");
+    }
+
     /// <summary>
     /// A Treecko still a Treecko at Lv.30 has cancelled the evolution every level since 16,
     /// and the game will offer it again at 31. Listing its Lv.35 move would be promising

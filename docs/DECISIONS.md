@@ -1762,3 +1762,88 @@ committed by an absent-minded `git add -A`.
 **Alternatives considered:** move the mock under `docs/` (rejected: the same stale second
 description, filed more tidily), and keep it and mark it historical (rejected: a folder nobody
 may trust is a folder nobody should have to read past).
+
+---
+
+## D-051. Rank every legal move, then cap what the screen shows
+
+**Status:** Accepted · 2026-08-13
+
+The real Lv.6 Snivy exposed a bad boundary. The engine cut the candidate list before choosing
+the build, in learn-source order, so weak level-up moves filled the budget before better
+machines and tutors were scored. The cap is now presentation only: the engine ranks the
+complete legal pool and chooses the build from it, then shows a bounded shortlist that always
+includes the four winners.
+
+A status move is not useful merely because it deals no damage. The metadata available here
+cannot distinguish Leer from recovery, setup or disruption, so utility is trusted only when
+one of the species' reference presets names it. Without that evidence, four attacks are a more
+honest result than forcing a weak status move into the fourth slot. Species without a preset
+may therefore receive no utility move.
+
+Moves such as Seismic Toss deal real damage but provide no type coverage. They count as attacks
+and get a direct-damage label rather than being described as utility; they cannot claim STAB,
+close a matchup gap or reserve the status slot merely because their damage ignores the chart.
+
+Playthrough advice also looks a few levels ahead. A nearby level-up move may beat disposable
+filler, and is labelled as arriving through levelling rather than as something to find in the
+save. The horizon is capped at Lv.100 and at the current species' evolution boundary, including
+moves learned on the evolution level and treating an overdue level evolution as happening on
+the next level-up. Machines and tutors remain candidates because their availability is not
+tied to level.
+
+This narrows D-038: analysis still considers the complete pool, but the screen is a
+recommendation view, not an exhaustive legality browser.
+
+**Alternatives considered:** raise the cap while keeping source-order truncation (rejected:
+the same bug with a larger number), force one arbitrary status move (rejected: this produced
+Leer), maintain a hand-written utility whitelist (rejected: incomplete and brittle), and use
+only reference sets (rejected: many unevolved or uncommon species have none, especially during
+a playthrough).
+
+---
+
+## D-052. Persistent training targets the final form; playthrough moves stay legal now
+
+**Status:** Accepted · 2026-08-13
+
+Nature and effort values survive evolution, and competitive advice already assumes a fully
+trained Pokémon. When an evolution line has one unambiguous destination at every step, role,
+nature, effort values and competitive moves therefore target its final species. A Snivy is
+judged with Serperior's base stats, and competitive presets and learnsets are resolved for
+Serperior rather than pretending that Tackle describes the finished Pokémon.
+
+Playthrough moves follow a different boundary. They remain legal for the species currently in
+the party, plus the short upcoming horizon from D-051. The engine must not merge an evolved
+form's learnset into the current one or recommend a move the player cannot teach yet. Both
+profiles can therefore share a long-term role, nature and EV target while answering different
+moveset questions.
+
+The target species, base stats and typing are carried explicitly through the analysis, so speed
+thresholds, defensive comparisons, projected stats and competitive same-type move bonuses all
+use the same target. Playthrough move bonuses still use the current species' typing. The UI and
+CLI name the long-term target whenever it differs from the live species. Current moves remain
+weak evidence about how the player is using the Pokémon, but they do not outweigh a clear
+base-stat bias.
+
+A branching line has no inferred target. Eevee, Wurmple and Tyrogue fall back to the current
+species because choosing a branch would invent the player's plan. Missing evolution or
+base-stat data does the same. A unique trade or stone evolution may still be the competitive
+target, but playthrough output must not claim that the evolution will happen. Multiple methods
+that reach the same species are not a branch (Feebas still targets Milotic), and an evolution
+that creates a second Pokémon without replacing the first is ignored as a destination (Nincada
+targets Ninjask, not Shedinja). Gender-limited routes are followed only when the decoded party
+member is eligible; a male Combee is not silently planned as Vespiquen.
+
+**Alternatives considered:** always judge the current species (rejected: capture-time nature
+and accumulated EV advice becomes obsolete on evolution), use the final species for both
+movesets (rejected: it produces currently illegal playthrough moves), merge every learnset in
+the line (rejected: move levels and legality become false), and select the first or strongest
+branch (rejected: table order and raw stats are not player intent).
+
+**Known limitation:** team-wide competitive gap weighting still starts from the live party's
+types and current moves. A species whose final form changes type is scored correctly for its own
+STAB, but the surrounding team's defensive gaps are not yet rebuilt as six projected final
+forms, and a current move later dropped from the competitive build may initially count as an
+answer. Fixing that requires a separate two-pass competitive team model rather than another
+single-Pokémon scoring exception.

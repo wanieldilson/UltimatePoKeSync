@@ -45,7 +45,12 @@ public sealed class PokemonProgressAnalyzer
             return PokemonProgress.Nothing;
         }
 
-        EvolutionStep[] evolutions = [.. _evolutions.FindEvolutions(game, member.SpeciesId)];
+        EvolutionStep[] evolutions =
+        [
+            .. _evolutions
+                .FindEvolutions(game, member.SpeciesId)
+                .Where(step => !step.IsByproduct && IsEligible(member, step)),
+        ];
         EvolutionStep? next = ChooseNext(evolutions, member.Level);
 
         // A level evolution already passed has been cancelled, over and over: the game
@@ -119,6 +124,7 @@ public sealed class PokemonProgressAnalyzer
                 lineOpacity));
             lineLevel = stageLevel ?? lineLevel;
             lineStep = _evolutions.FindEvolutions(game, lineStep.IntoSpeciesId)
+                .Where(step => !step.IsByproduct && IsEligible(member, step))
                 .OrderBy(step => step.Level ?? int.MaxValue)
                 .FirstOrDefault();
             lineOpacity = 0.55;
@@ -191,6 +197,9 @@ public sealed class PokemonProgressAnalyzer
 
         return byLevel ?? evolutions.FirstOrDefault();
     }
+
+    private static bool IsEligible(PokemonSnapshot member, EvolutionStep evolution) =>
+        evolution.RequiredGender is null || evolution.RequiredGender == member.Gender;
 }
 
 /// <param name="Moves">The next level-up moves, soonest first.</param>

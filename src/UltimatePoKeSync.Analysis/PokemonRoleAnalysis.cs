@@ -10,7 +10,20 @@ public sealed record PokemonRoleAnalysis(
     int UtilityMoveCount,
     int PhysicalOffenseScore,
     int SpecialOffenseScore,
-    double BulkScore);
+    double BulkScore,
+    /// <summary>
+    /// The species these scores describe. It is the final form when the evolution line is
+    /// unambiguous, otherwise the member itself. Nature and EV advice use the same target,
+    /// so one recommendation never mixes two species' stats. See D-052.
+    /// </summary>
+    int JudgedSpeciesId,
+    string JudgedSpeciesName,
+    StatBlock JudgedBaseStats,
+    PokemonType JudgedPrimaryType,
+    PokemonType JudgedSecondaryType)
+{
+    public bool IsJudgedAsEvolution => JudgedSpeciesId != Member.SpeciesId;
+}
 
 public enum PokemonRole
 {

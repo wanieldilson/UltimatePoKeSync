@@ -20,6 +20,7 @@ internal static class AnalysisTestData
         StatBlock? baseStats = null,
         int? speciesId = null,
         bool isEgg = false,
+        PokemonGender gender = PokemonGender.Unknown,
         params MoveSlot[] moves) => new()
         {
             SlotIndex = slot,
@@ -43,6 +44,7 @@ internal static class AnalysisTestData
             IsEgg = isEgg,
             IsShiny = false,
             PersonalityValue = (uint)slot,
+            Gender = gender,
             CurrentHp = 100,
             Status = StatusCondition.None,
             Friendship = 70,

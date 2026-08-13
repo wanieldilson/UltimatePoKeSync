@@ -7,8 +7,12 @@ internal static class RecommendationPolicy
 {
     public static ReferencePreset? MatchPreset(RecommendationContext context)
     {
+        // Advice about nature, EVs and a competitive build is aimed at the same species.
+        // For a straight evolution line that is the final form; for a branch it remains the
+        // member in front of us. A Snivy therefore gets Serperior's useful prior instead of
+        // falling back to Tackle and Leer merely because Random Battles has no Snivy entry.
         IReadOnlyList<ReferencePreset> presets =
-            context.PresetCatalog.Find(context.RoleAnalysis.Member.SpeciesName);
+            context.PresetCatalog.Find(context.RoleAnalysis.JudgedSpeciesName);
         if (presets.Count == 0)
         {
             return null;
@@ -43,13 +47,22 @@ internal static class RecommendationPolicy
     /// </remarks>
     public static RecommendedBuild SelectBuild(
         RecommendationContext context,
-        IReadOnlyList<MoveRecommendation> candidates)
+        IReadOnlyList<MoveRecommendation> candidates,
+        int candidateLimit)
     {
         const int moveSlots = 4;
 
-        // Four attacks and no status move is not what a real set looks like, and it leaves
-        // a Pokémon with no answer to anything it cannot simply out-damage.
+        // A good setup, recovery or disruption move deserves a slot. A status move merely
+        // being present does not: without effect metadata Leer is indistinguishable from
+        // Leech Seed, so the species' reference sets are the honesty boundary for forcing one.
         const int maximumAttacks = 3;
+
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(candidates);
+        if (candidateLimit < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(candidateLimit));
+        }
 
         if (candidates.Count == 0)
         {
@@ -57,6 +70,18 @@ internal static class RecommendationPolicy
         }
 
         HashSet<string> presetMoves = [.. MatchPreset(context)?.MovePool ?? []];
+        HashSet<string> trustedUtilityMoves =
+        [
+            .. context.PresetCatalog
+                .Find(context.RoleAnalysis.JudgedSpeciesName)
+                .SelectMany(preset => preset.MovePool),
+        ];
+        HashSet<string> trustedDamagingMoves =
+        [
+            .. trustedUtilityMoves.Where(referenceId =>
+                context.MoveCatalog.Find(referenceId) is MoveReference move &&
+                DealsDamage(context, move)),
+        ];
 
         List<(MoveRecommendation Candidate, int Index)> remaining =
             [.. candidates.Select((candidate, index) => (candidate, index))];
@@ -71,10 +96,23 @@ internal static class RecommendationPolicy
         while (slots.Count < moveSlots && remaining.Count > 0)
         {
             bool utilityOnly = attacks >= maximumAttacks &&
-                remaining.Any(entry => !IsDamaging(context, entry.Candidate.Move));
+                remaining.Any(entry =>
+                    IsTrustedUtility(context, entry.Candidate, trustedUtilityMoves));
+
+            // A competitive reference explicitly naming an attack is stronger evidence
+            // than arbitrary machine coverage from a huge legal pool. Guarantee one such
+            // attack before the generic ranking can fill all three attacking slots.
+            bool trustedAttackOnly = context.Profile == RecommendationProfileKind.Competitive &&
+                attacks == maximumAttacks - 1 &&
+                !slots.Any(slot => trustedDamagingMoves.Contains(slot.Move.Move.ReferenceId)) &&
+                remaining.Any(entry =>
+                    trustedDamagingMoves.Contains(entry.Candidate.Move.ReferenceId));
 
             var best = remaining
-                .Where(entry => !utilityOnly || !IsDamaging(context, entry.Candidate.Move))
+                .Where(entry =>
+                    (!utilityOnly || IsTrustedUtility(context, entry.Candidate, trustedUtilityMoves)) &&
+                    (!trustedAttackOnly ||
+                        trustedDamagingMoves.Contains(entry.Candidate.Move.ReferenceId)))
                 .Select(entry => new
                 {
                     entry.Candidate,
@@ -91,11 +129,15 @@ internal static class RecommendationPolicy
                 role,
                 Explain(context, best.Candidate, role, presetMoves, answered)));
 
-            if (IsDamaging(context, best.Candidate.Move))
+            if (DealsDamage(context, best.Candidate.Move))
             {
-                coveredTypes.Add(best.Candidate.Move.Type);
-                answered.UnionWith(TypesHitHard(context, best.Candidate.Move.Type));
                 attacks++;
+
+                if (ProvidesCoverage(context, best.Candidate.Move))
+                {
+                    coveredTypes.Add(best.Candidate.Move.Type);
+                    answered.UnionWith(TypesHitHard(context, best.Candidate.Move.Type));
+                }
             }
 
             remaining.RemoveAll(entry => entry.Index == best.Index);
@@ -108,6 +150,7 @@ internal static class RecommendationPolicy
                     .OrderByDescending(entry =>
                         ScoreMove(context, entry.Candidate, presetMoves, coveredTypes, answered))
                     .ThenBy(entry => entry.Index)
+                    .Take(Math.Max(0, candidateLimit - slots.Count))
                     .Select(entry => entry.Candidate),
             ]);
     }
@@ -119,24 +162,32 @@ internal static class RecommendationPolicy
         IReadOnlySet<PokemonType> coveredTypes,
         IReadOnlySet<PokemonType> answered)
     {
-        PokemonSnapshot member = context.RoleAnalysis.Member;
         MoveReference move = candidate.Move;
         MoveCategory category = context.Rules.GetMoveCategory(move.MoveId, move.Type);
-        bool damaging = IsDamaging(context, move);
+        bool damaging = DealsDamage(context, move);
+        bool providesCoverage = ProvidesCoverage(context, move);
         int score = 0;
 
         if (damaging)
         {
-            if (coveredTypes.Contains(move.Type))
+            if (providesCoverage && coveredTypes.Contains(move.Type))
             {
                 // Repeating a type the build already hits costs more than the same-type
                 // bonus is worth, so a duplicate has to win on other merits.
                 score -= 7;
             }
 
-            if (move.Type == member.PrimaryType || move.Type == member.SecondaryType)
+            if (providesCoverage && HasSameTypeBonus(context, move.Type))
             {
                 score += 6;
+            }
+            else if (providesCoverage && !TypesHitHard(context, move.Type).Any() &&
+                !presetMoves.Contains(move.ReferenceId))
+            {
+                // An off-type move that can never hit super effectively is filler unless a
+                // real set gives us a reason to keep it. This is what stops Wrap replacing
+                // Tackle in name only on an early Snivy build.
+                score -= 3;
             }
 
             if (MatchesRoleCategory(context.RoleAnalysis.Role, category))
@@ -144,33 +195,60 @@ internal static class RecommendationPolicy
                 score += 5;
             }
 
-            if (ClosesTeamGap(context, move.Type, answered))
+            if (providesCoverage && ClosesTeamGap(context, move.Type, answered))
             {
                 score += 4;
             }
 
-            if (AnswersTeamWeakness(context, move.Type))
+            if (providesCoverage && AnswersTeamWeakness(context, move.Type))
             {
                 score += 3;
             }
 
-            score += PowerBonus(context, move);
+            score += providesCoverage ? PowerBonus(context, move) : FixedDamageBonus(move);
         }
         else
         {
             // Utility is worth something to everyone, and worth more to a Pokémon whose
             // bulk is the reason it is on the team at all.
             score += WantsUtility(context.RoleAnalysis.Role) ? 4 : 2;
+
+            if (presetMoves.Contains(move.ReferenceId))
+            {
+                // This is the only effect-quality signal the pinned data currently carries.
+                // It separates setup, recovery and disruption used in real sets from early
+                // filler such as Leer without pretending every status move is equivalent.
+                score += 3;
+            }
         }
 
-        if (candidate.Source == MoveCandidateSource.CurrentMoveset)
+        // Keeping a move it already knows is worth something while playing, where changing
+        // one costs a TM or a trip to the Move Reminder. It is worth nothing to a build that
+        // assumes a trained Pokémon: nobody battles at level 100 with the Tackle it was
+        // caught with, and paying for continuity there is how Tackle reached a Serperior's
+        // recommended set. See D-051.
+        if (damaging && candidate.Source == MoveCandidateSource.CurrentMoveset &&
+            context.Profile == RecommendationProfileKind.Playthrough)
         {
-            score += 3;
+            score += 1;
         }
+
+        // A move that needs only levels beats one that needs a machine found somewhere in a
+        // save the app cannot see. Kept small, so a much stronger machine move still wins.
+        score += candidate.Availability switch
+        {
+            RecommendationAvailability.ArrivesWithLevelUp => 3,
+            RecommendationAvailability.RequiresAvailabilityCheck => -3,
+            _ => 0,
+        };
 
         if (presetMoves.Contains(move.ReferenceId))
         {
-            score += 2;
+            // A reference set is the strongest effect-quality signal the bundled data
+            // carries. Damaging moves get the same prior utility moves already receive;
+            // otherwise broad learnsets can push a proven move such as Seismic Toss out
+            // of Blissey's build in favour of arbitrary machine coverage.
+            score += damaging ? 5 : 2;
         }
 
         return score;
@@ -178,7 +256,7 @@ internal static class RecommendationPolicy
 
     /// <summary>
     /// Weak moves are not best moves. Kept small enough to break ties rather than override
-    /// coverage: Solar Beam earns four points here, Giga Drain two, Absorb none.
+    /// coverage: Solar Beam earns four points here, Giga Drain none, Tackle loses two.
     /// </summary>
     private static int PowerBonus(RecommendationContext context, MoveReference move)
     {
@@ -186,8 +264,23 @@ internal static class RecommendationPolicy
         const int assumedVariablePower = 60;
 
         int power = context.Rules.GetMoveBasePower(move.MoveId);
-        return Math.Min(4, (power == variablePower ? assumedVariablePower : power) / 30);
+        power = power == variablePower ? assumedVariablePower : power;
+
+        return power switch
+        {
+            <= 60 => -2,
+            <= 80 => 0,
+            <= 100 => 2,
+            _ => 4,
+        };
     }
+
+    private static bool IsTrustedUtility(
+        RecommendationContext context,
+        MoveRecommendation candidate,
+        IReadOnlySet<string> presetMoves) =>
+        !DealsDamage(context, candidate.Move) &&
+        presetMoves.Contains(candidate.Move.ReferenceId);
 
     private static BuildSlotRole ClassifySlot(
         RecommendationContext context,
@@ -195,12 +288,16 @@ internal static class RecommendationPolicy
         IReadOnlySet<PokemonType> coveredTypes,
         IReadOnlySet<PokemonType> answered)
     {
-        PokemonSnapshot member = context.RoleAnalysis.Member;
         MoveReference move = candidate.Move;
 
-        if (!IsDamaging(context, move))
+        if (!DealsDamage(context, move))
         {
             return BuildSlotRole.Utility;
+        }
+
+        if (!ProvidesCoverage(context, move))
+        {
+            return BuildSlotRole.DirectDamage;
         }
 
         // Only the first move of a type may claim the gap it closes; the ones after it are
@@ -219,7 +316,7 @@ internal static class RecommendationPolicy
         }
 
         if (!coveredTypes.Contains(move.Type) &&
-            (move.Type == member.PrimaryType || move.Type == member.SecondaryType))
+            HasSameTypeBonus(context, move.Type))
         {
             return BuildSlotRole.SameType;
         }
@@ -234,7 +331,6 @@ internal static class RecommendationPolicy
         IReadOnlySet<string> presetMoves,
         IReadOnlySet<PokemonType> answered)
     {
-        PokemonSnapshot member = context.RoleAnalysis.Member;
         MoveReference move = candidate.Move;
 
         return role switch
@@ -244,11 +340,13 @@ internal static class RecommendationPolicy
             BuildSlotRole.TeamSupport =>
                 $"beats {DescribeThreats(context, move.Type)}, which the team is weak to",
             BuildSlotRole.SameType =>
-                $"{member.SpeciesName} is {move.Type}, so this hits harder than the same move would elsewhere",
+                $"{MoveTargetSpeciesName(context)} is {move.Type}, so this hits harder than the same move would elsewhere",
             BuildSlotRole.Utility when WantsUtility(context.RoleAnalysis.Role) =>
                 "this Pokémon lasts long enough to make a non-damaging move pay",
             BuildSlotRole.Utility =>
                 "one slot that is not an attack, so it is not helpless against what it cannot outdamage",
+            BuildSlotRole.DirectDamage =>
+                "deals damage without relying on an ordinary type matchup",
             _ when presetMoves.Contains(move.ReferenceId) =>
                 "part of a common set for this Pokémon",
             _ => "nothing else scored higher for the last slot",
@@ -294,10 +392,10 @@ internal static class RecommendationPolicy
     {
         string[] preferredNames = role.Role switch
         {
-            PokemonRole.PhysicalAttacker when role.Member.BaseStats.Speed >= 90 =>
+            PokemonRole.PhysicalAttacker when role.JudgedBaseStats.Speed >= 90 =>
                 ["Jolly", "Adamant"],
             PokemonRole.PhysicalAttacker => ["Adamant", "Jolly"],
-            PokemonRole.SpecialAttacker when role.Member.BaseStats.Speed >= 90 =>
+            PokemonRole.SpecialAttacker when role.JudgedBaseStats.Speed >= 90 =>
                 ["Timid", "Modest"],
             PokemonRole.SpecialAttacker => ["Modest", "Timid"],
             PokemonRole.MixedAttacker => ["Naive", "Hasty"],
@@ -346,14 +444,14 @@ internal static class RecommendationPolicy
                 new StatBlock(252, 0, 252, 0, 4, 0),
             PokemonRole.SpecialWall =>
                 new StatBlock(252, 0, 4, 0, 252, 0),
-            _ when role.Member.BaseStats.Defense <= role.Member.BaseStats.SpecialDefense =>
+            _ when role.JudgedBaseStats.Defense <= role.JudgedBaseStats.SpecialDefense =>
                 new StatBlock(252, 0, 252, 0, 4, 0),
             _ => new StatBlock(252, 0, 4, 0, 252, 0),
         };
 
         StatBlock projectedStats = rules.CalculateStats(
-            role.Member.Level,
-            role.Member.BaseStats,
+            100,
+            role.JudgedBaseStats,
             role.Member.IndividualValues,
             spread,
             recommendedNature.Id);
@@ -441,13 +539,48 @@ internal static class RecommendationPolicy
     }
 
     /// <summary>
-    /// A move that deals damage <em>and</em> can gain a type multiplier. Gen 3 uses base
-    /// power 1 as a sentinel for fixed-damage and one-hit knockout moves: Seismic Toss
-    /// deals damage but covers nothing. See D-022.
+    /// Whether the move deals damage at all. This must stay separate from type coverage:
+    /// Seismic Toss is an attack, but it never gains a super-effective multiplier.
     /// </summary>
-    private static bool IsDamaging(RecommendationContext context, MoveReference move) =>
-        context.Rules.GetMoveCategory(move.MoveId, move.Type) != MoveCategory.Status &&
+    private static bool DealsDamage(RecommendationContext context, MoveReference move) =>
+        context.Rules.GetMoveCategory(move.MoveId, move.Type) != MoveCategory.Status;
+
+    private static bool ProvidesCoverage(RecommendationContext context, MoveReference move) =>
         context.Rules.CanProvideSuperEffectiveCoverage(move.MoveId);
+
+    /// <summary>
+    /// Fixed and reflected damage has no useful base-power number in the table. A real
+    /// preset naming it is already the quality signal; this neutral value prevents the
+    /// power sentinel from treating it as a weak status move.
+    /// </summary>
+    private static int FixedDamageBonus(MoveReference move) => move.MoveId switch
+    {
+        12 or 32 or 90 or 329 => -2, // one-hit-KO moves are unreliable
+        _ => 0,
+    };
+
+    /// <summary>
+    /// Playthrough moves have to work on the Pokémon in front of the player. Competitive
+    /// moves are for the trained final form, whose typing can be different (Torchic gains
+    /// Fighting when it becomes Blaziken). See D-052.
+    /// </summary>
+    private static bool HasSameTypeBonus(RecommendationContext context, PokemonType moveType)
+    {
+        PokemonRoleAnalysis role = context.RoleAnalysis;
+        PokemonType primary = context.Profile == RecommendationProfileKind.Competitive
+            ? role.JudgedPrimaryType
+            : role.Member.PrimaryType;
+        PokemonType secondary = context.Profile == RecommendationProfileKind.Competitive
+            ? role.JudgedSecondaryType
+            : role.Member.SecondaryType;
+
+        return moveType == primary || moveType == secondary;
+    }
+
+    private static string MoveTargetSpeciesName(RecommendationContext context) =>
+        context.Profile == RecommendationProfileKind.Competitive
+            ? context.RoleAnalysis.JudgedSpeciesName
+            : context.RoleAnalysis.Member.SpeciesName;
 
     private static bool MatchesRoleCategory(PokemonRole role, MoveCategory category) => role switch
     {

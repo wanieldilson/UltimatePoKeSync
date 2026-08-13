@@ -98,6 +98,20 @@ public sealed class PKHeXGen5EvolutionSource : IEvolutionSource
             EvolutionType.LevelUpFriendshipNight =>
                 (EvolutionTrigger.Friendship, "on levelling up with high friendship, at night"),
 
+            EvolutionType.LevelUpMale =>
+                (EvolutionTrigger.Condition, $"at Lv.{method.Level}, if male"),
+            EvolutionType.LevelUpFemale =>
+                (EvolutionTrigger.Condition, $"at Lv.{method.Level}, if female"),
+
+            EvolutionType.UseItemMale =>
+                (EvolutionTrigger.Item, $"with a {ItemName(method.Argument)}, if male"),
+            EvolutionType.UseItemFemale =>
+                (EvolutionTrigger.Item, $"with a {ItemName(method.Argument)}, if female"),
+
+            EvolutionType.TradeShelmetKarrablast =>
+                (EvolutionTrigger.Trade,
+                    "when traded for its counterpart (Karrablast or Shelmet)"),
+
             // Tyrogue splits three ways on the stats it happens to have at level 20.
             EvolutionType.LevelUpATK =>
                 (EvolutionTrigger.Condition, $"at Lv.{method.Level}, with Attack above Defense"),
@@ -131,11 +145,26 @@ public sealed class PKHeXGen5EvolutionSource : IEvolutionSource
         bool certainAtLevel = method.Method is
             EvolutionType.LevelUp or
             EvolutionType.LevelUpNinjask or
+            EvolutionType.LevelUpMale or EvolutionType.LevelUpFemale or
             EvolutionType.LevelUpATK or EvolutionType.LevelUpDEF or EvolutionType.LevelUpAeqD or
             EvolutionType.LevelUpECl5 or EvolutionType.LevelUpECgeq5;
         int? level = certainAtLevel && method.Level > 0 ? method.Level : null;
 
-        return new EvolutionStep(method.Species, into, trigger, level, requirement);
+        PokemonGender? requiredGender = method.Method switch
+        {
+            EvolutionType.LevelUpMale or EvolutionType.UseItemMale => PokemonGender.Male,
+            EvolutionType.LevelUpFemale or EvolutionType.UseItemFemale => PokemonGender.Female,
+            _ => null,
+        };
+
+        return new EvolutionStep(
+            method.Species,
+            into,
+            trigger,
+            level,
+            requirement,
+            method.Method == EvolutionType.LevelUpShedinja,
+            requiredGender);
     }
 
     private string SpeciesName(ushort species) =>

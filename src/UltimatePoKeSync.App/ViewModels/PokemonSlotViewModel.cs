@@ -160,7 +160,10 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
             ? string.Empty
             : $"{recommendation.RoleAnalysis.PhysicalMoveCount} physical · "
                 + $"{recommendation.RoleAnalysis.SpecialMoveCount} special · "
-                + $"{recommendation.RoleAnalysis.UtilityMoveCount} utility moves";
+                + $"{recommendation.RoleAnalysis.UtilityMoveCount} utility moves"
+                + (recommendation.RoleAnalysis.IsJudgedAsEvolution
+                    ? $" · planned as {recommendation.RoleAnalysis.JudgedSpeciesName}"
+                    : string.Empty);
 
         NatureText = recommendation is null
             ? "—"
@@ -236,9 +239,9 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         // The whole pool, not only the four that won. Which moves were on the table is
         // how a player judges whether the four are right, and until now only the console
         // showed it. See D-038.
-        HashSet<int> chosen = recommendation is null
+        HashSet<string> chosen = recommendation is null
             ? []
-            : [.. recommendation.Build.Slots.Select(slot => slot.Move.Move.MoveId)];
+            : [.. recommendation.Build.Slots.Select(slot => slot.Move.Move.ReferenceId)];
 
         Candidates = recommendation is null
             ? []
@@ -249,7 +252,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
                     move.Move.Type.ToString(),
                     DescribeSource(move),
                     Describe(move.Availability),
-                    chosen.Contains(move.Move.MoveId),
+                    chosen.Contains(move.Move.ReferenceId),
                     TypePalette.Brush(move.Move.Type))),
             ];
 
@@ -1064,6 +1067,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
     {
         RecommendationAvailability.KnownAvailable => "already available",
         RecommendationAvailability.RequiresAvailabilityCheck => "check availability in this save",
+        RecommendationAvailability.ArrivesWithLevelUp => "arrives with the next levels",
         _ => "competitive reference",
     };
 
@@ -1096,6 +1100,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         BuildSlotRole.Coverage => "Coverage",
         BuildSlotRole.TeamSupport => "Team support",
         BuildSlotRole.Utility => "Utility",
+        BuildSlotRole.DirectDamage => "Direct damage",
         _ => "Filler",
     };
 
@@ -1105,6 +1110,7 @@ public sealed partial class PokemonSlotViewModel : ObservableObject
         BuildSlotRole.Coverage => new SolidColorBrush(Color.FromRgb(0xE0, 0x95, 0x4A)),
         BuildSlotRole.TeamSupport => new SolidColorBrush(Color.FromRgb(0xB0, 0x6B, 0xE0)),
         BuildSlotRole.Utility => new SolidColorBrush(Color.FromRgb(0x45, 0xD0, 0xE0)),
+        BuildSlotRole.DirectDamage => new SolidColorBrush(Color.FromRgb(0xE0, 0x6A, 0x2E)),
         _ => new SolidColorBrush(Color.FromRgb(0xA8, 0xAA, 0xA6)),
     };
 

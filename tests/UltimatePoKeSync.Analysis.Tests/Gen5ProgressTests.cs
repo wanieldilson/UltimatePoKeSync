@@ -79,8 +79,27 @@ public sealed class Gen5ProgressTests
 
         Assert.NotNull(progress.NextEvolution);
         Assert.Equal("Escavalier", progress.NextEvolution!.IntoSpeciesName);
+        Assert.Equal(EvolutionTrigger.Trade, progress.NextEvolution.Trigger);
+        Assert.Contains("Shelmet", progress.NextEvolution.Requirement, StringComparison.Ordinal);
         Assert.Null(progress.NextEvolution.Level);
         Assert.False(progress.NextEvolution.HappensByLevellingAlone);
+    }
+
+    [Theory]
+    [InlineData(PokemonGender.Male, false)]
+    [InlineData(PokemonGender.Female, true)]
+    public void OnlyFemaleCombeeIsPromisedVespiquen(
+        PokemonGender gender,
+        bool evolves)
+    {
+        PokemonSnapshot combee = AnalysisTestData.Member(
+            speciesId: 415,
+            level: 19,
+            gender: gender);
+
+        PokemonProgress progress = Analyzer.Analyze(Black, combee);
+
+        Assert.Equal(evolves, progress.NextEvolution?.IntoSpeciesName == "Vespiquen");
     }
 
     [Fact]

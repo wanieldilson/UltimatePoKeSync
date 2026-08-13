@@ -319,6 +319,7 @@ public sealed class MainWindowViewModelTests
             Assert.False(string.IsNullOrWhiteSpace(move.Role));
             Assert.False(string.IsNullOrWhiteSpace(move.Description));
         });
+        Assert.Contains("planned as Sceptile", slot.RoleReason, StringComparison.Ordinal);
         Assert.Contains(slot.Member.NatureName, slot.CurrentNatureCard.Heading, StringComparison.Ordinal);
         Assert.Contains("next catch", "Nature is fixed at capture. It cannot be trained away — this is advice for the next catch, not a task for this one.", StringComparison.Ordinal);
     }

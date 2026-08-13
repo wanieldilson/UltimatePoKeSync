@@ -12,21 +12,27 @@ public sealed class PokemonRecommendationEngine
     private readonly IReadOnlyDictionary<PokemonGeneration, IReferencePresetCatalog> _presetCatalogs;
     private readonly IReadOnlyDictionary<PokemonGeneration, IMoveReferenceCatalog> _moveCatalogs;
     private readonly IMoveLearnSource _learnsets;
+    private readonly IEvolutionSource _evolutions;
     private readonly IReadOnlyDictionary<RecommendationProfileKind, IRecommendationProfile> _profiles;
 
     /// <summary>
-    /// The usual composition. The learnset source is injected because it is per game and
-    /// PKHeX-backed, and Analysis must not depend on PKHeX. See D-007 and D-027.
+    /// The usual composition. The game data sources are injected because they are per game
+    /// and PKHeX-backed, and Analysis must not depend on PKHeX. See D-007 and D-027.
     /// </summary>
-    public static PokemonRecommendationEngine CreateDefault(IMoveLearnSource learnsets) =>
-        new(
+    public static PokemonRecommendationEngine CreateDefault(GameDataSources sources)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+
+        return new(
             new TeamAnalyzer(),
-            new PokemonRoleAnalyzer(),
+            new PokemonRoleAnalyzer(sources),
             GenerationRulesResolver.Default,
             [ShowdownGen3PresetCatalog.Instance, ShowdownGen5PresetCatalog.Instance],
             [ShowdownGen3MoveCatalog.Instance, ShowdownGen5MoveCatalog.Instance],
-            learnsets,
+            sources.Learnsets,
+            sources.Evolutions,
             [new PlaythroughRecommendationProfile(), new CompetitiveRecommendationProfile()]);
+    }
 
     public PokemonRecommendationEngine(
         TeamAnalyzer teamAnalyzer,
@@ -35,6 +41,7 @@ public sealed class PokemonRecommendationEngine
         IEnumerable<IReferencePresetCatalog> presetCatalogs,
         IEnumerable<IMoveReferenceCatalog> moveCatalogs,
         IMoveLearnSource learnsets,
+        IEvolutionSource evolutions,
         IEnumerable<IRecommendationProfile> profiles)
     {
         ArgumentNullException.ThrowIfNull(teamAnalyzer);
@@ -43,6 +50,7 @@ public sealed class PokemonRecommendationEngine
         ArgumentNullException.ThrowIfNull(presetCatalogs);
         ArgumentNullException.ThrowIfNull(moveCatalogs);
         ArgumentNullException.ThrowIfNull(learnsets);
+        ArgumentNullException.ThrowIfNull(evolutions);
         ArgumentNullException.ThrowIfNull(profiles);
 
         _teamAnalyzer = teamAnalyzer;
@@ -53,6 +61,7 @@ public sealed class PokemonRecommendationEngine
         _presetCatalogs = presetCatalogs.ToDictionary(catalog => catalog.Generation);
         _moveCatalogs = moveCatalogs.ToDictionary(catalog => catalog.Generation);
         _learnsets = learnsets;
+        _evolutions = evolutions;
         _profiles = profiles.ToDictionary(profile => profile.Kind);
 
         foreach (RecommendationProfileKind kind in Enum.GetValues<RecommendationProfileKind>())
@@ -107,15 +116,17 @@ public sealed class PokemonRecommendationEngine
         // An egg gets no advice: it has no moves to change and cannot be sent out.
         foreach (PokemonSnapshot member in party.Battlers)
         {
-            PokemonRoleAnalysis role = _roleAnalyzer.Analyze(member, party.Game.Generation);
+            PokemonRoleAnalysis role = _roleAnalyzer.Analyze(member, party.Game);
             PokemonRecommendation recommendation = profile.Recommend(new RecommendationContext(
                 party.Game,
+                profileKind,
                 teamAnalysis,
                 role,
                 rules,
                 presets,
                 moves,
                 _learnsets,
+                _evolutions,
                 answered));
 
             recommendations.Add(recommendation);

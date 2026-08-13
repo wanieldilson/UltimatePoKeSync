@@ -54,6 +54,12 @@ public sealed record PokemonSnapshot
     public required uint PersonalityValue { get; init; }
 
     /// <summary>
+    /// The in-game gender, or Unknown only for synthetic/legacy snapshots that did not
+    /// carry it. Some evolution routes are available to only one gender.
+    /// </summary>
+    public PokemonGender Gender { get; init; } = PokemonGender.Unknown;
+
+    /// <summary>
     /// Hit points left right now, not the maximum. <see cref="StatBlock.Hp"/> in
     /// <see cref="CurrentStats"/> is the maximum; this is what is left of it.
     /// </summary>
@@ -94,6 +100,14 @@ public sealed record PokemonSnapshot
 
     public override string ToString() =>
         $"#{SlotIndex} {SpeciesName} Lv.{Level} ({PrimaryType}{(IsDualType ? "/" + SecondaryType : "")})";
+}
+
+public enum PokemonGender
+{
+    Male = 0,
+    Female = 1,
+    Genderless = 2,
+    Unknown = 3,
 }
 
 /// <param name="MoveId">Move ID, 0 when the slot is empty.</param>

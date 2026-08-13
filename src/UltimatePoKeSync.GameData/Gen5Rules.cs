@@ -43,8 +43,7 @@ public sealed class Gen5Rules : IGenerationRules
         243, // Mirror Coat
         283, // Endeavor
         329, // Sheer Cold
-        396, // Assurance is ordinary; Metal Burst is not
-        368, // Metal Burst
+        368, // Metal Burst ignores ordinary type-scaled damage
         515, // Final Gambit
     ];
 

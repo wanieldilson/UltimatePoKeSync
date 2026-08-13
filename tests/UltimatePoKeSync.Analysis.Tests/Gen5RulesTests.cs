@@ -94,6 +94,13 @@ public sealed class Gen5RulesTests
         Assert.True(Rules.CanProvideSuperEffectiveCoverage(57));
     }
 
+    [Theory]
+    [InlineData(396, true)]  // Aura Sphere is an ordinary type-scaled attack.
+    [InlineData(368, false)] // Metal Burst returns damage without applying type effectiveness.
+    [InlineData(372, true)]  // Assurance is an ordinary type-scaled attack too.
+    public void SimilarMoveNumbersKeepTheirOwnCoverageRules(int moveId, bool expected) =>
+        Assert.Equal(expected, Rules.CanProvideSuperEffectiveCoverage(moveId));
+
     /// <summary>
     /// The chart did not change between the two generations: Fairy and Steel's lost
     /// resistances both arrived in Gen 6, so the two files we ship must agree everywhere.

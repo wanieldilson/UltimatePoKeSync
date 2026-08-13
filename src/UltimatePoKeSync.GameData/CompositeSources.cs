@@ -74,3 +74,36 @@ public sealed class CompositeEvolutionSource : IEvolutionSource
         return _sources.FirstOrDefault(source => source.Supports(game));
     }
 }
+
+/// <summary>Several base-stat sources, and the game picks which one answers. See D-043.</summary>
+public sealed class CompositeSpeciesBaseStatsSource : ISpeciesBaseStatsSource
+{
+    private readonly IReadOnlyList<ISpeciesBaseStatsSource> _sources;
+
+    public CompositeSpeciesBaseStatsSource(params ISpeciesBaseStatsSource[] sources)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        if (sources.Length == 0)
+        {
+            throw new ArgumentException("At least one base-stat source is needed.", nameof(sources));
+        }
+
+        _sources = sources;
+    }
+
+    public string SourceName => string.Join(" + ", _sources.Select(source => source.SourceName).Distinct());
+
+    public bool Supports(GameIdentity game) => Find(game) is not null;
+
+    public StatBlock? FindBaseStats(GameIdentity game, int speciesId) =>
+        Find(game)?.FindBaseStats(game, speciesId);
+
+    public SpeciesBattleProfile? FindProfile(GameIdentity game, int speciesId) =>
+        Find(game)?.FindProfile(game, speciesId);
+
+    private ISpeciesBaseStatsSource? Find(GameIdentity game)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        return _sources.FirstOrDefault(source => source.Supports(game));
+    }
+}

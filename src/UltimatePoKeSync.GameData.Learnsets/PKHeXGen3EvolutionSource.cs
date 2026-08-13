@@ -136,7 +136,13 @@ public sealed class PKHeXGen3EvolutionSource : IEvolutionSource
             EvolutionType.LevelUpECl5 or EvolutionType.LevelUpECgeq5;
         int? level = certainAtLevel && method.Level > 0 ? method.Level : null;
 
-        return new EvolutionStep(method.Species, into, trigger, level, requirement);
+        return new EvolutionStep(
+            method.Species,
+            into,
+            trigger,
+            level,
+            requirement,
+            method.Method == EvolutionType.LevelUpShedinja);
     }
 
     private string SpeciesName(ushort species) =>

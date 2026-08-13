@@ -19,7 +19,9 @@ public sealed class CompetitiveRecommendationProfile : IRecommendationProfile
     /// <summary>A built Pokémon is a trained one, so the whole learnset is in reach.</summary>
     private const int TrainedLevel = 100;
 
-    /// <summary>Enough to rank against without turning the alternatives list into a wall.</summary>
+    /// <summary>
+    /// How much of the ranked result to show. The build still sees the complete legal pool.
+    /// </summary>
     private const int MoveCandidateLimit = 16;
 
     public RecommendationProfileKind Kind => RecommendationProfileKind.Competitive;
@@ -29,6 +31,7 @@ public sealed class CompetitiveRecommendationProfile : IRecommendationProfile
         ArgumentNullException.ThrowIfNull(context);
 
         PokemonSnapshot member = context.RoleAnalysis.Member;
+        int targetSpeciesId = context.RoleAnalysis.JudgedSpeciesId;
         ReferencePreset? preset = RecommendationPolicy.MatchPreset(context);
         HashSet<string> presetMoves = preset is null ? [] : [.. preset.MovePool];
         NatureRecommendation nature =
@@ -53,10 +56,8 @@ public sealed class CompetitiveRecommendationProfile : IRecommendationProfile
         MoveRecommendation[] learnable =
         [
             .. context.Learnsets
-                .FindLearnableMoves(context.Game, member.SpeciesId, TrainedLevel)
+                .FindLearnableMoves(context.Game, targetSpeciesId, TrainedLevel)
                 .Where(candidate => seen.Add(candidate.Move.ReferenceId))
-                .OrderByDescending(candidate => presetMoves.Contains(candidate.Move.ReferenceId))
-                .ThenBy(candidate => candidate.Method)
                 .Select(candidate => new MoveRecommendation(
                     candidate.Move,
                     Describe(candidate.Method),
@@ -79,11 +80,21 @@ public sealed class CompetitiveRecommendationProfile : IRecommendationProfile
                     null)),
         ];
 
-        MoveRecommendation[] candidates =
+        MoveRecommendation[] fullPool =
         [
             .. known,
             .. fromPreset,
-            .. learnable.Take(Math.Max(0, MoveCandidateLimit - known.Length - fromPreset.Length)),
+            .. learnable,
+        ];
+
+        RecommendedBuild build = RecommendationPolicy.SelectBuild(
+            context,
+            fullPool,
+            MoveCandidateLimit);
+        MoveRecommendation[] candidates =
+        [
+            .. build.Moves,
+            .. build.Alternatives,
         ];
 
         return new PokemonRecommendation(
@@ -98,7 +109,7 @@ public sealed class CompetitiveRecommendationProfile : IRecommendationProfile
             candidates,
             RecommendationPolicy.RecommendCompetitiveItems(context.RoleAnalysis.Role),
             preset,
-            RecommendationPolicy.SelectBuild(context, candidates));
+            build);
     }
 
     private static MoveCandidateSource Describe(MoveLearnMethod method) => method switch

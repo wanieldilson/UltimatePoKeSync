@@ -26,9 +26,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly ILiveTeamSource _live;
     private readonly Action<Action> _post;
     private readonly TeamAnalyzer _teamAnalyzer = new();
-    private readonly TeamStrengthAnalyzer _strengthAnalyzer = new();
+    private readonly TeamStrengthAnalyzer _strengthAnalyzer = new(PKHeXSources.All);
     private readonly PokemonRecommendationEngine _engine =
-        PokemonRecommendationEngine.CreateDefault(PKHeXSources.Learnsets);
+        PokemonRecommendationEngine.CreateDefault(PKHeXSources.All);
 
     /// <summary>
     /// What the next few levels bring. Cheap enough to run for every member on every

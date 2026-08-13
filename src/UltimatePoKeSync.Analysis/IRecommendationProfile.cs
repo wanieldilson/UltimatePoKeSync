@@ -12,10 +12,12 @@ public interface IRecommendationProfile
 
 public sealed record RecommendationContext(
     GameIdentity Game,
+    RecommendationProfileKind Profile,
     TeamAnalysis TeamAnalysis,
     PokemonRoleAnalysis RoleAnalysis,
     IGenerationRules Rules,
     IReferencePresetCatalog PresetCatalog,
     IMoveReferenceCatalog MoveCatalog,
     IMoveLearnSource Learnsets,
+    IEvolutionSource Evolutions,
     IReadOnlySet<PokemonType> AnsweredTypes);

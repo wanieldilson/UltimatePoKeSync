@@ -28,6 +28,15 @@ public sealed class TeamStrengthAnalyzer
     {
     }
 
+    /// <summary>
+    /// Uses the same long-term species target as recommendations when the composition root
+    /// has evolution and base-stat data available. See D-052.
+    /// </summary>
+    public TeamStrengthAnalyzer(GameDataSources sources)
+        : this(new PokemonRoleAnalyzer(sources), GenerationRulesResolver.Default)
+    {
+    }
+
     public TeamStrengthAnalyzer(
         PokemonRoleAnalyzer roleAnalyzer,
         IGenerationRulesResolver rulesResolver)
@@ -50,7 +59,7 @@ public sealed class TeamStrengthAnalyzer
 
         PokemonRoleAnalysis[] roles =
         [
-            .. party.Battlers.Select(member => _roleAnalyzer.Analyze(member, party.Game.Generation)),
+            .. party.Battlers.Select(member => _roleAnalyzer.Analyze(member, party.Game)),
         ];
 
         return new TeamStrength(

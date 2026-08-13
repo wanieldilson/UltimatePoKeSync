@@ -128,7 +128,11 @@ internal static class AnalysisReport
             PokemonRoleAnalysis role = member.RoleAnalysis;
 
             Console.WriteLine("│");
-            Console.WriteLine($"│  [{mon.SlotIndex}] {mon.SpeciesName}  Lv.{mon.Level}  role {role.Role}");
+            string target = role.IsJudgedAsEvolution
+                ? $" (planned as {role.JudgedSpeciesName})"
+                : string.Empty;
+            Console.WriteLine(
+                $"│  [{mon.SlotIndex}] {mon.SpeciesName}  Lv.{mon.Level}  role {role.Role}{target}");
             Console.WriteLine(
                 $"│      because  {role.PhysicalMoveCount} physical / {role.SpecialMoveCount} special / "
                 + $"{role.UtilityMoveCount} utility moves · offence {role.PhysicalOffenseScore} phys vs "
@@ -214,6 +218,7 @@ internal static class AnalysisReport
         BuildSlotRole.Coverage => "coverage",
         BuildSlotRole.TeamSupport => "team support",
         BuildSlotRole.Utility => "utility",
+        BuildSlotRole.DirectDamage => "direct damage",
         _ => "filler",
     };
 
@@ -278,6 +283,7 @@ internal static class AnalysisReport
     {
         RecommendationAvailability.KnownAvailable => "already available",
         RecommendationAvailability.RequiresAvailabilityCheck => "check availability in this save",
+        RecommendationAvailability.ArrivesWithLevelUp => "arrives with the next levels",
         _ => "competitive reference, not a save claim",
     };
 

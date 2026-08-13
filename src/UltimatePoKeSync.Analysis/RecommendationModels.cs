@@ -14,6 +14,15 @@ public enum RecommendationAvailability
     KnownAvailable = 0,
     RequiresAvailabilityCheck = 1,
     CompetitiveReference = 2,
+
+    /// <summary>
+    /// A level-up move the Pokémon has not reached yet, close enough to be a plan. Nothing
+    /// has to be found or bought for it, only levels walked, so "check availability" would
+    /// be the wrong warning. Only used inside the horizon that stops at the evolution: past
+    /// that the species follows a different learnset and the promise would be false. See
+    /// D-051 and D-037.
+    /// </summary>
+    ArrivesWithLevelUp = 3,
 }
 
 public enum MoveCandidateSource
@@ -63,6 +72,12 @@ public enum BuildSlotRole
 
     /// <summary>Nothing better was available for the slot.</summary>
     Filler = 4,
+
+    /// <summary>
+    /// Deals fixed, reflected or one-hit-knockout damage without ordinary type coverage.
+    /// It is an attack, but cannot honestly claim STAB or a super-effective matchup.
+    /// </summary>
+    DirectDamage = 5,
 }
 
 /// <summary>One move in a build, and what it is there for.</summary>

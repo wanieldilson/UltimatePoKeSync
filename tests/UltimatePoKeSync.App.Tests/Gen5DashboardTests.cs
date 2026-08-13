@@ -1,7 +1,10 @@
 using System.Text.Json;
+using UltimatePoKeSync.Analysis;
 using UltimatePoKeSync.App.Services;
 using UltimatePoKeSync.App.ViewModels;
 using UltimatePoKeSync.Contracts;
+using UltimatePoKeSync.GameData;
+using UltimatePoKeSync.GameData.Learnsets;
 using UltimatePoKeSync.Parsing;
 using Xunit;
 
@@ -60,10 +63,51 @@ public sealed class Gen5DashboardTests
         snivy.ToggleBuildCommand.Execute(null);
         Assert.NotEmpty(snivy.BuildMoves);
         Assert.All(snivy.BuildMoves, move => Assert.NotEqual("?", move.Name));
+        Assert.DoesNotContain(
+            snivy.BuildMoves,
+            move => move.Name is "Tackle" or "Leer" or "Wrap");
 
-        // The candidates come from the Gen 5 tables: Grass Pledge is a move Gen 3 does not
-        // have, so seeing it proves the right catalog answered.
-        Assert.Contains(snivy.Candidates, candidate => candidate.Name == "Grass Pledge");
+        // The candidates come from the Gen 5 tables: Energy Ball is a move Gen 3 does not
+        // have, so seeing it proves the right catalog answered even after the visible pool
+        // is capped to the strongest alternatives.
+        Assert.Contains(snivy.Candidates, candidate => candidate.Name == "Energy Ball");
+    }
+
+    [Fact]
+    public void HiddenPowerVariantsAreNotAllMarkedAsChosen()
+    {
+        PartySnapshot party = LoadBlack();
+        TeamRecommendation team = PokemonRecommendationEngine
+            .CreateDefault(PKHeXSources.All)
+            .Recommend(party, RecommendationProfileKind.Competitive);
+        PokemonRecommendation recommendation = Assert.Single(team.Members);
+
+        MoveReference baseHiddenPower = ShowdownGen5MoveCatalog.Instance.Find("hiddenpower")!;
+        MoveRecommendation[] candidates =
+        [
+            .. recommendation.MoveCandidates.Where(
+                move => move.Move.ReferenceId != baseHiddenPower.ReferenceId),
+            new(
+                baseHiddenPower,
+                MoveCandidateSource.Machine,
+                RecommendationAvailability.CompetitiveReference,
+                null),
+        ];
+
+        var snivy = new PokemonSlotViewModel(
+            recommendation.Member,
+            team.TeamAnalysis,
+            recommendation with { MoveCandidates = candidates });
+
+        CandidateMoveRow typed = Assert.Single(
+            snivy.Candidates,
+            candidate => candidate.Name == "Hidden Power Fire");
+        CandidateMoveRow untypedRow = Assert.Single(
+            snivy.Candidates,
+            candidate => candidate.Name == "Hidden Power");
+
+        Assert.True(typed.Chosen);
+        Assert.False(untypedRow.Chosen);
     }
 
     /// <summary>

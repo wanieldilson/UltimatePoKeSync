@@ -91,7 +91,7 @@ public sealed class EggExclusionTests
             AnalysisTestData.Member(slot: 1, speciesId: 255, speciesName: "TORCHIC", isEgg: true));
 
         TeamRecommendation recommendation = PokemonRecommendationEngine
-            .CreateDefault(PKHeXGen3MoveLearnSource.Instance)
+            .CreateDefault(PKHeXSources.All)
             .Recommend(party, RecommendationProfileKind.Playthrough);
 
         Assert.Single(recommendation.Members);

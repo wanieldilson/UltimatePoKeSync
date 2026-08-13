@@ -77,13 +77,13 @@ public sealed class AnalysisReportTests
     {
         PartySnapshot party = LoadRealParty();
         TeamRecommendation recommendation = PokemonRecommendationEngine
-            .CreateDefault(PKHeXGen3MoveLearnSource.Instance)
+            .CreateDefault(PKHeXSources.All)
             .Recommend(party, RecommendationProfileKind.Playthrough);
 
         string report = Capture(() => AnalysisReport.PrintRecommendations(recommendation));
 
         Assert.Contains("Best set", report, StringComparison.Ordinal);
-        Assert.Contains("already knows it", report, StringComparison.Ordinal);
+        Assert.Contains("learns it at level", report, StringComparison.Ordinal);
         Assert.Contains("TM or HM", report, StringComparison.Ordinal);
 
         // And the availability of every candidate, which is the honesty boundary of D-025.
@@ -95,7 +95,7 @@ public sealed class AnalysisReportTests
     {
         PartySnapshot party = LoadRealParty();
         TeamRecommendation recommendation = PokemonRecommendationEngine
-            .CreateDefault(PKHeXGen3MoveLearnSource.Instance)
+            .CreateDefault(PKHeXSources.All)
             .Recommend(party, RecommendationProfileKind.Competitive);
 
         string report = Capture(() => AnalysisReport.PrintRecommendations(recommendation));
@@ -103,6 +103,19 @@ public sealed class AnalysisReportTests
         Assert.Contains("Competitive profile", report, StringComparison.Ordinal);
         Assert.Contains("not a save claim", report, StringComparison.Ordinal);
         Assert.DoesNotContain("check availability in this save", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheConsoleNamesTheEvolutionItsLongTermAdviceTargets()
+    {
+        PartySnapshot party = LoadRealParty();
+        TeamRecommendation recommendation = PokemonRecommendationEngine
+            .CreateDefault(PKHeXSources.All)
+            .Recommend(party, RecommendationProfileKind.Playthrough);
+
+        string report = Capture(() => AnalysisReport.PrintRecommendations(recommendation));
+
+        Assert.Contains("planned as Sceptile", report, StringComparison.Ordinal);
     }
 
     /// <summary>

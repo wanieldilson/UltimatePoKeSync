@@ -135,6 +135,7 @@ public sealed class Gen5PartyParser : IPartyParser
             IsEgg = pk.IsEgg,
             IsShiny = pk.IsShiny,
             PersonalityValue = pk.PID,
+            Gender = (PokemonGender)pk.Gender,
             CurrentHp = pk.Stat_HPCurrent,
             Status = StatusByte.Read(pk.Status_Condition),
             Friendship = pk.CurrentFriendship,

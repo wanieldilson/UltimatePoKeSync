@@ -29,14 +29,21 @@ public sealed record EvolutionStep(
     string IntoSpeciesName,
     EvolutionTrigger Trigger,
     int? Level,
-    string Requirement)
+    string Requirement,
+    /// <summary>
+    /// True when this species is created alongside the ordinary evolution rather than
+    /// replacing the current Pokémon. Shedinja is the only such case in Gen 3 and Gen 5.
+    /// </summary>
+    bool IsByproduct = false,
+    /// <summary>Which gender may take this route, or null when either may.</summary>
+    PokemonGender? RequiredGender = null)
 {
     /// <summary>
     /// Whether reaching the level is enough on its own. True for a Wurmple, whose two
     /// outcomes are decided before it hatched but one of which is certain at Lv.7; false
     /// for a Kadabra, which levels all the way to 100 and stays a Kadabra without a trade.
     /// </summary>
-    public bool HappensByLevellingAlone => Level is > 0;
+    public bool HappensByLevellingAlone => !IsByproduct && Level is > 0;
 }
 
 /// <summary>
