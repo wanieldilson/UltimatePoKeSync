@@ -2170,3 +2170,43 @@ The first version had picked `ConcurrentBag` for exactly that reason and lost it
 rewrite. Synchronous delivery into a concurrent collection is the combination that is neither
 racy nor broken, and both halves are now written down in the test, because each one rules out
 the obvious answer to the other.
+
+## D-056. The app says when it is out of date, and takes no for an answer
+
+**Status:** Accepted · 2026-08-14
+
+Somebody running an old build had no way to learn a new one exists. The app now asks GitHub
+once at launch and, when there is a newer release, shows a strip above the tabs with Download
+and Not now.
+
+**This breaks a promise D-046 made**, and the break is deliberate rather than overlooked.
+D-046 said the sprite download was the app's only network call and that it happened because
+somebody pressed it. This one happens on its own. What made that rule worth having was that
+the app works offline and never depends on a service to do its job, and that part is kept:
+every failure is silence. No network, GitHub refusing, the anonymous rate limit, a draft
+release, a body that is not the JSON expected: all of them return null and leave the window
+exactly as it was. Nothing waits on the check and nothing fails because of it.
+
+**A build had to learn its own version first.** There was none: no `<Version>` in the project
+and nothing passed from the tag, so the binary could not have told a new release from itself.
+The release workflow now passes `-p:Version=${GITHUB_REF_NAME#v}` to all four publishes, and
+anything built anywhere else keeps `0.0.0`, which the check reads as "not a release" and stays
+quiet about. Someone running from source is not someone to nag.
+
+**A strip, not a dialog.** The design has neither, so this was asked rather than invented. A
+modal would put a question about versions between a player and their team every time a release
+lands, for a program whose whole point is to sit beside a game and answer quickly. The strip
+says its piece and can be ignored.
+
+**No is remembered.** Turning it down writes that version into `settings.json`, and the notice
+does not return for it; a *later* release is a new question and asks again. A notice that
+reappears every launch is one people learn to dismiss without reading, which costs the one
+time it matters.
+
+**Alternatives considered:** check only when a button is pressed (rejected: it answers a
+question nobody thinks to ask, which is the same as not having it), download and install the
+update itself (rejected: silently replacing a binary is a large promise, and this app is not
+signed by Apple, so it cannot make it well), compare against the tag list rather than
+`releases/latest` (rejected: the latest release is exactly the question, and the tag list
+includes tags that were never released), and nag every launch until updated (rejected: the
+player is allowed to keep the old one, which is what "and use the old one" meant).

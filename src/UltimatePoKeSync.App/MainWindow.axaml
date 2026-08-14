@@ -186,7 +186,7 @@
   <Border CornerRadius="26" BorderThickness="4" Margin="12,10,22,24"
           BorderBrush="{StaticResource Ink}" Background="{StaticResource ShellBg}"
           BoxShadow="{StaticResource ShadowShell}" ClipToBounds="True">
-    <Grid RowDefinitions="Auto,Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
 
       <!-- Identity header: who the app is, what it found, and which profile answers. -->
       <Border Grid.Row="1" Background="{StaticResource HeaderBg}"
@@ -249,8 +249,28 @@
         </Panel>
       </Border>
 
+      <!--
+        A newer release exists. A strip rather than a dialog: nobody should have to answer a
+        question about versions before they can look at their team, and the old version keeps
+        working. Turning it down remembers the version, so it does not come back. See D-056.
+      -->
+      <Border Grid.Row="2" Background="{StaticResource Accent}"
+              IsVisible="{Binding HasUpdate}"
+              BorderBrush="{StaticResource Ink}" BorderThickness="0,0,0,4" Padding="18,9">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+          <TextBlock Text="▲" VerticalAlignment="Center"
+                     Foreground="{StaticResource TextOnAccent}" />
+          <TextBlock Grid.Column="1" Text="{Binding UpdateText}" VerticalAlignment="Center"
+                     Foreground="{StaticResource TextOnAccent}" TextWrapping="Wrap" />
+          <Button Grid.Column="2" Content="Download" Classes="lamp"
+                  Command="{Binding DownloadUpdateCommand}" />
+          <Button Grid.Column="3" Content="Not now" Classes="lamp"
+                  Command="{Binding DismissUpdateCommand}" />
+        </Grid>
+      </Border>
+
       <!-- Tab strip. The active tab is a bar pinned to the bottom edge, not a fill. -->
-      <Border Grid.Row="2" Background="{StaticResource TabBg}"
+      <Border Grid.Row="3" Background="{StaticResource TabBg}"
               IsVisible="{Binding IsConnected}"
               BorderBrush="{StaticResource Ink}" BorderThickness="0,0,0,4" Padding="14,0">
         <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
@@ -285,7 +305,7 @@
       </Border>
 
       <!-- Body: a fixed party rail and the content area beside it. -->
-      <Grid Grid.Row="3" ColumnDefinitions="286,*" IsVisible="{Binding IsConnected}">
+      <Grid Grid.Row="4" ColumnDefinitions="286,*" IsVisible="{Binding IsConnected}">
 
         <Border Background="{StaticResource RailBg}" BorderBrush="{StaticResource Ink}"
                 BorderThickness="0,0,4,0">

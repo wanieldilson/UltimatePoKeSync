@@ -136,6 +136,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     [ObservableProperty]
     private bool _hasReceivedParty;
 
+    /// <summary>The banner's line, empty when there is nothing to say. See D-056.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUpdate))]
+    private string _updateText = string.Empty;
+
+    private AvailableUpdate? _update;
+
 
     public MainWindowViewModel()
         : this(new LiveTeamService(), action => Dispatcher.UIThread.Post(action))
@@ -175,7 +182,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         _live.StateChanged += (_, state) => _post(() => OnStateChanged(state));
         _live.PartyChanged += (_, party) => _post(() => OnPartyChanged(party));
+
+        CheckForUpdate();
     }
+
+    public bool HasUpdate => UpdateText.Length > 0;
 
     public ObservableCollection<PokemonSlotViewModel> Slots { get; } = [];
 
@@ -446,6 +457,68 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         _teamHintProgressCancellation?.Dispose();
 
         await _live.DisposeAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asks once, in the background, and says nothing unless there is something to say.
+    /// </summary>
+    /// <remarks>
+    /// Nothing waits on this and nothing fails because of it. A build that is not a release,
+    /// a machine with no network, a rate limit: all of them leave the banner empty and the
+    /// app exactly as it was. See D-056.
+    /// </remarks>
+    private void CheckForUpdate()
+    {
+        Version? running = UpdateCheck.Running;
+        if (running is null)
+        {
+            return;
+        }
+
+        string? declined = AppSettings.Load().DeclinedUpdate;
+
+        _ = Task.Run(async () =>
+        {
+            AvailableUpdate? found = await new UpdateCheck(_http.Value)
+                .FindAsync(running, declined, _animations.Token)
+                .ConfigureAwait(false);
+
+            if (found is null || _animations.Token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            _post(() =>
+            {
+                _update = found;
+                UpdateText = $"Version {found.Version} is out. You have {running}.";
+            });
+        }, _animations.Token);
+    }
+
+    [RelayCommand]
+    private void DownloadUpdate()
+    {
+        if (_update is AvailableUpdate update)
+        {
+            UpdateCheck.Open(update.Url);
+        }
+    }
+
+    /// <summary>
+    /// Turns the notice down, and remembers it. The old version keeps working; that is the
+    /// whole point of offering rather than insisting.
+    /// </summary>
+    [RelayCommand]
+    private void DismissUpdate()
+    {
+        if (_update is AvailableUpdate update)
+        {
+            (AppSettings.Load() with { DeclinedUpdate = update.Version }).Save();
+        }
+
+        UpdateText = string.Empty;
+        _update = null;
     }
 
     /// <summary>Returns to the whole-team view. Selection itself is the list box's job.</summary>

@@ -36,6 +36,13 @@ public sealed record AppSettings
 
     public bool CompetitiveProfile { get; init; }
 
+    /// <summary>
+    /// The newest release the player has turned down, so the notice does not come back every
+    /// launch for a version they have already said no to. Null until they say no once.
+    /// See D-056.
+    /// </summary>
+    public string? DeclinedUpdate { get; init; }
+
     public static string FilePath => Path.Combine(SetupGuide.ScriptDirectory, "settings.json");
 
     /// <param name="path">Overridden by the tests, so a run never touches the real file.</param>

@@ -32,10 +32,14 @@ jobs:
       - name: Publish
         run: |
           set -euo pipefail
+          # The build has to know which release it is, or it cannot tell whether a newer one
+          # exists. Tags are v-prefixed and versions are not. See D-056.
+          version="${GITHUB_REF_NAME#v}"
           for rid in win-x64 linux-x64; do
             dotnet publish src/UltimatePoKeSync.App \
               --configuration Release \
               --runtime "$rid" \
+              -p:Version="$version" \
               --self-contained true \
               -p:PublishSingleFile=true \
               -p:EnableCompressionInSingleFile=true \
@@ -72,10 +76,12 @@ jobs:
       - name: Publish
         run: |
           set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
           for rid in osx-x64 osx-arm64; do
             dotnet publish src/UltimatePoKeSync.App \
               --configuration Release \
               --runtime "$rid" \
+              -p:Version="$version" \
               --self-contained true \
               -p:PublishSingleFile=true \
               -p:EnableCompressionInSingleFile=true \

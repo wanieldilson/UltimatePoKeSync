@@ -12,6 +12,13 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>UltimatePoKeSync</AssemblyName>
     <ApplicationIcon>Assets/app.ico</ApplicationIcon>
+
+    <!--
+      The release workflow overrides this with the tag it was built from. A build made
+      anywhere else keeps 0.0.0, which the update check reads as "not a release" and stays
+      quiet about: a developer running from source is not somebody to nag. See D-056.
+    -->
+    <Version>0.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
