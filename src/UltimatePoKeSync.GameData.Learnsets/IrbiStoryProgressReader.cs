@@ -10,6 +10,33 @@ namespace UltimatePoKeSync.GameData.Learnsets;
 /// </summary>
 public sealed class IrbiStoryProgressReader : IStoryProgressReader
 {
+    /// <summary>
+    /// Whether the offsets below have been proven against a running game. False.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// They were taken as fixed distances from the party head, which assumes the save blocks
+    /// sit contiguously in memory. D-040 found the opposite: the party is reached through the
+    /// third entry of an eighteen-pointer directory, so each block is its own allocation and
+    /// <c>Misc5BW</c> and <c>PlayerPosition5</c> have their own entries rather than living a
+    /// fixed distance away. PKHeX models them as separate blocks for the same reason.
+    /// </para>
+    /// <para>
+    /// Tested live on 2026-08-14 against Italian Black: the map id read here stayed at 317
+    /// across a change of map, which the real <c>PlayerPosition5.M</c> cannot do. A badge
+    /// count of zero read at the same time proves nothing either way, because a wrong address
+    /// pointing at any zero byte gives the same answer.
+    /// </para>
+    /// <para>
+    /// The reader is kept whole, and tested, because the transport and the guards are right
+    /// and only the two distances are wrong. Finding the real ones means walking the pointer
+    /// directory rather than adding a constant, and that needs a live differential dump: read
+    /// a window, move in the game, read again, and keep what changed. Flipping this to true is
+    /// the only change needed once that is done. See D-053.
+    /// </para>
+    /// </remarks>
+    public static bool OffsetsVerifiedLive => false;
+
     /// <summary>The verified IRBI pointer to the live party/save-block head.</summary>
     public const uint PartyPointerAddress = 0x0224F88C;
 

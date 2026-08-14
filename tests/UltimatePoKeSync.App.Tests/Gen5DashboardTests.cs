@@ -199,8 +199,20 @@ public sealed class Gen5DashboardTests
         Assert.False(viewModel.HasTeamHintSoon);
     }
 
+    /// <summary>
+    /// The dashboard must not read progress from a save while the offsets that would be read
+    /// are unproven, however convincing the bytes look.
+    /// </summary>
+    /// <remarks>
+    /// The memory here is laid out exactly as the reader expects, so this would have detected
+    /// five badges and Route 6 before the gate existed. It now stays on manual, and nothing is
+    /// read at all: a wrong badge count does not fail, it quietly opens routes the player
+    /// cannot reach. Three sibling tests drove the automatic path end to end and went with the
+    /// behaviour; they are in the history of this file for when the offsets are verified and
+    /// IrbiStoryProgressReader.OffsetsVerifiedLive turns true. See D-053.
+    /// </remarks>
     [Fact]
-    public async Task ItalianBlackUsesAConservativeBadgeCheckpointFromLiveMemory()
+    public async Task UnverifiedSaveOffsetsLeaveTheStoryPointOnManualSelection()
     {
         const uint partyHead = 0x022348AC;
         var memory = new FakeMemory();
@@ -211,86 +223,14 @@ public sealed class Gen5DashboardTests
         var viewModel = new MainWindowViewModel(source, action => action());
 
         source.RaiseParty(LoadBlack());
-        await WaitUntilAsync(() => viewModel.TeamHintProgressText.StartsWith(
-            "Detected 5 badges",
-            StringComparison.Ordinal));
+        await WaitUntilAsync(() => viewModel.TeamHintMilestones.Count > 0);
 
-        Assert.True(viewModel.UseAutomaticTeamHintProgress);
-        Assert.Equal("route-6", viewModel.SelectedTeamHintMilestone?.Id);
-        Assert.Contains("Live map 391", viewModel.TeamHintStatusText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task AutomaticProgressRefreshesAfterAnotherPartySnapshot()
-    {
-        const uint partyHead = 0x022348AC;
-        var memory = new FakeMemory();
-        memory.Put(IrbiStoryProgressReader.PartyPointerAddress, BitConverter.GetBytes(partyHead));
-        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0000_0001]);
-        memory.Put(partyHead + IrbiStoryProgressReader.MapIdOffset, BitConverter.GetBytes(32));
-        var source = new FakeSource(memory);
-        var viewModel = new MainWindowViewModel(source, action => action());
-
-        PartySnapshot first = LoadBlack();
-        source.RaiseParty(first);
-        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "dreamyard");
-
-        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0001_1111]);
-        source.RaiseParty(first with { Sequence = first.Sequence + 1 });
-        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "route-6");
-
-        Assert.StartsWith("Detected 5 badges", viewModel.TeamHintProgressText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task ReturningToTeamHintsRefreshesProgressWithoutAPartyChange()
-    {
-        const uint partyHead = 0x022348AC;
-        var memory = new FakeMemory();
-        memory.Put(IrbiStoryProgressReader.PartyPointerAddress, BitConverter.GetBytes(partyHead));
-        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0000_0001]);
-        memory.Put(partyHead + IrbiStoryProgressReader.MapIdOffset, BitConverter.GetBytes(32));
-        var source = new FakeSource(memory);
-        var viewModel = new MainWindowViewModel(source, action => action());
-
-        source.RaiseParty(LoadBlack());
-        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "dreamyard");
-
-        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0001_1111]);
-        viewModel.SelectedTab = DashboardTab.Team;
-        viewModel.SelectedTab = DashboardTab.TeamHints;
-        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "route-6");
-
-        Assert.StartsWith("Detected 5 badges", viewModel.TeamHintProgressText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task ANewAutomaticReadHidesOldLateGamePlansUntilProgressIsKnown()
-    {
-        const uint partyHead = 0x022348AC;
-        var memory = new FakeMemory();
-        memory.Put(IrbiStoryProgressReader.PartyPointerAddress, BitConverter.GetBytes(partyHead));
-        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0xFF]);
-        memory.Put(partyHead + IrbiStoryProgressReader.MapIdOffset, BitConverter.GetBytes(23));
-        var source = new FakeSource(memory);
-        var viewModel = new MainWindowViewModel(source, action => action());
-        PartySnapshot party = LoadBlack();
-
-        source.RaiseParty(party);
-        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "route-10");
-        Assert.NotEmpty(viewModel.TeamHintPlans);
-
-        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0000_0001]);
-        memory.ReadGate = new TaskCompletionSource<bool>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        source.RaiseParty(party with { Sequence = party.Sequence + 1 });
-
-        Assert.StartsWith("Reading story progress", viewModel.TeamHintProgressText, StringComparison.Ordinal);
-        Assert.Empty(viewModel.TeamHintPlans);
-        Assert.False(viewModel.HasTeamHintSoon);
-
-        memory.ReadGate.SetResult(true);
-        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "dreamyard");
+        Assert.False(IrbiStoryProgressReader.OffsetsVerifiedLive);
+        Assert.False(viewModel.UseAutomaticTeamHintProgress);
+        Assert.Equal("route-1", viewModel.SelectedTeamHintMilestone?.Id);
+        Assert.DoesNotContain(
+            memory.Reads,
+            read => read == partyHead + IrbiStoryProgressReader.BadgeMaskOffset);
     }
 
     /// <summary>A Gen 3 party must not start reporting a missing-data notice of its own.</summary>
@@ -382,23 +322,22 @@ public sealed class Gen5DashboardTests
 
         public bool CanRead => true;
 
-        public TaskCompletionSource<bool>? ReadGate { get; set; }
+        /// <summary>Every address asked for, so a test can assert nothing was read.</summary>
+        public List<uint> Reads { get; } = [];
 
         public void Put(uint address, byte[] bytes) => _regions[address] = bytes;
 
-        public async Task<byte[]?> ReadMemoryAsync(
+        public Task<byte[]?> ReadMemoryAsync(
             uint address,
             int length,
             CancellationToken cancellationToken = default)
         {
-            if (ReadGate is { } gate)
-            {
-                await gate.Task.WaitAsync(cancellationToken);
-            }
+            Reads.Add(address);
 
-            return _regions.TryGetValue(address, out byte[]? bytes) && bytes.Length == length
-                ? bytes.ToArray()
-                : null;
+            return Task.FromResult<byte[]?>(
+                _regions.TryGetValue(address, out byte[]? bytes) && bytes.Length == length
+                    ? bytes.ToArray()
+                    : null);
         }
     }
 }

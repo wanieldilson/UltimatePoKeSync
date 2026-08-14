@@ -865,7 +865,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return false;
         }
 
-        return new IrbiStoryProgressReader(memory).Supports(game);
+        // The reader knows this ROM, but its two offsets have not survived a live check, so
+        // it is not allowed to drive which routes are open. See D-053 and the remarks on
+        // IrbiStoryProgressReader.OffsetsVerifiedLive.
+        return IrbiStoryProgressReader.OffsetsVerifiedLive &&
+            new IrbiStoryProgressReader(memory).Supports(game);
     }
 
     private void BeginAutomaticTeamHintProgress(PartySnapshot party)
@@ -879,11 +883,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
 
         var reader = new IrbiStoryProgressReader(memory);
-        if (!reader.Supports(party.Game))
+        if (!IrbiStoryProgressReader.OffsetsVerifiedLive || !reader.Supports(party.Game))
         {
             FallBackToManualProgress(
                 party,
-                "Automatic detection is verified for Italian Pokémon Black only. Choose your progress manually.");
+                "Reading progress from the save is not proven yet, so it is switched off rather than guessed. Choose the latest place you can reach.");
             return;
         }
 

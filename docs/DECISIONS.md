@@ -1930,3 +1930,36 @@ What this does not cover: fossils, in-game trades, static catches and roamers ar
 slots, so PKHeX files them elsewhere and they remain curated and unverified. So does the
 story timeline itself, which is product data about route order and has no equivalent in
 PKHeX to check against.
+
+### Amendment, 2026-08-14: the live offsets were not verified, and detection is off
+
+The entry above said only revision-zero Italian Black has "verified live offsets". It does
+not. Running the app against a real Italian Black showed the map id reading 317 and staying
+at 317 across a change of map, which the real `PlayerPosition5.M` cannot do. The badge count
+read zero at the same time and proved nothing either way: an address pointing at any zero
+byte gives the same answer, so the reading that looked like a success was the one reading
+that cannot fail.
+
+The offsets were fixed distances from the party head, `+0x780` for the map and `+0x8404` for
+the badge mask. That assumes the save blocks lie contiguously in memory, and D-040 had
+already found otherwise: the party is reached through the third entry of an eighteen-pointer
+directory, so each block is its own allocation. PKHeX models `Misc5BW` and `PlayerPosition5`
+as separate blocks for the same reason. Two independent lines of evidence, and the game
+agreed with both.
+
+`IrbiStoryProgressReader.OffsetsVerifiedLive` is now false and the dashboard consults it
+before offering automatic detection, so the story point stays on the manual selector the
+design already carries. The reader itself is kept whole and still tested: its transport,
+bounds checks and refusals are correct, and only the two distances are wrong. Finding the
+right ones means walking the pointer directory rather than adding a constant, which needs a
+differential dump against a running game: read a window, move, read again, keep what changed.
+
+Three dashboard tests drove the automatic path end to end and were removed with the
+behaviour they described, replaced by one that asserts the gate holds and that nothing is
+read at all. They are in this file's history for when the offsets are found.
+
+What this cost is smaller than it sounds. Manual selection was always the fallback and every
+route stays selectable; what is gone is a convenience that was quietly wrong. What it is
+worth is the rule the project keeps relearning, in D-035 and again in D-039: a single reading
+that is consistent with two explanations has not confirmed either, and zero is the value most
+likely to be a coincidence.
