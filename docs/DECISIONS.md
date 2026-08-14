@@ -1905,3 +1905,28 @@ traded or trained out of sequence), unlock every route sharing the detected badg
 (rejected: legality is not ownership), include gifts (rejected by the feature policy), and put
 the hints inside Team (rejected: diagnosis and acquisition planning have different inputs and
 failure states).
+
+### Amendment, 2026-08-14: the agreement with PKHeX is now a test
+
+The entry above said the encounter facts were checked against PKHeX's pinned per-version
+data. They had been, by hand, once. What the catalog's tests actually asserted were the
+numbers the catalog itself declares: the catalog says Patrat is on Route 1 at levels 2 to 4,
+and the test agreed with it. That proves the shape of the data and nothing about the game,
+and it is the kind of check that keeps passing while the data rots.
+
+`BlackEncounterPkHexAgreementTests` compares the curated wild entries against
+`Encounters5BW.SlotsB`, PKHeX's own Black table. All 58 wild entries name a species that is
+genuinely catchable in Black, and both ends of every printed level range are levels that
+species really appears at. Levels *between* the ends are deliberately not asserted: a Black
+grass slot lists discrete levels, so Munna appears at 8 and at 10 and never at 9, and a
+minimum and a maximum are bounds rather than a promise about everything in between.
+
+The table is reached by reflection, because PKHeX exposes the static encounters and the
+trades but not the loaded wild areas. A PKHeX upgrade that renames the field fails this test
+loudly rather than silently skipping the comparison, which is the same reason D-014 pins its
+type indices with a test instead of trusting them.
+
+What this does not cover: fossils, in-game trades, static catches and roamers are not wild
+slots, so PKHeX files them elsewhere and they remain curated and unverified. So does the
+story timeline itself, which is product data about route order and has no equivalent in
+PKHeX to check against.
