@@ -1963,3 +1963,35 @@ route stays selectable; what is gone is a convenience that was quietly wrong. Wh
 worth is the rule the project keeps relearning, in D-035 and again in D-039: a single reading
 that is consistent with two explanations has not confirmed either, and zero is the value most
 likely to be a coincidence.
+
+### Amendment, 2026-08-14: the map is found, the badges are not
+
+A differential dump settled the map. Three readings against the running game, outdoors on
+Route 1, then inside the starting house, then outdoors again, and the field wanted is the one
+that is equal in the two outdoor readings and different in the middle one. Everything else
+that changes is a counter, a timer or a work buffer, and there is a lot of it: the filter
+found 675 candidates before alignment and a plausible range cut it to two, and only one of
+those sat in a block whose whole neighbourhood was identical in both outdoor readings.
+
+The map is the low sixteen bits of a four-byte field `+0x10C` into the block pointed at by
+the directory entry at `0x0224F89C`, the seventh, where the party is the third. Route 1 reads
+317 and the starting house 390. The high half of that word went from 5 outdoors to 0 indoors
+and is not understood, so it is masked off rather than named.
+
+Both values that made the first attempt look plausible turned out to be real fields, which is
+why they were convincing. `+0x780` is the map the player last saved at: a genuine map id,
+correct for Route 1, and constant while walking around, so it survived every check that did
+not involve moving. `+0x776` increments by one and is a counter. A wrong address that holds a
+sensible number is worse than one that holds nonsense.
+
+The badge byte is still unfound, and cannot be found by this method while the count is zero,
+because every wrong address holding a zero agrees with the right one. It needs a dump either
+side of the first Gym. Automatic detection therefore stays off: D-053 gates routes on badges
+and treats the map as evidence only, so knowing the map unlocks nothing on its own.
+
+The dumps were taken by attaching, reading, and detaching immediately, rather than by holding
+the connection open. Attaching halts the emulated CPU, so a short attach pauses the game for a
+second and a long one takes it away from whoever is playing. An earlier attempt in the same
+session killed the app with a signal instead of closing its window, so its client never sent
+`D`, and the stub had to be cleared by reloading the ROM. D-039 said as much and it was worth
+relearning.

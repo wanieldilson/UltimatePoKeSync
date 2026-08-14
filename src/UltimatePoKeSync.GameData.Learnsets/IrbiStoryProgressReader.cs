@@ -29,16 +29,43 @@ public sealed class IrbiStoryProgressReader : IStoryProgressReader
     /// </para>
     /// <para>
     /// The reader is kept whole, and tested, because the transport and the guards are right
-    /// and only the two distances are wrong. Finding the real ones means walking the pointer
-    /// directory rather than adding a constant, and that needs a live differential dump: read
-    /// a window, move in the game, read again, and keep what changed. Flipping this to true is
-    /// the only change needed once that is done. See D-053.
+    /// and only the two distances are wrong. See D-053.
+    /// </para>
+    /// <para>
+    /// The differential dump has since been run, and the map is found. Three readings, outside
+    /// then in the starting house then outside again, isolated a four-byte field whose low half
+    /// is the map: 317 for Route 1 and 390 for the house, and identical in both outdoor
+    /// readings. It lives at <c>+0x10C</c> into the block pointed at by the seventh directory
+    /// entry, at <see cref="MapBlockPointerAddress"/>, not at a fixed distance from the party.
+    /// The two values that misled the first attempt were both real and both wrong: the old
+    /// <c>+0x780</c> holds the map the player last saved at, which never changes while walking
+    /// around, and <c>+0x776</c> is a counter that only ever increments.
+    /// </para>
+    /// <para>
+    /// The badge byte is still unfound. It cannot be isolated the same way while the count is
+    /// zero, because every wrong address holding a zero looks correct; it needs a dump either
+    /// side of the first Gym. That is why this stays false: the map alone unlocks nothing,
+    /// since D-053 gates routes on badges and treats the map as evidence only.
     /// </para>
     /// </remarks>
     public static bool OffsetsVerifiedLive => false;
 
     /// <summary>The verified IRBI pointer to the live party/save-block head.</summary>
     public const uint PartyPointerAddress = 0x0224F88C;
+
+    /// <summary>
+    /// The directory entry pointing at the block that holds the player's position, measured
+    /// live on 2026-08-14. The party is the third entry of that directory and this is the
+    /// seventh, sixteen bytes along.
+    /// </summary>
+    public const uint MapBlockPointerAddress = 0x0224F89C;
+
+    /// <summary>
+    /// Where the map sits inside that block. Four bytes, of which only the low sixteen are
+    /// the map id; the high half changed from 5 outdoors to 0 indoors and is not understood
+    /// yet, so it is masked off rather than guessed at.
+    /// </summary>
+    public const uint MapIdBlockOffset = 0x10C;
 
     /// <summary>PlayerPosition5.M relative to the verified party head.</summary>
     public const uint MapIdOffset = 0x780;
