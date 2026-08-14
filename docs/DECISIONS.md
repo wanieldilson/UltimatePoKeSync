@@ -2303,3 +2303,38 @@ of them, and the file stops being readable), one list plus a per-version patch t
 the patch table is the same data in a shape nobody can check against PKHeX by eye), and
 treating Emerald as the base with Ruby and Sapphire as subsets (rejected: 34 entries exist in
 Ruby and not Emerald, so it is not a subset).
+
+## D-059. Kanto, and the islands a badge count cannot describe
+
+**Status:** Accepted · 2026-08-15
+
+Team hints reach FireRed and LeafGreen. The structure is D-058's: one curated timeline for the
+region, one emitted encounter list per version, each checked against its own PKHeX table. It
+shares nothing with Hoenn, because Kanto is a different region with a different order of Gyms,
+and nothing was reused except the shape.
+
+**Thirty-four of PKHeX's seventy-four Kanto places are not suggested**, and almost all of them
+are the Sevii Islands. That is the entry's real content.
+
+The catalog's model is a checkpoint with a badge count: everything it can say is "you have
+this many badges, so you have certainly been here". The Sevii Islands do not work that way.
+They open on Celio's errands, in a sequence that runs alongside the badges rather than with
+them, and the later islands wait for the Hall of Fame. A player with five badges may have all
+of the first three islands or none of them, and nothing the app can read tells it which.
+
+The choice was to model them badly or leave them out. Leaving them out costs Kindle Road,
+Mt. Ember, Berry Forest and the rest, which is a real loss, and it keeps the promise the
+feature is built on: everything it names can be gone and caught now. A test asserts they stay
+out, because the cheapest way for them to come back is somebody widening a location map
+without noticing what it lets through.
+
+Cerulean Cave and the Tanoby chambers are out for the plainer reason that they are post-game,
+and Altering Cave for the same reason it is out of Hoenn.
+
+**Alternatives considered:** file the first three islands behind a late badge (rejected: the
+badge is not what opens them, so the app would be right by coincidence and wrong for anyone
+who did the errands in a different order), show them in a separate section marked "if you have
+reached the Sevii Islands" (rejected: that is the player doing the app's job, and D-053 already
+refuses conditional encounters for exactly this reason), and read the story flags from memory
+to find out (deferred: it is the same shape of problem as the badge byte in issue #16, and it
+should wait until that one is solved on a game that already needs it).
