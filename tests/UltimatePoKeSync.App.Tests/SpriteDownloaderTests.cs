@@ -47,11 +47,14 @@ public sealed class SpriteDownloaderTests : IDisposable
         var archive = new FakeArchive();
         var downloader = new SpriteDownloader(new HttpClient(archive), _folder);
 
-        // Not Progress<T>: it hands the callback to the thread pool, so the last report can
-        // still be in flight when DownloadAsync returns, and asserting that the run reached
-        // the end then depends on losing a race. IProgress is called straight from the
-        // downloader, so every report is in before this method continues.
-        var seen = new List<SpriteDownloader.Progress>();
+        // Two hazards, and each rules out the obvious answer to the other. Progress<T> hands
+        // the callback to the thread pool, so the last report can still be in flight when
+        // DownloadAsync returns and the assertions below become a race; IProgress reports
+        // straight from the downloader instead, and every one is in before this continues.
+        // But the downloader fetches in parallel, so those reports arrive on several threads
+        // at once and a List loses the argument with itself. Synchronous delivery into a
+        // concurrent collection is the combination that is neither racy nor broken.
+        var seen = new ConcurrentBag<SpriteDownloader.Progress>();
         await downloader.DownloadAsync(new ImmediateProgress(seen.Add), Token);
 
         Assert.NotEmpty(seen);

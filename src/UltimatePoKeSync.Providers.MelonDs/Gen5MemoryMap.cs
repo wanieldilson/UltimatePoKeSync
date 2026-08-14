@@ -47,11 +47,12 @@ public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPoint
     /// of reading a plausible-looking address and inventing a team out of it.
     /// </summary>
     /// <remarks>
-    /// Three cartridges, three addresses, and the gaps do not follow one rule: Italian White
-    /// sits <c>0x20</c> past Italian Black, and English White <c>0x120</c> past it. Version
-    /// and language both move the party, which is why each code is measured rather than
-    /// derived. D-035 exists because a single sample supported two explanations and the wrong
-    /// one was picked. See D-054.
+    /// Four cartridges, four addresses, and the gaps follow no rule worth trusting: measured
+    /// from Italian Black, Italian White sits <c>+0x20</c> away, English Black <c>+0x100</c>
+    /// and English White <c>+0x120</c>. It is tempting to read that as language moving the
+    /// party by <c>0x100</c> and version by <c>0x20</c>, and it may even be true, but four
+    /// samples of one region is not a rule and the cost of being wrong is a team invented out
+    /// of the wrong bytes. Each code is measured. See D-054.
     /// </remarks>
     private static readonly Dictionary<string, Gen5MemoryMap> Known = new(StringComparer.Ordinal)
     {
@@ -65,6 +66,10 @@ public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPoint
         // Verified live on 2026-08-14. Found in seconds rather than by scanning, because by
         // then the directory's neighbourhood was known: a Tepig at Lv.5, confirmed.
         ["IRAI"] = new("IRAI", "White (Italy)", 0x0224F8AC),
+
+        // Verified live on 2026-08-14, an Oshawott at Lv.5. Completes the four cartridges
+        // the encounter catalogs answer for. See D-054.
+        ["IRBO"] = new("IRBO", "Black (English)", 0x0224F98C),
     };
 
     public static Gen5MemoryMap? For(string gameCode) =>

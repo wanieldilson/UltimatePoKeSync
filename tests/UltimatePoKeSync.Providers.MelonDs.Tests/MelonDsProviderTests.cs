@@ -38,22 +38,23 @@ public sealed class MelonDsProviderTests
     [Fact]
     public void OnlyTheCartridgesThatWereVerifiedAreMapped()
     {
-        // Three cartridges were run, and no two share an address. Version moves it and so
-        // does language, which is the whole reason each code is measured. See D-054.
+        // Four cartridges were run, and no two share an address. Version moves it and so does
+        // language, which is the whole reason each code is measured. See D-054.
         uint[] pointers =
         [
             Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRBI")).PartyPointer,
-            Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRAO")).PartyPointer,
+            Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRBO")).PartyPointer,
             Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRAI")).PartyPointer,
+            Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRAO")).PartyPointer,
         ];
 
-        Assert.Equal([0x0224F88Cu, 0x0224F9ACu, 0x0224F8ACu], pointers);
+        Assert.Equal([0x0224F88Cu, 0x0224F98Cu, 0x0224F8ACu, 0x0224F9ACu], pointers);
         Assert.Equal(pointers.Length, pointers.Distinct().Count());
 
-        // English Black exists and is Gen 5, but nobody has run it. It must be refused rather
+        // Japanese Black exists and is Gen 5, but nobody has run it. It must be refused rather
         // than read at the address of any cartridge above, however close they look.
-        Assert.Null(Gen5MemoryMap.For("IRBO"));
-        Assert.True(Gen5MemoryMap.IsGen5("IRBO"));
+        Assert.Null(Gen5MemoryMap.For("IRBJ"));
+        Assert.True(Gen5MemoryMap.IsGen5("IRBJ"));
 
         // The sequels are a different game again, and equally unmapped.
         Assert.Null(Gen5MemoryMap.For("IREO"));
@@ -99,10 +100,10 @@ public sealed class MelonDsProviderTests
     [Fact]
     public async Task AGameThatIsNotMappedProducesNoSnapshot()
     {
-        // English Black: a real Gen 5 cartridge whose address nobody has verified. It has to
-        // be a code that is genuinely unmapped, so this moved off Italian White the day that
-        // one was measured.
-        byte[] ram = Gen5Ram.Build(gameCode: "IRBO");
+        // Japanese Black: a real Gen 5 cartridge whose address nobody has verified. It has to
+        // be a code that is genuinely unmapped, and this fixture has now moved twice as the
+        // supported set grew, first off Italian White and then off English Black.
+        byte[] ram = Gen5Ram.Build(gameCode: "IRBJ");
 
         await using var stub = new FakeGdbStub(Gen5Ram.BaseAddress, ram);
         await using var provider = new MelonDsProvider(

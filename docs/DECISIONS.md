@@ -2131,3 +2131,42 @@ subject had become mapped. Worth noting rather than fixing quietly: a test whose
 
 Italian White is now complete end to end, since D-055 gave White its own encounter timeline:
 party, analysis and team hints all work on that cartridge.
+
+### Amendment, 2026-08-14: English Black, and the four cartridges together
+
+English Black (`IRBO`) keeps its party pointer at `0x0224F98C`, leading to `0x022349AC`. Found
+the same fast way and confirmed by an Oshawott at Lv.5. That completes the four cartridges the
+Unova encounter catalogs of D-055 answer for, so Black and White now work end to end in both
+of the languages they were run in.
+
+| Cartridge | Pointer | Party head | From Italian Black |
+| --- | --- | --- | --- |
+| Black, Italian | `0x0224F88C` | `0x022348AC` | — |
+| Black, English | `0x0224F98C` | `0x022349AC` | `+0x100` |
+| White, Italian | `0x0224F8AC` | `0x022348CC` | `+0x20` |
+| White, English | `0x0224F9AC` | `0x022349CC` | `+0x120` |
+
+Laid out together the four look like a rule: language moves the party by `0x100` and version
+by `0x20`, and `0x120` is simply both. It may well be the rule. It is still not being used.
+Four samples of one region, all revision zero, is a pattern and not a law, and the cost of
+being wrong is not an error message but a team read out of the wrong bytes. The next cartridge
+gets measured, and if the arithmetic predicts it, that is five samples rather than a licence.
+
+The fixture in `AGameThatIsNotMappedProducesNoSnapshot` has now moved twice, from Italian
+White to English Black to Japanese Black, because each of its subjects became supported. That
+is the shape of a test whose subject is an absence: it needs a new example every time the
+thing it stands for shrinks.
+
+### Amendment, 2026-08-14: the sprite progress test, twice wrong
+
+The deterministic rewrite of `ProgressIsReportedAllTheWayToTheEnd` traded one bug for another.
+`Progress<T>` posts to the thread pool, so the last report could still be in flight when
+`DownloadAsync` returned and the assertions raced it; replacing it with a synchronous
+`IProgress` fixed that and introduced a worse fault, because the downloader fetches in
+parallel and the reports now arrived on several threads at once into a plain `List`, which
+answers that with `ArgumentOutOfRangeException` from inside its own `Grow`.
+
+The first version had picked `ConcurrentBag` for exactly that reason and lost it in the
+rewrite. Synchronous delivery into a concurrent collection is the combination that is neither
+racy nor broken, and both halves are now written down in the test, because each one rules out
+the obvious answer to the other.
