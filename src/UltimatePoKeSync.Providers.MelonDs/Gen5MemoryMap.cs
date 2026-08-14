@@ -15,10 +15,10 @@ namespace UltimatePoKeSync.Providers.MelonDs;
 /// </para>
 /// <para>
 /// The party is not at a fixed address here: what is recorded is the entry in the game's own
-/// table of save blocks, and the address is read from there. The one Gen 5 cartridge run so
-/// far kept its party at the same place across restarts, so the pointer is not strictly
-/// needed today: it is followed because it is the route the game itself takes, and it costs
-/// four bytes.
+/// table of save blocks, and the address is read from there. Every Gen 5 cartridge run so far
+/// kept its party at the same place across restarts, so the pointer is not strictly needed
+/// today: it is followed because it is the route the game itself takes, and it costs four
+/// bytes.
 /// </para>
 /// </remarks>
 public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPointer)
@@ -47,10 +47,11 @@ public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPoint
     /// of reading a plausible-looking address and inventing a team out of it.
     /// </summary>
     /// <remarks>
-    /// The two entries sit exactly <c>0x120</c> apart, in both the pointer and the head it
-    /// leads to. That is a fact about these two cartridges and not a rule: D-035 exists
-    /// because a single sample supported two explanations and the wrong one was picked, so
-    /// the next game gets its own line only once somebody has run it. See D-054.
+    /// Three cartridges, three addresses, and the gaps do not follow one rule: Italian White
+    /// sits <c>0x20</c> past Italian Black, and English White <c>0x120</c> past it. Version
+    /// and language both move the party, which is why each code is measured rather than
+    /// derived. D-035 exists because a single sample supported two explanations and the wrong
+    /// one was picked. See D-054.
     /// </remarks>
     private static readonly Dictionary<string, Gen5MemoryMap> Known = new(StringComparer.Ordinal)
     {
@@ -60,6 +61,10 @@ public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPoint
         // Verified live on 2026-08-14, the same way: one pointer in all of main RAM leads
         // here, and the parser read the Tepig the player confirmed carrying. See D-054.
         ["IRAO"] = new("IRAO", "White (English)", 0x0224F9AC),
+
+        // Verified live on 2026-08-14. Found in seconds rather than by scanning, because by
+        // then the directory's neighbourhood was known: a Tepig at Lv.5, confirmed.
+        ["IRAI"] = new("IRAI", "White (Italy)", 0x0224F8AC),
     };
 
     public static Gen5MemoryMap? For(string gameCode) =>

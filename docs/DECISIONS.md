@@ -2104,3 +2104,30 @@ from Black by a lookup table of swaps (rejected: the Throh and Sawk case is not 
 species but of levels and methods, so the table would have needed to express the whole entry
 anyway), and including White Forest with a warning (rejected: a warning on a suggestion the
 app cannot stand behind is still a suggestion).
+
+### Amendment, 2026-08-14: Italian White, and what three samples say
+
+Italian White (`IRAI`) keeps its party pointer at `0x0224F8AC`, leading to `0x022348CC`.
+Verified the same way and in seconds rather than by scanning a megabyte: by then the
+directory's neighbourhood was known, so reading `0x0224F700` to `0x0224FC00` and testing every
+aligned word for a party-shaped target found exactly one. The parser read a Tepig at Lv.5 and
+the player confirmed carrying it.
+
+Three cartridges now, and the useful part is that they disagree:
+
+| Cartridge | Pointer | Party head | From Italian Black |
+| --- | --- | --- | --- |
+| Black, Italian | `0x0224F88C` | `0x022348AC` | — |
+| White, Italian | `0x0224F8AC` | `0x022348CC` | `+0x20` |
+| White, English | `0x0224F9AC` | `0x022349CC` | `+0x120` |
+
+Version moves the address and so does language, and neither moves it by an amount the other
+predicts. Anyone tempted to derive the remaining codes by arithmetic now has three data points
+saying it cannot be done, which is worth more than the two that merely failed to warn.
+
+A test that used `IRAI` as its example of an unmapped game had to move to `IRBO`, because its
+subject had become mapped. Worth noting rather than fixing quietly: a test whose fixture is
+"something we do not support" ages every time support grows.
+
+Italian White is now complete end to end, since D-055 gave White its own encounter timeline:
+party, analysis and team hints all work on that cartridge.
