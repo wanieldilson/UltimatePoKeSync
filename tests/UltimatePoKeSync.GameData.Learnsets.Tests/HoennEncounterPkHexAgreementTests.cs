@@ -16,20 +16,48 @@ public sealed class HoennEncounterPkHexAgreementTests
     private static readonly GameIdentity Emerald =
         new("BPEE", "POKEMON EMER", 0, PokemonGeneration.Gen3);
 
+    /// <summary>Each version against its own table. Crossing them is the mistake to catch.</summary>
+    public static TheoryData<string> Versions => ["Emerald", "Ruby", "Sapphire"];
+
+    private static (GameIdentity Game, HoennEncounterCatalog Catalog, string Field) Setup(string version) =>
+        version switch
+        {
+            "Ruby" => (Emerald with { GameCode = "AXVE", Title = "POKEMON RUBY" },
+                HoennEncounterCatalog.Ruby, "SlotsR"),
+            "Sapphire" => (Emerald with { GameCode = "AXPE", Title = "POKEMON SAPP" },
+                HoennEncounterCatalog.Sapphire, "SlotsS"),
+            _ => (Emerald, HoennEncounterCatalog.Emerald, "SlotsE"),
+        };
+
     private static readonly EncounterMethod[] Wild =
         [EncounterMethod.Grass, EncounterMethod.Cave, EncounterMethod.Surf];
 
-    private static readonly Lazy<IReadOnlyDictionary<int, HashSet<int>>> LazySlots = new(Load);
+    private static readonly Dictionary<string, IReadOnlyDictionary<int, HashSet<int>>> Cache = [];
 
-    private static IReadOnlyDictionary<int, HashSet<int>> Slots => LazySlots.Value;
-
-    [Fact]
-    public void EveryWildSuggestionIsActuallyCatchableInEmerald()
+    private static IReadOnlyDictionary<int, HashSet<int>> Slots(string field)
     {
+        lock (Cache)
+        {
+            if (!Cache.TryGetValue(field, out IReadOnlyDictionary<int, HashSet<int>>? loaded))
+            {
+                Cache[field] = loaded = Load(field);
+            }
+
+            return loaded;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Versions))]
+    public void EveryWildSuggestionIsActuallyCatchableInThatVersion(string version)
+    {
+        (GameIdentity game, HoennEncounterCatalog catalog, string field) = Setup(version);
+        IReadOnlyDictionary<int, HashSet<int>> slots = Slots(field);
+
         string[] unobtainable =
         [
-            .. Candidates()
-                .Where(candidate => !Slots.ContainsKey(candidate.SpeciesId))
+            .. Candidates(game, catalog)
+                .Where(candidate => !slots.ContainsKey(candidate.SpeciesId))
                 .Select(candidate => $"{candidate.SpeciesName} at {candidate.Location}"),
         ];
 
@@ -41,15 +69,19 @@ public sealed class HoennEncounterPkHexAgreementTests
     /// levels in between are not asserted, for the reason the Unova check gives: a slot table
     /// lists discrete levels.
     /// </summary>
-    [Fact]
-    public void EveryPrintedLevelBoundIsALevelTheSpeciesReallyAppearsAt()
+    [Theory]
+    [MemberData(nameof(Versions))]
+    public void EveryPrintedLevelBoundIsALevelTheSpeciesReallyAppearsAt(string version)
     {
+        (GameIdentity game, HoennEncounterCatalog catalog, string field) = Setup(version);
+        IReadOnlyDictionary<int, HashSet<int>> slots = Slots(field);
+
         string[] wrong =
         [
-            .. Candidates()
-                .Where(candidate => Slots.ContainsKey(candidate.SpeciesId))
-                .Where(candidate => !Slots[candidate.SpeciesId].Contains(candidate.MinimumLevel) ||
-                    !Slots[candidate.SpeciesId].Contains(candidate.MaximumLevel))
+            .. Candidates(game, catalog)
+                .Where(candidate => slots.ContainsKey(candidate.SpeciesId))
+                .Where(candidate => !slots[candidate.SpeciesId].Contains(candidate.MinimumLevel) ||
+                    !slots[candidate.SpeciesId].Contains(candidate.MaximumLevel))
                 .Select(candidate =>
                     $"{candidate.SpeciesName} claims {candidate.MinimumLevel}-{candidate.MaximumLevel}"),
         ];
@@ -66,7 +98,7 @@ public sealed class HoennEncounterPkHexAgreementTests
     public void TheStoryRunsForwardAndNoCheckpointPromisesMoreThanItsBadges()
     {
         IReadOnlyList<StoryMilestone> milestones =
-            HoennEncounterCatalog.Instance.FindMilestones(Emerald);
+            HoennEncounterCatalog.Emerald.FindMilestones(Emerald);
 
         Assert.Equal("route-101", milestones[0].Id);
         Assert.Equal("victory-road", milestones[^1].Id);
@@ -85,41 +117,76 @@ public sealed class HoennEncounterPkHexAgreementTests
     [InlineData(8, 8)]
     public void ABadgeCountNeverUnlocksACheckpointThatNeedsMore(int badges, int most)
     {
-        StoryMilestone reached = HoennEncounterCatalog.Instance
+        StoryMilestone reached = HoennEncounterCatalog.Emerald
             .FindConservativeMilestone(Emerald, badges);
 
         Assert.InRange(reached.BadgeCount, 0, most);
     }
 
+    /// <summary>
+    /// Each catalog answers for its own game only, in every language, and for nothing else.
+    /// Kanto is a different region entirely and belongs to no Hoenn catalog.
+    /// </summary>
     [Fact]
-    public void RubyAndSapphireAreNotAnsweredFor()
+    public void EachVersionAnswersForItsOwnGameOnly()
     {
-        Assert.True(HoennEncounterCatalog.Instance.Supports(Emerald));
-        Assert.True(HoennEncounterCatalog.Instance.Supports(Emerald with { GameCode = "BPEI" }));
-        Assert.False(HoennEncounterCatalog.Instance.Supports(Emerald with { GameCode = "AXVE" }));
-        Assert.False(HoennEncounterCatalog.Instance.Supports(Emerald with { GameCode = "BPRE" }));
+        Assert.True(HoennEncounterCatalog.Emerald.Supports(Emerald));
+        Assert.True(HoennEncounterCatalog.Emerald.Supports(Emerald with { GameCode = "BPEI" }));
+        Assert.False(HoennEncounterCatalog.Emerald.Supports(Emerald with { GameCode = "AXVE" }));
+
+        Assert.True(HoennEncounterCatalog.Ruby.Supports(Emerald with { GameCode = "AXVI" }));
+        Assert.False(HoennEncounterCatalog.Ruby.Supports(Emerald with { GameCode = "AXPE" }));
+
+        Assert.True(HoennEncounterCatalog.Sapphire.Supports(Emerald with { GameCode = "AXPI" }));
+        Assert.False(HoennEncounterCatalog.Sapphire.Supports(Emerald with { GameCode = "AXVE" }));
+
+        // FireRed is Kanto.
+        Assert.All(
+            new[] { HoennEncounterCatalog.Emerald, HoennEncounterCatalog.Ruby, HoennEncounterCatalog.Sapphire },
+            catalog => Assert.False(catalog.Supports(Emerald with { GameCode = "BPRE" })));
     }
 
+    /// <summary>
+    /// The three tables really do differ, so one list shared between them would be wrong for
+    /// two of the three. Emerald carries species the other two never had.
+    /// </summary>
     [Fact]
-    public void ThePkHexTableWasActuallyRead()
+    public void EmeraldIsNotJustRubyWithADifferentName()
     {
-        Assert.InRange(Slots.Count, 80, 250);
-        Assert.InRange(Candidates().Count, 60, 200);
+        int[] emerald = [.. Candidates(Emerald, HoennEncounterCatalog.Emerald).Select(c => c.SpeciesId)];
+        int[] ruby =
+        [
+            .. Candidates(Emerald with { GameCode = "AXVE" }, HoennEncounterCatalog.Ruby)
+                .Select(c => c.SpeciesId),
+        ];
+
+        Assert.NotEqual(emerald.Length, ruby.Length);
+        Assert.NotEmpty(emerald.Except(ruby));
     }
 
-    private static IReadOnlyList<EncounterCandidate> Candidates() =>
+    [Theory]
+    [MemberData(nameof(Versions))]
+    public void ThePkHexTableWasActuallyRead(string version)
+    {
+        (GameIdentity game, HoennEncounterCatalog catalog, string field) = Setup(version);
+
+        Assert.InRange(Slots(field).Count, 80, 250);
+        Assert.InRange(Candidates(game, catalog).Count, 60, 200);
+    }
+
+    private static IReadOnlyList<EncounterCandidate> Candidates(
+        GameIdentity game,
+        HoennEncounterCatalog catalog) =>
     [
-        .. HoennEncounterCatalog.Instance
-            .FindEncounters(Emerald)
-            .Where(candidate => Wild.Contains(candidate.Method)),
+        .. catalog.FindEncounters(game).Where(candidate => Wild.Contains(candidate.Method)),
     ];
 
-    private static IReadOnlyDictionary<int, HashSet<int>> Load()
+    private static IReadOnlyDictionary<int, HashSet<int>> Load(string field)
     {
         Type holder = typeof(PersonalTable).Assembly.GetType("PKHeX.Core.Encounters3RSE")
             ?? throw new InvalidOperationException("PKHeX no longer exposes Encounters3RSE.");
         var areas = (Array)holder
-            .GetField("SlotsE", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)!
+            .GetField(field, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)!
             .GetValue(null)!;
 
         var levels = new Dictionary<int, HashSet<int>>();

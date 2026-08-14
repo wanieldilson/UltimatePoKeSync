@@ -187,11 +187,15 @@ public sealed class Gen5DashboardTests
     }
 
     /// <summary>
-    /// Ruby: a real game the app reads fine and has no encounter timeline for. The example
-    /// has to be one that is genuinely unmapped, and this test has now outlived two of them,
-    /// Italian White and then Emerald, because each became supported. A test whose subject is
-    /// an absence needs a new example every time the absence shrinks. See D-057.
+    /// A game with no encounter timeline still gets its party and its analysis; only the
+    /// hints stay quiet.
     /// </summary>
+    /// <remarks>
+    /// The code is deliberately not a real one. This test has already outlived three real
+    /// examples, Italian White, then Emerald, then Ruby, because each of them became supported
+    /// within a day of being chosen. A test whose subject is an absence cannot be written
+    /// against a member of a shrinking set: it has to stand for the set. See D-058.
+    /// </remarks>
     [Fact]
     public void TeamHintsStayUnavailableForAnUnmappedGame()
     {
@@ -200,7 +204,7 @@ public sealed class Gen5DashboardTests
 
         source.RaiseParty(emerald with
         {
-            Game = emerald.Game with { GameCode = "AXVE", Title = "POKEMON RUBY" },
+            Game = emerald.Game with { GameCode = "ZZZZ", Title = "NOT A GAME" },
         });
 
         Assert.False(viewModel.TeamHintsSupported);

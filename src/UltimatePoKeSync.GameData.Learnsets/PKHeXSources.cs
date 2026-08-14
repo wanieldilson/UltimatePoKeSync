@@ -32,7 +32,9 @@ public static class PKHeXSources
     public static IEncounterCatalog Encounters { get; } = new CompositeEncounterCatalog(
         UnovaEncounterCatalog.Black,
         UnovaEncounterCatalog.White,
-        HoennEncounterCatalog.Instance);
+        HoennEncounterCatalog.Emerald,
+        HoennEncounterCatalog.Ruby,
+        HoennEncounterCatalog.Sapphire);
 
     /// <summary>All of the above, for a composition root that wants the lot.</summary>
     public static GameDataSources All { get; } = new(Learnsets, Evolutions, BaseStats);

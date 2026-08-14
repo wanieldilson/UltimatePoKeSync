@@ -2259,3 +2259,47 @@ everything in slabs and stops being advice), include fishing behind an availabil
 (rejected: it triples the pool to say "check whether you own a rod" about most of it), and
 generate the timeline from the order PKHeX's location ids happen to run in (rejected: that is
 map data, not story order, and it would look derived while being a guess).
+
+## D-058. Ruby and Sapphire share Hoenn's story and almost none of its table
+
+**Status:** Accepted · 2026-08-14
+
+Team hints reach all three Hoenn games. The structure is not the one D-055 used for Black and
+White, and the reason is worth recording, because the two situations look identical from the
+outside and are not.
+
+Black and White differ in **six** encounters, so a handful of conditionals inside one list
+says exactly what differs and reads as a list of exceptions. Hoenn does not:
+
+| | Wild entries | Species |
+| --- | --- | --- |
+| Emerald | 312 | 116 |
+| Ruby | 287 | 97 |
+| Sapphire | 287 | 97 |
+
+59 entries are Emerald's alone, 34 belong to Ruby and not Emerald, and Ruby and Sapphire
+disagree with each other in 38 more. Roughly a third of the catalog is version-specific.
+Conditionals at that density stop being exceptions and become noise, and every one of them is
+a place to make a mistake by hand.
+
+So the split runs the other way from D-055. What the three share is the curated half: one
+region, one story timeline, one map of place to checkpoint. What they do not share is the
+generated half, and each gets its own emitted list, straight from `SlotsE`, `SlotsR` and
+`SlotsS`. The place-to-checkpoint map is shared safely because the *places* are the same in
+all three; only the species inside them move.
+
+`HoennEncounterPkHexAgreementTests` runs against all three, each against its own table, and
+asserts that they genuinely differ, so a future refactor cannot quietly serve one list to all
+three and still pass.
+
+**The absence test, fourth time.** `TeamHintsStayUnavailableForAnUnmappedGame` needed a game
+with no timeline. It used Italian White until that was mapped, then Emerald, then Ruby, and
+Ruby lasted about ten minutes. The fix this time is not a fourth example: the test now uses a
+game code that is not real. A test whose subject is a shrinking set cannot be written against
+a member of it, and the three moves before this one were all the same mistake made politely.
+
+**Alternatives considered:** conditionals per differing entry as in D-055 (rejected: ninety
+of them, and the file stops being readable), one list plus a per-version patch table (rejected:
+the patch table is the same data in a shape nobody can check against PKHeX by eye), and
+treating Emerald as the base with Ruby and Sapphire as subsets (rejected: 34 entries exist in
+Ruby and not Emerald, so it is not a subset).
