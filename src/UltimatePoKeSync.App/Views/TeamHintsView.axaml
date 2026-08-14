@@ -1,0 +1,187 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:UltimatePoKeSync.App.ViewModels"
+             x:Class="UltimatePoKeSync.App.Views.TeamHintsView"
+             x:DataType="vm:MainWindowViewModel">
+
+  <StackPanel Spacing="18" MaxWidth="980">
+    <Border BorderBrush="{StaticResource Ink}" BorderThickness="4" CornerRadius="22"
+            Background="{StaticResource PanelAltDeep}" BoxShadow="{StaticResource ShadowHero}"
+            Padding="24" ClipToBounds="True">
+      <Panel>
+        <Border Background="{StaticResource Halftone}" IsHitTestVisible="False" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="TEAM HINTS" Classes="display" FontSize="27" />
+            <TextBlock FontSize="14" Foreground="{StaticResource Lavender}"
+                       TextWrapping="Wrap" MaxWidth="720"
+                       Text="Up to three alternative plans made only from Pokémon you can obtain at this point. Gifts are never included." />
+            <TextBlock FontSize="12" Foreground="{StaticResource TextMuted}"
+                       TextWrapping="Wrap" MaxWidth="720"
+                       Text="One-time catches, fossil choices, trades and roamers are marked because their save-specific state cannot be read yet." />
+          </StackPanel>
+          <Border Grid.Column="1" Classes="chip" BorderThickness="3" Padding="12,5"
+                  Background="{StaticResource Good}" VerticalAlignment="Top"
+                  IsVisible="{Binding TeamHintsSupported}"
+                  RenderTransform="rotate(2deg)" BoxShadow="{StaticResource ShadowChip}">
+            <TextBlock Text="AVAILABLE NOW" Foreground="{StaticResource TextOnAccent}" />
+          </Border>
+        </Grid>
+      </Panel>
+    </Border>
+
+    <Panel IsVisible="{Binding TeamHintsSupported}">
+      <Border Classes="panel" Padding="20">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="22" Margin="0,8,0,0">
+          <StackPanel Spacing="5">
+            <TextBlock Text="Where are you in the story?" Classes="strong" FontSize="16" />
+            <TextBlock Text="{Binding TeamHintProgressText}" Foreground="{StaticResource TextMuted}"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding TeamHintStatusText}" Classes="mono"
+                       Foreground="{StaticResource Info}" TextWrapping="Wrap" />
+          </StackPanel>
+
+          <StackPanel Grid.Column="1" Spacing="9" MinWidth="285">
+            <CheckBox Content="Detect automatically"
+                      IsChecked="{Binding UseAutomaticTeamHintProgress}" />
+            <ComboBox ItemsSource="{Binding TeamHintMilestones}"
+                      SelectedItem="{Binding SelectedTeamHintMilestone}"
+                      IsEnabled="{Binding !UseAutomaticTeamHintProgress}"
+                      MinWidth="285" HorizontalAlignment="Stretch" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Border Classes="badge" Background="{StaticResource Info}">
+        <TextBlock Text="STORY PROGRESS" />
+      </Border>
+    </Panel>
+
+    <Border Classes="panel" IsVisible="{Binding !TeamHintsSupported}">
+      <StackPanel Spacing="7">
+        <TextBlock Text="This game is not mapped yet" Classes="display" FontSize="18" />
+        <TextBlock Text="Team hints currently use the verified Pokémon Black encounter timeline. Your party analysis still works normally."
+                   Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <ItemsControl ItemsSource="{Binding TeamHintPlans}"
+                  IsVisible="{Binding HasTeamHintPlans}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:TeamHintPlanRow">
+          <Panel Margin="0,0,0,18">
+            <Border Classes="panel" Padding="20">
+              <StackPanel Spacing="14" Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding Summary}" Classes="strong" FontSize="17"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding GapText}" Foreground="{StaticResource TextMuted}"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
+                  <Border Grid.Column="1" Classes="chip" Background="{StaticResource Accent}"
+                          BorderThickness="3" Padding="11,4" VerticalAlignment="Top">
+                    <TextBlock Text="{Binding ScoreText}"
+                               Foreground="{StaticResource TextOnAccent}" />
+                  </Border>
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding Pokemon}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <UniformGrid Columns="3" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TeamHintPokemonRow">
+                      <Border Classes="card" Background="{StaticResource PanelSunken}"
+                              Padding="15" Margin="0,0,14,3">
+                        <StackPanel Spacing="9">
+                          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+                            <Border Width="46" Height="46" CornerRadius="12"
+                                    BorderBrush="{StaticResource Ink}" BorderThickness="3"
+                                    Background="{StaticResource PanelAltDeep}">
+                              <TextBlock Text="{Binding Initials}" Classes="mono" FontSize="10"
+                                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding SpeciesName}" Classes="display"
+                                         FontSize="16" TextWrapping="Wrap" />
+                              <TextBlock Text="{Binding EvolutionText}" Classes="mono"
+                                         IsVisible="{Binding HasEvolution}" TextWrapping="Wrap" />
+                            </StackPanel>
+                          </Grid>
+
+                          <ItemsControl ItemsSource="{Binding TypeChips}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="vm:TypeChip">
+                                <Border Classes="chip" Background="{Binding Brush}" Margin="0,0,5,5"
+                                        ToolTip.Tip="{Binding Detail}">
+                                  <TextBlock Text="{Binding UpperType}"
+                                             Foreground="{StaticResource TextOnAccent}" />
+                                </Border>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+
+                          <TextBlock Text="{Binding CatchLine}" Classes="strong" FontSize="13"
+                                     TextWrapping="Wrap" />
+                          <TextBlock Text="{Binding LevelLine}" Classes="mono"
+                                     TextWrapping="Wrap" />
+
+                          <Border BorderBrush="{StaticResource Ink}" BorderThickness="2"
+                                  CornerRadius="10" Background="{StaticResource GoodBg}"
+                                  Padding="10,7" IsVisible="{Binding HasCoverage}">
+                            <TextBlock Text="{Binding CoverageText}" FontSize="12.5"
+                                       Foreground="{StaticResource PositiveText}"
+                                       TextWrapping="Wrap" />
+                          </Border>
+
+                          <TextBlock Text="{Binding Reason}" FontSize="12.5"
+                                     Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" />
+
+                          <Border Classes="chip" Background="{StaticResource Alert}"
+                                  HorizontalAlignment="Left" IsVisible="{Binding IsReplacement}">
+                            <TextBlock Text="{Binding ReplacementText}"
+                                       Foreground="{StaticResource Ink}" TextWrapping="Wrap" />
+                          </Border>
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+            <Border Classes="badge" Background="{StaticResource Accent}">
+              <TextBlock Text="{Binding Label}" />
+            </Border>
+          </Panel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Panel IsVisible="{Binding TeamHintsSupported}">
+      <Border Classes="panel" IsVisible="{Binding !HasTeamHintPlans}">
+        <StackPanel Spacing="7">
+          <TextBlock Text="No safe plan yet" Classes="display" FontSize="18" />
+          <TextBlock Text="Choose a reached story point above. Suggestions stay empty rather than showing a Pokémon from a future route."
+                     Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <Border BorderBrush="{StaticResource Ink}" BorderThickness="3" CornerRadius="15"
+            Background="{StaticResource PanelSunken}" Padding="15,12"
+            IsVisible="{Binding HasTeamHintSoon}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <Border Classes="chip" Background="{StaticResource Info}">
+          <TextBlock Text="NEXT AREA" Foreground="{StaticResource TextOnAccent}" />
+        </Border>
+        <TextBlock Grid.Column="1" Text="{Binding TeamHintSoonText}" Foreground="{StaticResource TextMuted}"
+                   VerticalAlignment="Center" TextWrapping="Wrap" />
+      </Grid>
+    </Border>
+  </StackPanel>
+</UserControl>

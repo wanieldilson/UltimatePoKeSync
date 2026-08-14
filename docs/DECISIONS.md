@@ -1847,3 +1847,61 @@ STAB, but the surrounding team's defensive gaps are not yet rebuilt as six proje
 forms, and a current move later dropped from the competitive build may initially count as an
 answer. Fixing that requires a separate two-pass competitive team model rather than another
 single-Pokémon scoring exception.
+
+---
+
+## D-053. Team hints stop at the player's actual frontier
+
+**Status:** Accepted · 2026-08-14
+
+The Team screen diagnoses what is already carried; the separate Team hints screen proposes up
+to three actionable ways to change it. Every proposal is filtered through an explicit story
+milestone before it is scored. Party level is never treated as progress: a trained starter does
+not prove that a late route is open, and a low-level catch does not prove that the player is
+still near the beginning. Pokémon from the next milestone may be previewed in a clearly separate
+section, but never enter an "available now" plan.
+
+Pokémon Black is the first mapped game. Its encounter facts are checked against PKHeX's pinned
+per-version data and stored as an immutable local snapshot, while route order and field
+prerequisites are curated as product data. Runtime queries against PKHeX's shared encounter
+generator were rejected because parallel analyses can race its internal buffers and make app
+startup unreliable. Wild
+grass, caves, phenomena, Surf, bridge shadows, fossils, roaming Pokémon and in-game trades are
+eligible; gifts are not. Mutually exclusive acquisitions carry a shared choice id, so one plan
+cannot recommend both Relic Castle fossils. A full party receives an explicit replacement rather
+than a seventh member.
+
+An encounter whose current condition cannot be proven (for example Shelmet during winter) stays
+out of "available now" plans. One-time/static catches, fossils, trades and roamers remain eligible
+but are labelled as limited because RAM support does not yet read whether that opportunity was
+already consumed. The first verified acquisition per species is used in this version; later-area
+alternatives and most encounter rates remain future refinements, so late-game advice can favour an
+older low-level location while remaining obtainable and story-safe.
+
+Automatic progress is deliberately narrower than encounter support. Only revision-zero Italian Black
+(`IRBI`) has verified live offsets: the reader follows the known party/save-block pointer to the
+one-byte badge mask and the current map id. Badges unlock only checkpoints they prove have been
+passed; the map id is displayed as evidence but does not unlock a route until a map-to-story
+table has itself been verified. Zero badges therefore defaults to Route 1, and every exact route
+remains selectable manually. Other Black languages use the same encounter timeline with manual
+progress, rather than borrowing unmeasured RAM addresses.
+
+Plans are ranked by defensive gaps closed, new super-effective reach, type and role diversity,
+catch/training practicality and redundant answers. A full-party replacement must have positive
+strategic value before convenience is allowed to rank it. Offensive reach counts at most four
+damaging level-up move types that a fresh catch can carry or learn along the projected near-term
+evolution line. It does not count a low-level evolved-form reminder move, TM or tutor
+merely because the species can learn it: this feature knows where the Pokémon is, not which
+single-use machines this save still owns. The displayed factors come from the same pure analyzer
+that chose the plan, so the UI formats the answer without silently re-ranking it.
+
+The progress reader lives beside the game-specific PKHeX adapters rather than in the melonDS
+provider. The provider continues to expose raw memory only; interpreting a byte as a Unova badge
+is game knowledge, not transport knowledge.
+
+**Alternatives considered:** infer progress from party level or species (rejected: both can be
+traded or trained out of sequence), unlock every route sharing the detected badge count
+(rejected: it exposes areas before the next Gym), recommend all legal machine coverage
+(rejected: legality is not ownership), include gifts (rejected by the feature policy), and put
+the hints inside Team (rejected: diagnosis and acquisition planning have different inputs and
+failure states).

@@ -253,7 +253,7 @@
       <Border Grid.Row="2" Background="{StaticResource TabBg}"
               IsVisible="{Binding IsConnected}"
               BorderBrush="{StaticResource Ink}" BorderThickness="0,0,0,4" Padding="14,0">
-        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
+        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
           <Button Classes="tab" Classes.on="{Binding IsPokemonTab}" Content="Pokémon"
                   Command="{Binding ShowTabCommand}"
                   CommandParameter="{x:Static vm:DashboardTab.Pokemon}" />
@@ -273,7 +273,11 @@
                   Content="Team"
                   Command="{Binding ShowTabCommand}"
                   CommandParameter="{x:Static vm:DashboardTab.Team}" />
-          <Button Grid.Column="6" Classes="tab bridge" Classes.on="{Binding IsBridgeTab}"
+          <Button Grid.Column="5" Classes="tab" Classes.on="{Binding IsTeamHintsTab}"
+                  Content="Team hints"
+                  Command="{Binding ShowTabCommand}"
+                  CommandParameter="{x:Static vm:DashboardTab.TeamHints}" />
+          <Button Grid.Column="7" Classes="tab bridge" Classes.on="{Binding IsBridgeTab}"
                   Content="Bridge"
                   Command="{Binding ShowTabCommand}"
                   CommandParameter="{x:Static vm:DashboardTab.Bridge}" />
@@ -1493,7 +1497,13 @@
             </StackPanel>
           </ScrollViewer>
 
-          <!-- The sixth screen shares the shell while live. -->
+          <!-- Suggestions are a separate decision: Team diagnoses what is carried;
+               Team hints says what can be caught at the selected story point. -->
+          <ScrollViewer IsVisible="{Binding IsTeamHintsTab}">
+            <views:TeamHintsView Margin="22,24,28,30" />
+          </ScrollViewer>
+
+          <!-- The seventh screen shares the shell while live. -->
           <ScrollViewer IsVisible="{Binding IsBridgeTab}">
             <views:BridgeView Margin="22,24,28,30" HorizontalAlignment="Left" />
           </ScrollViewer>

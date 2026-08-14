@@ -142,6 +142,157 @@ public sealed class Gen5DashboardTests
         Assert.Equal("Connected via melonDS", viewModel.ConnectionText);
     }
 
+    [Fact]
+    public void BlackGetsManualStrictTeamHintsWhenLiveProgressCannotBeRead()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+
+        source.RaiseParty(LoadBlack());
+
+        Assert.True(viewModel.TeamHintsSupported);
+        Assert.False(viewModel.UseAutomaticTeamHintProgress);
+        Assert.Equal("route-1", viewModel.SelectedTeamHintMilestone?.Id);
+        Assert.NotEmpty(viewModel.TeamHintPlans);
+        Assert.Contains(
+            viewModel.TeamHintPlans.SelectMany(plan => plan.Pokemon),
+            pokemon => pokemon.SpeciesName is "Patrat" or "Lillipup");
+        Assert.DoesNotContain(
+            viewModel.TeamHintPlans.SelectMany(plan => plan.Pokemon),
+            pokemon => pokemon.SpeciesName is "Deino" or "Hydreigon");
+        Assert.DoesNotContain(
+            viewModel.TeamHintPlans.SelectMany(plan => plan.Pokemon),
+            pokemon => pokemon.CatchLine.Contains("Gift", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void AManualRouteTwoCheckpointUnlocksOnlyCurrentAndEarlierEncounters()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+        source.RaiseParty(LoadBlack());
+
+        viewModel.SelectedTeamHintMilestone = Assert.Single(
+            viewModel.TeamHintMilestones,
+            milestone => milestone.Id == "route-2");
+
+        TeamHintPokemonRow[] suggestions =
+        [
+            .. viewModel.TeamHintPlans.SelectMany(plan => plan.Pokemon),
+        ];
+        Assert.Equal(3, viewModel.TeamHintPlans.Count);
+        Assert.Contains(suggestions, pokemon => pokemon.SpeciesName == "Purrloin");
+        Assert.DoesNotContain(
+            suggestions,
+            pokemon => pokemon.SpeciesName is "Pidove" or "Deino" or "Hydreigon");
+        Assert.Contains("Dreamyard", viewModel.TeamHintSoonText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TeamHintsStayUnavailableForAnUnmappedGame()
+    {
+        (MainWindowViewModel viewModel, FakeSource source) = Create();
+
+        source.RaiseParty(LoadEmerald());
+
+        Assert.False(viewModel.TeamHintsSupported);
+        Assert.Empty(viewModel.TeamHintMilestones);
+        Assert.Empty(viewModel.TeamHintPlans);
+        Assert.False(viewModel.HasTeamHintSoon);
+    }
+
+    [Fact]
+    public async Task ItalianBlackUsesAConservativeBadgeCheckpointFromLiveMemory()
+    {
+        const uint partyHead = 0x022348AC;
+        var memory = new FakeMemory();
+        memory.Put(IrbiStoryProgressReader.PartyPointerAddress, BitConverter.GetBytes(partyHead));
+        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0001_1111]);
+        memory.Put(partyHead + IrbiStoryProgressReader.MapIdOffset, BitConverter.GetBytes(391));
+        var source = new FakeSource(memory);
+        var viewModel = new MainWindowViewModel(source, action => action());
+
+        source.RaiseParty(LoadBlack());
+        await WaitUntilAsync(() => viewModel.TeamHintProgressText.StartsWith(
+            "Detected 5 badges",
+            StringComparison.Ordinal));
+
+        Assert.True(viewModel.UseAutomaticTeamHintProgress);
+        Assert.Equal("route-6", viewModel.SelectedTeamHintMilestone?.Id);
+        Assert.Contains("Live map 391", viewModel.TeamHintStatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AutomaticProgressRefreshesAfterAnotherPartySnapshot()
+    {
+        const uint partyHead = 0x022348AC;
+        var memory = new FakeMemory();
+        memory.Put(IrbiStoryProgressReader.PartyPointerAddress, BitConverter.GetBytes(partyHead));
+        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0000_0001]);
+        memory.Put(partyHead + IrbiStoryProgressReader.MapIdOffset, BitConverter.GetBytes(32));
+        var source = new FakeSource(memory);
+        var viewModel = new MainWindowViewModel(source, action => action());
+
+        PartySnapshot first = LoadBlack();
+        source.RaiseParty(first);
+        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "dreamyard");
+
+        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0001_1111]);
+        source.RaiseParty(first with { Sequence = first.Sequence + 1 });
+        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "route-6");
+
+        Assert.StartsWith("Detected 5 badges", viewModel.TeamHintProgressText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ReturningToTeamHintsRefreshesProgressWithoutAPartyChange()
+    {
+        const uint partyHead = 0x022348AC;
+        var memory = new FakeMemory();
+        memory.Put(IrbiStoryProgressReader.PartyPointerAddress, BitConverter.GetBytes(partyHead));
+        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0000_0001]);
+        memory.Put(partyHead + IrbiStoryProgressReader.MapIdOffset, BitConverter.GetBytes(32));
+        var source = new FakeSource(memory);
+        var viewModel = new MainWindowViewModel(source, action => action());
+
+        source.RaiseParty(LoadBlack());
+        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "dreamyard");
+
+        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0001_1111]);
+        viewModel.SelectedTab = DashboardTab.Team;
+        viewModel.SelectedTab = DashboardTab.TeamHints;
+        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "route-6");
+
+        Assert.StartsWith("Detected 5 badges", viewModel.TeamHintProgressText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ANewAutomaticReadHidesOldLateGamePlansUntilProgressIsKnown()
+    {
+        const uint partyHead = 0x022348AC;
+        var memory = new FakeMemory();
+        memory.Put(IrbiStoryProgressReader.PartyPointerAddress, BitConverter.GetBytes(partyHead));
+        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0xFF]);
+        memory.Put(partyHead + IrbiStoryProgressReader.MapIdOffset, BitConverter.GetBytes(23));
+        var source = new FakeSource(memory);
+        var viewModel = new MainWindowViewModel(source, action => action());
+        PartySnapshot party = LoadBlack();
+
+        source.RaiseParty(party);
+        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "route-10");
+        Assert.NotEmpty(viewModel.TeamHintPlans);
+
+        memory.Put(partyHead + IrbiStoryProgressReader.BadgeMaskOffset, [0b0000_0001]);
+        memory.ReadGate = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        source.RaiseParty(party with { Sequence = party.Sequence + 1 });
+
+        Assert.StartsWith("Reading story progress", viewModel.TeamHintProgressText, StringComparison.Ordinal);
+        Assert.Empty(viewModel.TeamHintPlans);
+        Assert.False(viewModel.HasTeamHintSoon);
+
+        memory.ReadGate.SetResult(true);
+        await WaitUntilAsync(() => viewModel.SelectedTeamHintMilestone?.Id == "dreamyard");
+    }
+
     /// <summary>A Gen 3 party must not start reporting a missing-data notice of its own.</summary>
     [Fact]
     public void TheGenerationThatHasEverythingSaysNothingIsMissing()
@@ -188,7 +339,17 @@ public sealed class Gen5DashboardTests
         return PartyParserResolver.CreateDefault().Resolve(game)!.Parse(raw);
     }
 
-    private sealed class FakeSource : ILiveTeamSource
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        for (int attempt = 0; attempt < 100 && !condition(); attempt++)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(condition());
+    }
+
+    private sealed class FakeSource(IEmulatorMemoryReader? memoryReader = null) : ILiveTeamSource
     {
         public event EventHandler<EmulatorConnectionState>? StateChanged;
 
@@ -196,7 +357,7 @@ public sealed class Gen5DashboardTests
 
         public int Port => 8888;
 
-        public IEmulatorMemoryReader? MemoryReader => null;
+        public IEmulatorMemoryReader? MemoryReader => memoryReader;
 
         public string? ActiveEmulator => "melonDS";
 
@@ -212,6 +373,32 @@ public sealed class Gen5DashboardTests
         {
             StateChanged?.Invoke(this, EmulatorConnectionState.Idle);
             return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class FakeMemory : IEmulatorMemoryReader
+    {
+        private readonly Dictionary<uint, byte[]> _regions = [];
+
+        public bool CanRead => true;
+
+        public TaskCompletionSource<bool>? ReadGate { get; set; }
+
+        public void Put(uint address, byte[] bytes) => _regions[address] = bytes;
+
+        public async Task<byte[]?> ReadMemoryAsync(
+            uint address,
+            int length,
+            CancellationToken cancellationToken = default)
+        {
+            if (ReadGate is { } gate)
+            {
+                await gate.Task.WaitAsync(cancellationToken);
+            }
+
+            return _regions.TryGetValue(address, out byte[]? bytes) && bytes.Length == length
+                ? bytes.ToArray()
+                : null;
         }
     }
 }

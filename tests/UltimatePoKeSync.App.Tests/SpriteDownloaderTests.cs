@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using UltimatePoKeSync.App.Services;
 using Xunit;
@@ -46,7 +47,7 @@ public sealed class SpriteDownloaderTests : IDisposable
         var archive = new FakeArchive();
         var downloader = new SpriteDownloader(new HttpClient(archive), _folder);
 
-        var seen = new List<SpriteDownloader.Progress>();
+        var seen = new ConcurrentBag<SpriteDownloader.Progress>();
         await downloader.DownloadAsync(
             new Progress<SpriteDownloader.Progress>(seen.Add), Token);
 

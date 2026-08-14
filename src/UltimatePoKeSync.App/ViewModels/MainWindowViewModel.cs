@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using UltimatePoKeSync.Analysis;
 using UltimatePoKeSync.App.Services;
 using UltimatePoKeSync.Contracts;
+using UltimatePoKeSync.GameData;
 using UltimatePoKeSync.GameData.Learnsets;
 using UltimatePoKeSync.GameData.Sprites;
 
@@ -38,6 +39,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         PKHeXSources.Learnsets,
         PKHeXSources.Evolutions);
 
+    private readonly TeamHintAnalyzer _teamHintAnalyzer = new(PKHeXSources.All);
+
+    private readonly IEncounterCatalog _teamHintCatalog;
+
     private readonly RomSpriteSource? _sprites;
 
     /// <summary>The player's own sprite folder, when they have one. See D-045.</summary>
@@ -53,12 +58,24 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private Task? _bridgeMonitor;
 
+    private Task? _teamHintProgressRead;
+
+    private CancellationTokenSource? _teamHintProgressCancellation;
+
     private PartySnapshot? _party;
+
+    private bool _isUpdatingTeamHintProgress;
+
+    private string? _teamHintGameCode;
+
+    private int _teamHintProgressReadVersion;
+
+    private bool _isDisposed;
 
     [ObservableProperty]
     private bool _isConnected;
 
-    /// <summary>Which of the six screens is showing. See D-047.</summary>
+    /// <summary>Which of the seven screens is showing. See D-047.</summary>
     [ObservableProperty]
     private DashboardTab _selectedTab = DashboardTab.Pokemon;
 
@@ -93,6 +110,24 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     [ObservableProperty]
     private string _analysisError = string.Empty;
 
+    [ObservableProperty]
+    private StoryMilestone? _selectedTeamHintMilestone;
+
+    [ObservableProperty]
+    private bool _useAutomaticTeamHintProgress = true;
+
+    [ObservableProperty]
+    private bool _teamHintsSupported;
+
+    [ObservableProperty]
+    private string _teamHintProgressText = "Waiting for a supported game…";
+
+    [ObservableProperty]
+    private string _teamHintStatusText = string.Empty;
+
+    [ObservableProperty]
+    private string _teamHintSoonText = string.Empty;
+
     /// <summary>
     /// Whether a party has ever arrived, empty or not. Without this an empty party looks
     /// exactly like a bridge that is not talking: the setup steps come back and the header
@@ -118,6 +153,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         _live = live;
         _post = post;
+        _teamHintCatalog = BlackEncounterCatalog.Instance;
 
         SetupSteps = SetupGuide.Steps(live.Port);
         DsSetupSteps =
@@ -169,6 +205,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     public ObservableCollection<CoverageTileRow> TeamCoverageTiles { get; } = [];
 
+    public ObservableCollection<StoryMilestone> TeamHintMilestones { get; } = [];
+
+    public ObservableCollection<TeamHintPlanRow> TeamHintPlans { get; } = [];
+
+    public bool HasTeamHintPlans => TeamHintPlans.Count > 0;
+
+    public bool HasTeamHintSoon => TeamHintSoonText.Length > 0;
+
     public int TeamGapCount { get; private set; }
 
     public string TeamGapBadgeText => TeamGapCount == 1 ? "1 GAP" : $"{TeamGapCount} GAPS";
@@ -217,6 +261,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public bool IsLearnsetTab => SelectedTab == DashboardTab.Learnset;
 
     public bool IsTeamTab => SelectedTab == DashboardTab.Team;
+
+    public bool IsTeamHintsTab => SelectedTab == DashboardTab.TeamHints;
 
     public bool IsBridgeTab => SelectedTab == DashboardTab.Bridge;
 
@@ -367,6 +413,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     {
         // The animations outlive nothing: a timer still swapping frames into a closed
         // window is a leak with a picture attached.
+        _isDisposed = true;
+        _teamHintProgressReadVersion++;
+        CancelTeamHintProgressRead();
         await _animations.CancelAsync().ConfigureAwait(false);
 
         if (_bridgeMonitor is not null)
@@ -381,7 +430,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             }
         }
 
+        if (_teamHintProgressRead is not null)
+        {
+            try
+            {
+                await _teamHintProgressRead.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // The window closed while the live-save checkpoint was being read.
+            }
+        }
+
         _animations.Dispose();
+        _teamHintProgressCancellation?.Dispose();
 
         await _live.DisposeAsync().ConfigureAwait(false);
     }
@@ -410,11 +472,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         foreach (string name in new[]
                  {
                      nameof(IsPokemonTab), nameof(IsStatsTab), nameof(IsBuildTab),
-                     nameof(IsLearnsetTab), nameof(IsTeamTab), nameof(IsBridgeTab),
+                     nameof(IsLearnsetTab), nameof(IsTeamTab), nameof(IsTeamHintsTab),
+                     nameof(IsBridgeTab),
                      nameof(ShowsOldPanels), nameof(ShowsConnectedEmptyState),
                  })
         {
             OnPropertyChanged(name);
+        }
+
+        if (value == DashboardTab.TeamHints &&
+            _party is not null &&
+            TeamHintsSupported &&
+            UseAutomaticTeamHintProgress)
+        {
+            BeginAutomaticTeamHintProgress(_party);
         }
     }
 
@@ -533,6 +604,46 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     partial void OnAnalysisErrorChanged(string value) => OnPropertyChanged(nameof(HasAnalysisError));
 
+    partial void OnTeamHintSoonTextChanged(string value) =>
+        OnPropertyChanged(nameof(HasTeamHintSoon));
+
+    partial void OnSelectedTeamHintMilestoneChanged(StoryMilestone? value)
+    {
+        if (_isUpdatingTeamHintProgress || value is null || _party is null || !TeamHintsSupported)
+        {
+            return;
+        }
+
+        if (!UseAutomaticTeamHintProgress)
+        {
+            SetManualTeamHintProgress(value);
+        }
+
+        RebuildTeamHints(_party, value);
+    }
+
+    partial void OnUseAutomaticTeamHintProgressChanged(bool value)
+    {
+        if (_isUpdatingTeamHintProgress || _party is null || !TeamHintsSupported)
+        {
+            return;
+        }
+
+        if (value)
+        {
+            BeginAutomaticTeamHintProgress(_party);
+            return;
+        }
+
+        _teamHintProgressReadVersion++;
+        CancelTeamHintProgressRead();
+        if (SelectedTeamHintMilestone is StoryMilestone milestone)
+        {
+            SetManualTeamHintProgress(milestone);
+            RebuildTeamHints(_party, milestone);
+        }
+    }
+
     partial void OnHasReceivedPartyChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowSetup));
@@ -639,6 +750,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             slot.IsSelected = ReferenceEquals(slot, CurrentSlot);
         }
 
+        // PartyTracker emits only meaningful changes, so these tiny progress reads do not
+        // poll the emulator continuously. Re-reading here is what lets a badge earned later
+        // in the same session unlock its safe checkpoint without restarting the app.
+        ConfigureTeamHints(party, refreshAutomaticProgress: true);
+
         // Sprites arrive later and are worth waiting for, not worth waiting on: the party
         // is on screen already, and each tile swaps its coloured box for the real thing as
         // the bytes come back.
@@ -673,7 +789,416 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         OnPropertyChanged(nameof(TeamGapBadgeText));
         OnPropertyChanged(nameof(TeamCoverageNote));
         SelectedSlot = null;
+        ConfigureTeamHints(party, refreshAutomaticProgress: true);
     }
+
+    /// <summary>
+    /// Connects one party snapshot to the explicit Black encounter timeline. A game switch
+    /// rebuilds the selector; ordinary party changes keep the player's manual checkpoint.
+    /// </summary>
+    private void ConfigureTeamHints(PartySnapshot party, bool refreshAutomaticProgress)
+    {
+        bool supported = _teamHintCatalog.Supports(party.Game);
+        TeamHintsSupported = supported;
+
+        if (!supported)
+        {
+            _teamHintProgressReadVersion++;
+            CancelTeamHintProgressRead();
+            _teamHintGameCode = party.Game.GameCode;
+            TeamHintMilestones.Clear();
+            TeamHintPlans.Clear();
+            TeamHintProgressText = "This game's encounter timeline is not mapped yet.";
+            TeamHintStatusText = string.Empty;
+            TeamHintSoonText = string.Empty;
+            OnPropertyChanged(nameof(HasTeamHintPlans));
+            return;
+        }
+
+        bool gameChanged = !string.Equals(
+            _teamHintGameCode,
+            party.Game.GameCode,
+            StringComparison.Ordinal);
+        if (gameChanged || TeamHintMilestones.Count == 0)
+        {
+            _teamHintGameCode = party.Game.GameCode;
+            _isUpdatingTeamHintProgress = true;
+            try
+            {
+                TeamHintMilestones.Clear();
+                foreach (StoryMilestone milestone in _teamHintCatalog
+                    .FindMilestones(party.Game)
+                    .OrderBy(milestone => milestone.Order))
+                {
+                    TeamHintMilestones.Add(milestone);
+                }
+
+                SelectedTeamHintMilestone = TeamHintMilestones.FirstOrDefault();
+                UseAutomaticTeamHintProgress = CanDetectTeamHintProgress(party.Game);
+            }
+            finally
+            {
+                _isUpdatingTeamHintProgress = false;
+            }
+            refreshAutomaticProgress = true;
+        }
+
+        if (UseAutomaticTeamHintProgress && refreshAutomaticProgress)
+        {
+            BeginAutomaticTeamHintProgress(party);
+        }
+        else if (UseAutomaticTeamHintProgress && SelectedTeamHintMilestone is StoryMilestone automatic)
+        {
+            RebuildTeamHints(party, automatic);
+        }
+        else if (SelectedTeamHintMilestone is StoryMilestone manual)
+        {
+            SetManualTeamHintProgress(manual);
+            RebuildTeamHints(party, manual);
+        }
+    }
+
+    private bool CanDetectTeamHintProgress(GameIdentity game)
+    {
+        if (_live.MemoryReader is not IEmulatorMemoryReader { CanRead: true } memory)
+        {
+            return false;
+        }
+
+        return new IrbiStoryProgressReader(memory).Supports(game);
+    }
+
+    private void BeginAutomaticTeamHintProgress(PartySnapshot party)
+    {
+        if (_live.MemoryReader is not IEmulatorMemoryReader { CanRead: true } memory)
+        {
+            FallBackToManualProgress(
+                party,
+                "Automatic detection needs a live melonDS connection. Choose the latest place you can reach.");
+            return;
+        }
+
+        var reader = new IrbiStoryProgressReader(memory);
+        if (!reader.Supports(party.Game))
+        {
+            FallBackToManualProgress(
+                party,
+                "Automatic detection is verified for Italian Pokémon Black only. Choose your progress manually.");
+            return;
+        }
+
+        Task? previousRead = _teamHintProgressRead;
+        CancellationTokenSource? previousCancellation = _teamHintProgressCancellation;
+        previousCancellation?.Cancel();
+        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_animations.Token);
+        _teamHintProgressCancellation = cancellation;
+        int version = ++_teamHintProgressReadVersion;
+        TeamHintProgressText = "Reading story progress from the live save…";
+        TeamHintStatusText = "Future routes stay locked until the reading is confirmed.";
+        TeamHintPlans.Clear();
+        TeamHintSoonText = string.Empty;
+        OnPropertyChanged(nameof(HasTeamHintPlans));
+        _teamHintProgressRead = DetectTeamHintProgressAfterAsync(
+            previousRead,
+            previousCancellation,
+            reader,
+            party,
+            version,
+            cancellation.Token);
+    }
+
+    private async Task DetectTeamHintProgressAfterAsync(
+        Task? previousRead,
+        CancellationTokenSource? previousCancellation,
+        IStoryProgressReader reader,
+        PartySnapshot party,
+        int version,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (previousRead is not null)
+            {
+                await previousRead.ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer snapshot superseded the previous read.
+        }
+        finally
+        {
+            previousCancellation?.Dispose();
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        await DetectTeamHintProgressAsync(
+            reader,
+            party,
+            version,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task DetectTeamHintProgressAsync(
+        IStoryProgressReader reader,
+        PartySnapshot party,
+        int version,
+        CancellationToken cancellationToken)
+    {
+        DetectedStoryProgress? detected;
+        try
+        {
+            detected = await reader
+                .ReadAsync(party.Game, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception)
+        {
+            detected = null;
+        }
+
+        if (!cancellationToken.IsCancellationRequested)
+        {
+            _post(() => ApplyDetectedTeamHintProgress(party, version, detected));
+        }
+    }
+
+    private void ApplyDetectedTeamHintProgress(
+        PartySnapshot party,
+        int version,
+        DetectedStoryProgress? detected)
+    {
+        if (_isDisposed ||
+            version != _teamHintProgressReadVersion ||
+            _party is null ||
+            !string.Equals(_party.Game.GameCode, party.Game.GameCode, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (detected is null)
+        {
+            FallBackToManualProgress(
+                _party,
+                "The live save did not return a safe progress reading. Choose your progress manually.");
+            return;
+        }
+
+        StoryMilestone? milestone = _teamHintCatalog is BlackEncounterCatalog black
+            ? black.FindConservativeMilestone(detected.BadgeCount)
+            : ConservativeMilestone(detected.BadgeCount);
+        if (milestone is null)
+        {
+            FallBackToManualProgress(
+                _party,
+                "No safe checkpoint matched the live save. Choose your progress manually.");
+            return;
+        }
+
+        _isUpdatingTeamHintProgress = true;
+        try
+        {
+            SelectedTeamHintMilestone = milestone;
+        }
+        finally
+        {
+            _isUpdatingTeamHintProgress = false;
+        }
+
+        string badges = detected.BadgeCount == 1 ? "1 badge" : $"{detected.BadgeCount} badges";
+        TeamHintProgressText = $"Detected {badges}. Safe checkpoint: {milestone.Name}.";
+        TeamHintStatusText = detected.MapId is int mapId
+            ? $"Live map {mapId} read too; badge gates remain the conservative limit. Turn off detection to choose an exact route."
+            : "Badge gates set the conservative limit. Turn off detection to choose an exact route.";
+        RebuildTeamHints(_party, milestone);
+    }
+
+    private StoryMilestone? ConservativeMilestone(int badgeCount)
+    {
+        StoryMilestone? guaranteed = TeamHintMilestones
+            .Where(milestone => milestone.GuaranteedWhenBadgesAtLeast is int badges &&
+                badges <= badgeCount)
+            .MaxBy(milestone => milestone.Order);
+
+        // With no badge, Route 1 is the only useful promise that cannot expose a future
+        // route. The exact live map is still shown as evidence, not used as an unlock.
+        return guaranteed ?? TeamHintMilestones.FirstOrDefault();
+    }
+
+    private void FallBackToManualProgress(PartySnapshot party, string reason)
+    {
+        _teamHintProgressReadVersion++;
+        CancelTeamHintProgressRead();
+        _isUpdatingTeamHintProgress = true;
+        try
+        {
+            UseAutomaticTeamHintProgress = false;
+        }
+        finally
+        {
+            _isUpdatingTeamHintProgress = false;
+        }
+
+        TeamHintStatusText = reason;
+        if (SelectedTeamHintMilestone is StoryMilestone milestone)
+        {
+            TeamHintProgressText = $"Manual checkpoint: {milestone.Name}.";
+            RebuildTeamHints(party, milestone);
+        }
+    }
+
+    private void SetManualTeamHintProgress(StoryMilestone milestone)
+    {
+        TeamHintProgressText = $"Manual checkpoint: {milestone.Name}.";
+        TeamHintStatusText = milestone.ReachedWhen;
+    }
+
+    private void CancelTeamHintProgressRead()
+    {
+        _teamHintProgressCancellation?.Cancel();
+    }
+
+    private void RebuildTeamHints(PartySnapshot party, StoryMilestone milestone)
+    {
+        TeamHintPlans.Clear();
+
+        try
+        {
+            TeamHintAnalysis analysis = _teamHintAnalyzer.Analyze(
+                party,
+                milestone,
+                _teamHintCatalog.FindEncounters(party.Game));
+            foreach ((TeamHintPlan plan, int index) in analysis.Plans.Select((plan, index) =>
+                (plan, index)))
+            {
+                TeamHintPlans.Add(ToTeamHintRow(plan, index));
+            }
+        }
+        catch (NotSupportedException ex)
+        {
+            TeamHintStatusText = ex.Message;
+        }
+
+        UpdateTeamHintSoon(party, milestone);
+        OnPropertyChanged(nameof(HasTeamHintPlans));
+    }
+
+    private void UpdateTeamHintSoon(PartySnapshot party, StoryMilestone milestone)
+    {
+        EncounterCandidate[] future =
+        [
+            .. _teamHintCatalog.FindEncounters(party.Game)
+                .Where(encounter => encounter.EarliestMilestone.Order > milestone.Order)
+                .OrderBy(encounter => encounter.EarliestMilestone.Order)
+                .ThenBy(encounter => encounter.SpeciesName, StringComparer.Ordinal),
+        ];
+        if (future.Length == 0)
+        {
+            TeamHintSoonText = string.Empty;
+            return;
+        }
+
+        int nextOrder = future[0].EarliestMilestone.Order;
+        EncounterCandidate[] next =
+        [
+            .. future
+                .Where(encounter => encounter.EarliestMilestone.Order == nextOrder)
+                .DistinctBy(encounter => encounter.SpeciesId)
+                .Take(4),
+        ];
+        string species = string.Join(", ", next.Select(encounter => encounter.SpeciesName));
+        TeamHintSoonText = $"At {future[0].EarliestMilestone.Name}: {species}. "
+            + "These are previews, not part of the available-now plans.";
+    }
+
+    private static TeamHintPlanRow ToTeamHintRow(TeamHintPlan plan, int index)
+    {
+        string gapText = string.Join(" ", plan.Factors
+            .Where(factor => factor.Kind is TeamHintScoreKind.DefensiveCoverage
+                or TeamHintScoreKind.OffensiveCoverage)
+            .Select(factor => factor.Explanation));
+
+        return new TeamHintPlanRow(
+            $"OPTION {(char)('A' + index)}",
+            plan.Summary,
+            $"{plan.Score:+#;-#;0} PTS",
+            gapText + " Only realistic level-up attacks count as coverage.",
+            [.. plan.Additions.Select(candidate => ToTeamHintPokemonRow(candidate, plan))]);
+    }
+
+    private static TeamHintPokemonRow ToTeamHintPokemonRow(
+        TeamHintCandidate candidate,
+        TeamHintPlan plan)
+    {
+        PokemonType[] types = candidate.SecondaryType is PokemonType.None ||
+            candidate.SecondaryType == candidate.PrimaryType
+            ? [candidate.PrimaryType]
+            : [candidate.PrimaryType, candidate.SecondaryType];
+
+        string encounterLevel = candidate.MinimumEncounterLevel == candidate.MaximumEncounterLevel
+            ? $"Lv.{candidate.MinimumEncounterLevel}"
+            : $"Lv.{candidate.MinimumEncounterLevel}–{candidate.MaximumEncounterLevel}";
+        string rate = candidate.EncounterRatePercent is int percent
+            ? $" · {percent}%"
+            : string.Empty;
+        string requirement = string.IsNullOrWhiteSpace(candidate.Requirement)
+            ? string.Empty
+            : $" · {candidate.Requirement}";
+        string limited = candidate.IsLimited
+            ? " · limited: check that it is still available in this save"
+            : string.Empty;
+
+        var impact = new List<string>();
+        if (candidate.CoveredTypes.Count > 0)
+        {
+            impact.Add($"Super-effective into {TypeList(candidate.CoveredTypes)}");
+        }
+
+        if (candidate.DefensiveAnswers.Count > 0)
+        {
+            impact.Add($"Resists {TypeList(candidate.DefensiveAnswers)}");
+        }
+
+        string evolution = candidate.ProjectedEvolution is { } final &&
+            final.SpeciesId != candidate.SpeciesId
+            ? $"Long term: {final.SpeciesName} · {final.Requirements}"
+            : string.Empty;
+        string replacement = plan.Replacement is null
+            ? string.Empty
+            : $"REPLACES {plan.Replacement.SpeciesName.ToUpperInvariant()}";
+
+        return new TeamHintPokemonRow(
+            candidate.SpeciesName,
+            evolution,
+            [.. types.Select(type => TypeChip.For(type, "Type when obtained"))],
+            $"{Describe(candidate.Method)} · {candidate.Location}{rate}{requirement}{limited}",
+            $"Found at {encounterLevel} · plan toward Lv.{candidate.RecommendedLevel}",
+            string.Join(" · ", impact),
+            candidate.Reason,
+            replacement);
+    }
+
+    private static string TypeList(IEnumerable<PokemonType> types) =>
+        string.Join(", ", types.Select(type => type.ToString()).Order(StringComparer.Ordinal));
+
+    private static string Describe(EncounterMethod method) => method switch
+    {
+        EncounterMethod.DarkGrass => "Dark grass",
+        EncounterMethod.ShakingGrass => "Shaking grass",
+        EncounterMethod.DustCloud => "Dust cloud",
+        EncounterMethod.RipplingWater => "Rippling water",
+        EncounterMethod.InGameTrade => "In-game trade",
+        EncounterMethod.BridgeShadow => "Bridge shadow",
+        _ => method.ToString(),
+    };
 
     private async Task LoadSpritesAsync(
         GameIdentity game,
