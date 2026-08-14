@@ -47,12 +47,13 @@ public sealed class SpriteDownloaderTests : IDisposable
         var archive = new FakeArchive();
         var downloader = new SpriteDownloader(new HttpClient(archive), _folder);
 
-        var seen = new ConcurrentBag<SpriteDownloader.Progress>();
-        await downloader.DownloadAsync(
-            new Progress<SpriteDownloader.Progress>(seen.Add), Token);
+        // Not Progress<T>: it hands the callback to the thread pool, so the last report can
+        // still be in flight when DownloadAsync returns, and asserting that the run reached
+        // the end then depends on losing a race. IProgress is called straight from the
+        // downloader, so every report is in before this method continues.
+        var seen = new List<SpriteDownloader.Progress>();
+        await downloader.DownloadAsync(new ImmediateProgress(seen.Add), Token);
 
-        // Progress is reported from a thread pool, so the last report may still be in
-        // flight; what matters is that it counts up and reaches the end.
         Assert.NotEmpty(seen);
         Assert.All(seen, step => Assert.Equal(SpriteDownloader.LastSpecies, step.Total));
         Assert.Contains(seen, step => step.Done == SpriteDownloader.LastSpecies);
@@ -112,6 +113,13 @@ public sealed class SpriteDownloaderTests : IDisposable
         {
             Directory.Delete(_folder, recursive: true);
         }
+    }
+
+    /// <summary>Reports on the calling thread, so a test can assert on what was reported.</summary>
+    private sealed class ImmediateProgress(Action<SpriteDownloader.Progress> report)
+        : IProgress<SpriteDownloader.Progress>
+    {
+        public void Report(SpriteDownloader.Progress value) => report(value);
     }
 
     private sealed class FakeArchive : HttpMessageHandler

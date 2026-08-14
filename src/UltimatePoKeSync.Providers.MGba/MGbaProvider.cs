@@ -220,13 +220,15 @@ public sealed class MGbaProvider : IEmulatorProvider, IEmulatorMemoryReader
 
             return client;
         }
-        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        catch (Exception)
         {
-            client.Dispose();
-            return null;
-        }
-        catch (OperationCanceledException)
-        {
+            // Every failure to connect is the same answer: no client. The two clauses this
+            // replaces left a hole between them, because one only caught while cancellation
+            // had not been requested and the other only caught OperationCanceledException.
+            // A connect refused at the very moment the token is cancelled throws
+            // SocketException with cancellation requested, which matched neither and escaped
+            // into the caller. Rare, load-dependent, and it made the test for this method
+            // fail once in a full run before passing three times alone.
             client.Dispose();
             return null;
         }
