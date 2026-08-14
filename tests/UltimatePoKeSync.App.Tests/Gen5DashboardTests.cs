@@ -186,12 +186,22 @@ public sealed class Gen5DashboardTests
         Assert.Contains("Dreamyard", viewModel.TeamHintSoonText, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Ruby: a real game the app reads fine and has no encounter timeline for. The example
+    /// has to be one that is genuinely unmapped, and this test has now outlived two of them,
+    /// Italian White and then Emerald, because each became supported. A test whose subject is
+    /// an absence needs a new example every time the absence shrinks. See D-057.
+    /// </summary>
     [Fact]
     public void TeamHintsStayUnavailableForAnUnmappedGame()
     {
         (MainWindowViewModel viewModel, FakeSource source) = Create();
+        PartySnapshot emerald = LoadEmerald();
 
-        source.RaiseParty(LoadEmerald());
+        source.RaiseParty(emerald with
+        {
+            Game = emerald.Game with { GameCode = "AXVE", Title = "POKEMON RUBY" },
+        });
 
         Assert.False(viewModel.TeamHintsSupported);
         Assert.Empty(viewModel.TeamHintMilestones);

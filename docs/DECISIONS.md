@@ -2210,3 +2210,52 @@ signed by Apple, so it cannot make it well), compare against the tag list rather
 `releases/latest` (rejected: the latest release is exactly the question, and the tag list
 includes tags that were never released), and nag every launch until updated (rejected: the
 player is allowed to keep the old one, which is what "and use the old one" meant).
+
+## D-057. Hoenn, where half the catalog can be checked and half cannot
+
+**Status:** Accepted · 2026-08-14
+
+Team hints reach Pokémon Emerald. The catalog is built the way Unova's is, and this entry is
+mostly about the half that is different.
+
+**The encounters are PKHeX's.** 312 wild entries across 49 places, taken from
+`Encounters3RSE.SlotsE` and emitted rather than typed, so a transcription slip is not
+possible. `HoennEncounterPkHexAgreementTests` then checks every species is really catchable in
+Emerald and that both ends of every printed level range are levels it really appears at, the
+same two questions the Unova check asks.
+
+An earlier pass of that extraction merged the slot types and produced ranges like "Goldeen
+Lv.5-30", which is grass, Surf and two rods averaged into a number true of nothing. Keyed by
+place *and* type, the ranges are honest.
+
+**The story order is not checkable, and is therefore pessimistic.** Which route opens after
+which badge is knowledge of the game with no table to verify it against. Every checkpoint is
+anchored to a badge count, which is objective, and wherever the order was uncertain the place
+was filed behind the badge that certainly precedes it. Being late costs a suggestion; being
+early sends somebody to a route they cannot open, and that failure is invisible because it
+looks like ordinary advice. The test asserts the property that makes it safe to be wrong: the
+timeline never runs backwards, badge counts never decrease, and no badge count unlocks a
+checkpoint needing more.
+
+**Grass and Surf only.** Fishing is 288 of the 600 entries and needs a rod, an item the app
+cannot see, and it would have filled the pool with Tentacool and Magikarp. Five places PKHeX
+knows are left out with a reason each, in the class remarks: two post-game, one event-only,
+one story-locked, and Mirage Tower, which appears and vanishes with the day and so can never
+be promised.
+
+**Only Emerald.** Ruby and Sapphire share Hoenn and differ in their tables, and nobody has run
+one against this catalog. They read as unmapped, which is the honest answer.
+
+**Third time for one shape of mistake.** `TeamHintsStayUnavailableForAnUnmappedGame` used
+Emerald as its example of a game with no timeline, and Emerald now has one. Before that the
+melonDS test used Italian White until Italian White was mapped, and then English Black. A test
+whose subject is an absence needs a new example every time the absence shrinks, and it is
+worth naming as a shape rather than fixing quietly a fourth time.
+
+**Alternatives considered:** wait for a verifiable source for the story order (rejected: there
+is no such table, and the alternative to a careful guess here is no feature), badge-only
+checkpoints with no route detail (rejected: nine checkpoints across a fifty-place region opens
+everything in slabs and stops being advice), include fishing behind an availability check
+(rejected: it triples the pool to say "check whether you own a rod" about most of it), and
+generate the timeline from the order PKHeX's location ids happen to run in (rejected: that is
+map data, not story order, and it would look derived while being a guess).
