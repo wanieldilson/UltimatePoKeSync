@@ -38,26 +38,33 @@ public sealed class MelonDsProviderTests
     [Fact]
     public void OnlyTheCartridgesThatWereVerifiedAreMapped()
     {
-        // Four cartridges were run, and no two share an address. Version moves it and so does
-        // language, which is the whole reason each code is measured. See D-054.
+        // Five cartridges were run, and no two share an address. Version and language both
+        // move it, which is the whole reason each code is measured. See D-054 and D-061.
         uint[] pointers =
         [
             Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRBI")).PartyPointer,
             Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRBO")).PartyPointer,
             Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRAI")).PartyPointer,
             Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRAO")).PartyPointer,
+            Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IREO")).PartyPointer,
         ];
 
-        Assert.Equal([0x0224F88Cu, 0x0224F98Cu, 0x0224F8ACu, 0x0224F9ACu], pointers);
+        Assert.Equal(
+            [0x0224F88Cu, 0x0224F98Cu, 0x0224F8ACu, 0x0224F9ACu, 0x0223B4C4u],
+            pointers);
         Assert.Equal(pointers.Length, pointers.Distinct().Count());
+
+        // Black 2 lands nowhere near the four originals, which is the evidence that the gaps
+        // between those four were never a rule to extrapolate from.
+        Assert.True(pointers[^1] < pointers[0] - 0x10000);
 
         // Japanese Black exists and is Gen 5, but nobody has run it. It must be refused rather
         // than read at the address of any cartridge above, however close they look.
         Assert.Null(Gen5MemoryMap.For("IRBJ"));
         Assert.True(Gen5MemoryMap.IsGen5("IRBJ"));
 
-        // The sequels are a different game again, and equally unmapped.
-        Assert.Null(Gen5MemoryMap.For("IREO"));
+        // White 2 is a different game again, and equally unmapped.
+        Assert.Null(Gen5MemoryMap.For("IRDO"));
 
         // And something that is not a Gen 5 game at all.
         Assert.False(Gen5MemoryMap.IsGen5("ADAE"));

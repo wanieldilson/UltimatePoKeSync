@@ -47,12 +47,11 @@ public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPoint
     /// of reading a plausible-looking address and inventing a team out of it.
     /// </summary>
     /// <remarks>
-    /// Four cartridges, four addresses, and the gaps follow no rule worth trusting: measured
-    /// from Italian Black, Italian White sits <c>+0x20</c> away, English Black <c>+0x100</c>
-    /// and English White <c>+0x120</c>. It is tempting to read that as language moving the
-    /// party by <c>0x100</c> and version by <c>0x20</c>, and it may even be true, but four
-    /// samples of one region is not a rule and the cost of being wrong is a team invented out
-    /// of the wrong bytes. Each code is measured. See D-054.
+    /// Five cartridges, five addresses. The four originals sit within <c>0x120</c> of each
+    /// other and look like they follow a rule: language moving the party by <c>0x100</c> and
+    /// version by <c>0x20</c>. Black 2 then lands nowhere near them, pointer and head both,
+    /// which is the argument against ever having used that rule. Each code is measured. See
+    /// D-054 and D-061.
     /// </remarks>
     private static readonly Dictionary<string, Gen5MemoryMap> Known = new(StringComparer.Ordinal)
     {
@@ -67,9 +66,13 @@ public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPoint
         // then the directory's neighbourhood was known: a Tepig at Lv.5, confirmed.
         ["IRAI"] = new("IRAI", "White (Italy)", 0x0224F8AC),
 
-        // Verified live on 2026-08-14, an Oshawott at Lv.5. Completes the four cartridges
-        // the encounter catalogs answer for. See D-054.
+        // Verified live on 2026-08-14, an Oshawott at Lv.5. See D-054.
         ["IRBO"] = new("IRBO", "Black (English)", 0x0224F98C),
+
+        // Verified live on 2026-08-15, a Snivy at Lv.5. The sequels lay their heap out
+        // differently enough that the directory is not where the originals keep it, and this
+        // one had to be scanned for rather than looked up. See D-061.
+        ["IREO"] = new("IREO", "Black 2 (English)", 0x0223B4C4),
     };
 
     public static Gen5MemoryMap? For(string gameCode) =>

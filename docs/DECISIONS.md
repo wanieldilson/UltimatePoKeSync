@@ -2381,3 +2381,39 @@ order is clearer and leave the rest out (rejected: it hides most of the game rat
 describing it coarsely), and wait for someone who knows the games well to write the order
 (deferred: that is the better catalog, and this one can be replaced by it without touching
 anything else).
+
+## D-061. Black 2 lands nowhere near the originals, which settles the arithmetic
+
+**Status:** Accepted · 2026-08-15
+
+English Black 2 (`IREO`) keeps its party pointer at `0x0223B4C4`, leading to `0x0221E3E4`.
+Verified live: one candidate survived the entropy filter across a megabyte of main RAM, exactly
+one word in that megabyte pointed at it, and the parser read the Snivy the player confirmed
+carrying.
+
+The shortcut did not work. For the four originals the pointer sits in a directory around
+`0x0224F8xx`, and by the third cartridge that window could be read in seconds. Black 2's
+directory is not there, so this went back to the full scan of D-054: read a megabyte, filter on
+the party's shape, then on entropy, then keep whatever exactly one pointer leads to.
+
+| Cartridge | Pointer | Party head |
+| --- | --- | --- |
+| Black, Italian | `0x0224F88C` | `0x022348AC` |
+| Black, English | `0x0224F98C` | `0x022349AC` |
+| White, Italian | `0x0224F8AC` | `0x022348CC` |
+| White, English | `0x0224F9AC` | `0x022349CC` |
+| **Black 2, English** | **`0x0223B4C4`** | **`0x0221E3E4`** |
+
+D-054 recorded a temptation and refused it: the four originals sit within `0x120` of each
+other, language apparently moving the party by `0x100` and version by `0x20`, and deriving the
+remaining codes by arithmetic would have been easy. Black 2 lands about 82 KB below the whole
+group, pointer and head both. Whatever pattern the four had was a pattern of one game in two
+languages, and extrapolating it past that would have produced an address that is not merely
+wrong but confidently wrong, pointing at real memory that would parse into something.
+
+Five cartridges, and the rule is still the one from D-035: each code is measured. The test now
+asserts the sequel's pointer is far below the originals, so the evidence against the
+arithmetic is written down where somebody would go looking to use it.
+
+This makes Black 2 complete: the catalog of D-060 was already waiting, so party, analysis and
+badge-anchored hints all work on it. White 2 stays unmapped.
