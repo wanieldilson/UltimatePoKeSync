@@ -48,3 +48,7 @@ build/*.icns
 
 # Local agent/editor state
 .claude/
+
+# Python bytecode from running the tools
+__pycache__/
+*.pyc
