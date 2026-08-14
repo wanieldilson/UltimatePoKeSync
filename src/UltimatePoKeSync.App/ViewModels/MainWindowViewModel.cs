@@ -1093,6 +1093,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         UpdateTeamHintSoon(party, milestone);
         OnPropertyChanged(nameof(HasTeamHintPlans));
+        LoadTeamHintSprites();
     }
 
     private void UpdateTeamHintSoon(PartySnapshot party, StoryMilestone milestone)
@@ -1163,11 +1164,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         var impact = new List<string>();
         if (candidate.CoveredTypes.Count > 0)
         {
-            impact.Add($"Super-effective into {TypeList(candidate.CoveredTypes)}");
+            // Potentially, and the word is doing real work. These types come from the
+            // damaging moves the species can learn along its near-term level-up line, not
+            // from moves it has: a Patrat in the grass knows Tackle. Saying it is
+            // super-effective into something would promise a Pokémon that does not exist
+            // yet, which is the false certainty D-025 exists to keep out. See D-053.
+            impact.Add($"Potentially super-effective into {TypeList(candidate.CoveredTypes)}");
         }
 
         if (candidate.DefensiveAnswers.Count > 0)
         {
+            // No hedge here: a resistance follows from the species' own typing and is true
+            // the moment it is caught.
             impact.Add($"Resists {TypeList(candidate.DefensiveAnswers)}");
         }
 
@@ -1180,6 +1188,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             : $"REPLACES {plan.Replacement.SpeciesName.ToUpperInvariant()}";
 
         return new TeamHintPokemonRow(
+            candidate.SpeciesId,
             candidate.SpeciesName,
             evolution,
             [.. types.Select(type => TypeChip.For(type, "Type when obtained"))],
@@ -1203,6 +1212,48 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         EncounterMethod.BridgeShadow => "Bridge shadow",
         _ => method.ToString(),
     };
+
+    /// <summary>
+    /// Draws the Pokémon a plan suggests, from the player's own sprite folder.
+    /// </summary>
+    /// <remarks>
+    /// Off the UI thread, because reading and decoding a GIF is disk work and this runs
+    /// whenever the story point changes. Only the first frame is used: these are small
+    /// reference pictures in a list, not the hero sprite, and nine of them animating at once
+    /// would pull the eye away from the reading. Cached by the pack, so every rebuild after
+    /// the first costs nothing. A missing folder leaves the initials in place. See D-045.
+    /// </remarks>
+    private void LoadTeamHintSprites()
+    {
+        TeamHintPokemonRow[] rows =
+        [
+            .. TeamHintPlans.SelectMany(plan => plan.Pokemon).Where(row => row.Sprite is null),
+        ];
+
+        if (rows.Length == 0)
+        {
+            return;
+        }
+
+        _ = Task.Run(() =>
+        {
+            foreach (TeamHintPokemonRow row in rows)
+            {
+                if (_animations.Token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (_pack.Find(row.SpeciesId, shiny: false) is not AnimatedSprite sprite)
+                {
+                    continue;
+                }
+
+                Bitmap firstFrame = SpriteImage.From(sprite, sprite.Frames[0]);
+                _post(() => row.Sprite = firstFrame);
+            }
+        }, _animations.Token);
+    }
 
     private async Task LoadSpritesAsync(
         GameIdentity game,

@@ -1995,3 +1995,18 @@ second and a long one takes it away from whoever is playing. An earlier attempt 
 session killed the app with a signal instead of closing its window, so its client never sent
 `D`, and the stub had to be cleared by reloading the ROM. D-039 said as much and it was worth
 relearning.
+
+### Amendment, 2026-08-14: the coverage a hint promises is potential
+
+A suggestion card said a candidate was "super-effective into" a list of types. It is not, yet.
+Those types come from the damaging moves the species can learn along the near-term level-up
+line projected for it, not from moves it has: the Patrat waiting in the grass knows Tackle.
+The entry above already said as much, and the card said something stronger than the entry.
+
+It now reads "Potentially super-effective into", and the plan still carries its own note that
+only realistic level-up attacks count. The defensive half keeps its plain wording, because a
+resistance follows from the species' typing and is true the moment it is caught.
+
+A single word, and worth the entry: the whole feature is a list of promises about Pokémon the
+player does not own yet, and the difference between what one will be able to do and what it
+can do is the difference D-025 exists to hold.
