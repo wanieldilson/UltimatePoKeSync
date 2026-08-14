@@ -2338,3 +2338,46 @@ reached the Sevii Islands" (rejected: that is the player doing the app's job, an
 refuses conditional encounters for exactly this reason), and read the story flags from memory
 to find out (deferred: it is the same shape of problem as the badge byte in issue #16, and it
 should wait until that one is solved on a game that already needs it).
+
+## D-060. Black 2 and White 2, where the checkpoints are only the badges
+
+**Status:** Accepted · 2026-08-15
+
+Team hints reach the sequels, and their catalog is built differently from every other one
+here: nine checkpoints, one per Gym, and no route detail at all.
+
+Every other catalog has a route-level timeline because the story order was known well enough
+to write one and file the uncertain places late. For these two that was not true. Unova is
+rebuilt: the game starts in Aspertia, the Gym order is different, and half the western region
+that Black and White open in the first hours is reached near the end. Writing forty
+route-level checkpoints from a memory that shaky would have produced something precise and
+wrong, which is worse than something coarse and true, because precision is what makes a
+suggestion believable.
+
+So each place sits at the badge count by which it is certainly reachable, and anything
+uncertain sits at the last checkpoint before the League. A test asserts the checkpoints are
+exactly the nine badge counts, so this does not drift back into route detail by accident.
+
+**The cost is real and worth naming.** A stretch of the map opens all at once rather than
+route by route, so between two Gyms the screen says the same thing. For a player deciding what
+to catch this evening that is less useful than Hoenn's version. It is the honest amount of
+detail rather than the useful amount, and the two were not both available.
+
+The encounters themselves are the usual: emitted from `SlotsB2` and `SlotsW2`, 131 and 130
+lines, checked by `UnovaSequelPkHexAgreementTests` against their own tables. Grass, Surf and
+swarms. Hidden Grotto is out because its contents rotate on a timer nothing here can read, and
+the post-game places are out for the reason they always are.
+
+**None of this is reachable yet**, and that is the last thing to say. `Gen5MemoryMap` has no
+address for `IRE*` or `IRD*`, so the app cannot read a sequel party at all and the catalog
+waits for a cartridge, exactly as White's did before D-054. The catalog was still worth
+building first: it is the long job and it can be verified offline, while the address takes two
+minutes once somebody has the game running.
+
+**Alternatives considered:** write a route-level timeline anyway and correct it from reports
+(rejected: the corrections would arrive as "it sent me somewhere I could not go", which is the
+one failure this feature cannot afford), map only the stretch up to the fourth badge where the
+order is clearer and leave the rest out (rejected: it hides most of the game rather than
+describing it coarsely), and wait for someone who knows the games well to write the order
+(deferred: that is the better catalog, and this one can be replaced by it without touching
+anything else).
