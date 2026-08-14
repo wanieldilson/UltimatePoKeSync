@@ -36,14 +36,24 @@ public sealed class MelonDsProviderTests
     }
 
     [Fact]
-    public void OnlyTheCartridgeThatWasVerifiedIsMapped()
+    public void OnlyTheCartridgesThatWereVerifiedAreMapped()
     {
-        Assert.NotNull(Gen5MemoryMap.For("IRBI"));
+        // Both were run: Italian Black (D-040) and English White (D-054). Their addresses
+        // differ, which is the whole reason each one needs its own line.
+        Gen5MemoryMap black = Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRBI"));
+        Gen5MemoryMap white = Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRAO"));
+        Assert.Equal(0x0224F88Cu, black.PartyPointer);
+        Assert.Equal(0x0224F9ACu, white.PartyPointer);
+        Assert.NotEqual(black.PartyPointer, white.PartyPointer);
 
-        // White exists and is Gen 5, but nobody has run it: it must be refused rather than
-        // read at Black's address. This is the mistake D-035 was written about.
+        // Italian White exists and is Gen 5, but nobody has run it. It must be refused rather
+        // than read at the address of either cartridge above, however close they look: D-035
+        // was written because one sample supported two explanations.
         Assert.Null(Gen5MemoryMap.For("IRAI"));
         Assert.True(Gen5MemoryMap.IsGen5("IRAI"));
+
+        // The sequels are a different game again, and equally unmapped.
+        Assert.Null(Gen5MemoryMap.For("IREO"));
 
         // And something that is not a Gen 5 game at all.
         Assert.False(Gen5MemoryMap.IsGen5("ADAE"));

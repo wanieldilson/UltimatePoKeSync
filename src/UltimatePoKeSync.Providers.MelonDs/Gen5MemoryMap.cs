@@ -42,14 +42,24 @@ public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPoint
     public const int SlotCapacity = 6;
 
     /// <summary>
-    /// Every Gen 5 game code, but only one address. The others are listed as unsupported on
-    /// purpose: the app can then say "this is White, and it is not mapped yet" instead of
-    /// reading a plausible-looking address and inventing a team out of it.
+    /// Only the codes verified against a running cartridge. Every other Gen 5 code is left
+    /// out on purpose: the app can then say "this is White, and it is not mapped yet" instead
+    /// of reading a plausible-looking address and inventing a team out of it.
     /// </summary>
+    /// <remarks>
+    /// The two entries sit exactly <c>0x120</c> apart, in both the pointer and the head it
+    /// leads to. That is a fact about these two cartridges and not a rule: D-035 exists
+    /// because a single sample supported two explanations and the wrong one was picked, so
+    /// the next game gets its own line only once somebody has run it. See D-054.
+    /// </remarks>
     private static readonly Dictionary<string, Gen5MemoryMap> Known = new(StringComparer.Ordinal)
     {
         // Verified live against a real cartridge on 2026-08-12. See D-040.
         ["IRBI"] = new("IRBI", "Black (Italy)", 0x0224F88C),
+
+        // Verified live on 2026-08-14, the same way: one pointer in all of main RAM leads
+        // here, and the parser read the Tepig the player confirmed carrying. See D-054.
+        ["IRAO"] = new("IRAO", "White (English)", 0x0224F9AC),
     };
 
     public static Gen5MemoryMap? For(string gameCode) =>

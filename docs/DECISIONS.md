@@ -2010,3 +2010,46 @@ resistance follows from the species' typing and is true the moment it is caught.
 A single word, and worth the entry: the whole feature is a list of promises about Pokémon the
 player does not own yet, and the difference between what one will be able to do and what it
 can do is the difference D-025 exists to hold.
+
+## D-054. A second Gen 5 cartridge, found the same way and filed on its own line
+
+**Status:** Accepted · 2026-08-14
+
+An English Pokémon White was tried and nothing happened: no party, no analysis, no hints.
+That was `Gen5MemoryMap` refusing to read, correctly, because it held one entry and that
+entry was Italian Black. D-005 working as intended, and the reason issue #24 exists: the
+parser accepts all 32 Gen 5 codes and the encounter catalog accepts Black in eight languages,
+while the layer that actually reaches memory knew one cartridge.
+
+The address was found with the method of D-040, and faster, because the shape was known.
+The cartridge header at `0x023FFE00` read `POKEMON W` / `IRAO`. Black's pointer directory is
+not in the same place in White, so a megabyte of main RAM was read in 68 seconds and scanned
+for the party's shape: capacity 6, then a count that fits in it. That alone produced hundreds
+of matches in a region full of repeated sixes, so the filter gained the thing noise cannot
+fake, entropy: a party slot is encrypted, and 150 distinct byte values in 220 is not
+something a table of small integers produces. Three candidates survived, and the real parser
+decoded all three.
+
+| Address | Read as | Pointed at by |
+| --- | --- | --- |
+| `0x022349CC` | Tepig Lv.5, HP 19/22, Relaxed | **one word, at `0x0224F9AC`** |
+| `0x0225D758` | the same Tepig, same PID | nothing |
+| `0x0225DCB8` | Snivy Lv.5, HP 19/19, Bold | nothing |
+
+The duplicate and the orphan are exactly what D-040 saw in Black. Being pointed at is what
+separates the party from a copy of it, and the player confirmed carrying the Tepig, which is
+what turns a strong inference into a fact.
+
+`["IRAO"] = 0x0224F9AC` is therefore filed beside Black's, and only beside it. The two sit
+exactly `0x120` apart in both the pointer and the head it leads to, which is a satisfying
+number and not a rule: it is two samples, and D-035 exists because two explanations once fit
+one. Italian White and the sequels stay unmapped until somebody runs them.
+
+What this does not give White is team hints, which are keyed to the Black encounter timeline
+and stay that way until issue #17 maps White's own.
+
+**Alternatives considered:** derive other codes by adding `0x120` (rejected: that is the
+inference D-035 punished, and it would be wrong invisibly), scan at run time for anything
+that parses (rejected for the fourth time, D-005, D-019, D-035 and D-040), and read the whole
+4 MB rather than a window (rejected: 273 seconds against 68, and the window was chosen from
+where Black keeps its heap, which is a guess that costs nothing when it is wrong).
