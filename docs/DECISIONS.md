@@ -2417,3 +2417,55 @@ arithmetic is written down where somebody would go looking to use it.
 
 This makes Black 2 complete: the catalog of D-060 was already waiting, so party, analysis and
 badge-anchored hints all work on it. White 2 stays unmapped.
+
+## D-062. A catch you cannot make is not a suggestion
+
+**Status:** Accepted · 2026-08-15
+
+Black 2 with a level 5 Snivy was offered a plan headed "Add Sudowoodo, Psyduck, Pidove", worth
+133 points. The Sudowoodo was Lv.40-55. Three separate faults produced that one card, and only
+the third is interesting.
+
+**Species 0 is not a Pokémon.** The Gen 5 sequel tables carry empty slots as species 0, and
+124 of them reached the catalog as encounters named `---`. The agreement test could not catch
+it, because species 0 genuinely is in PKHeX's table: it is a placeholder, and the check was
+asking whether each species exists there rather than whether it is a species at all. The
+generator now drops it, and a test asserts no candidate has an id of zero.
+
+**Swarm slots in the sequels are the post-game.** PKHeX's swarm set for Black 2 and White 2 is
+the rustling grass that opens after the Hall of Fame, which is why Route 20, a starting-area
+route, holds a Lv.40-55 Sudowoodo. Mapping them to shaking grass pulled the whole post-game
+into checkpoint zero. They are out, and a test asserts nothing at the zero-badge checkpoint
+starts above Lv.20.
+
+**The real fault was in the analyzer, and it affected every game.** Practicality charged for
+levels in one direction only:
+
+```csharp
+int grindLevels = Math.Max(0, averageLevel - encounter.MaximumLevel);
+```
+
+That is the cost of catching something *below* your team and training it up, which is time.
+Something far *above* the team cost nothing at all, when it is the harder problem: it cannot be
+worn down without fainting whatever is wearing it down, and it will not stay in a ball. So a
+Lv.40 Sudowoodo scored as freely available to a Lv.5 party, and the score was not even wrong
+by its own lights, because nobody had told it that up is a direction too.
+
+Encounters more than eight levels above the party's average are now filtered out entirely
+rather than merely penalised, beside the milestone gate, because this is the same kind of
+claim: something the player cannot actually do. Below that, levels cost in both directions,
+and reaching upward costs twice as much per level as grinding upward does.
+
+The player who reported it put it exactly right: of the three, only Pidove was plausible.
+
+**Not changed:** the Psyduck. It sits in Floccesy Ranch's grass at Lv.5 in PKHeX's table, so
+the catalog is repeating the game rather than inventing. It may be seasonal, since Black 2
+rotates encounters by month and the extraction folds the seasons together, and that would be a
+real limitation worth its own entry. It is not this one.
+
+**Alternatives considered:** penalise the level gap heavily instead of filtering (rejected: a
+heavy penalty still lets it through when nothing else competes, which is exactly the empty
+early game where this happened), scale the limit with the party's level rather than a flat
+eight (rejected: eight levels is roughly the point where a wild Pokémon stops being catchable
+regardless of where you are in the game), and keep swarms with a corrected milestone (rejected:
+their real milestone is "after the credits", which this timeline has no way to express).

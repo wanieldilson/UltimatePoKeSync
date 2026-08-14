@@ -16,6 +16,12 @@ public sealed class TeamHintAnalyzer
     private const int MaximumCombinationCandidates = 24;
     private const int MaximumEvolutionDepth = 4;
 
+    /// <summary>
+    /// How far above the party's average level an encounter may sit and still be worth
+    /// naming. Beyond this it cannot be weakened without fainting the thing weakening it.
+    /// </summary>
+    private const int OutOfReachLevels = 8;
+
     private readonly GameDataSources _sources;
     private readonly IGenerationRulesResolver _rulesResolver;
 
@@ -80,6 +86,10 @@ public sealed class TeamHintAnalyzer
                 // safe "available now" promise. Conditional encounters stay in the catalog
                 // for future UI, but never enter the main ranking without that evidence.
                 .Where(encounter => !encounter.AvailabilityIsConditional)
+                // And nothing far above the party. A Pokemon well over your level cannot be
+                // worn down safely and will not stay in a ball; suggesting it is not advice,
+                // it is a trip that ends in a blackout. See D-062.
+                .Where(encounter => encounter.MinimumLevel <= averageLevel + OutOfReachLevels)
                 .GroupBy(encounter => encounter.SpeciesId)
                 .Select(group => group
                     .OrderBy(encounter => encounter.EarliestMilestone.Order)
@@ -707,8 +717,14 @@ public sealed class TeamHintAnalyzer
 
     private static int PracticalityPoints(EncounterCandidate encounter, int averageLevel)
     {
+        // Levels in either direction cost something, and they do not cost the same. Below the
+        // party is grinding, which is time; above it is a catch that fights back, which is
+        // the harder problem, so it is charged twice as much per level. Only the far side of
+        // this was counted before, which is how a Lv.40 Sudowoodo reached a Lv.5 team for
+        // free. See D-062.
         int grindLevels = Math.Max(0, averageLevel - encounter.MaximumLevel);
-        int cost = Math.Min(10, grindLevels / 3);
+        int reachLevels = Math.Max(0, encounter.MinimumLevel - averageLevel);
+        int cost = Math.Min(10, (grindLevels / 3) + ((reachLevels * 2) / 3));
         cost += encounter.EncounterRatePercent switch
         {
             null => 1,

@@ -114,6 +114,44 @@ public sealed class UnovaSequelPkHexAgreementTests
                 candidate => candidate.Location.Contains(name, StringComparison.Ordinal)));
     }
 
+    /// <summary>
+    /// The tables carry an empty slot as species 0, and 124 of them reached the catalog as
+    /// encounters named "---". The agreement check could not see it, because species 0 is
+    /// genuinely in PKHeX's table; it is a placeholder, not a Pokémon. See D-062.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Versions))]
+    public void TheEmptySlotIsNotAPokemon(string version)
+    {
+        (GameIdentity game, UnovaSequelEncounterCatalog catalog, _) = Setup(version);
+
+        Assert.All(
+            catalog.FindEncounters(game),
+            candidate =>
+            {
+                Assert.True(candidate.SpeciesId > 0);
+                Assert.NotEqual("---", candidate.SpeciesName);
+            });
+    }
+
+    /// <summary>
+    /// Swarm slots in these two games are the post-game rustling grass. Route 20 is a
+    /// starting-area route and its swarm slot is a Lv.40-55 Sudowoodo, which was being offered
+    /// to a player with no badges. See D-062.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Versions))]
+    public void NothingFromThePostGameRustlingGrassIsSuggested(string version)
+    {
+        (GameIdentity game, UnovaSequelEncounterCatalog catalog, _) = Setup(version);
+        IReadOnlyList<EncounterCandidate> candidates = catalog.FindEncounters(game);
+
+        Assert.DoesNotContain(candidates, c => c.Method == EncounterMethod.ShakingGrass);
+        Assert.DoesNotContain(
+            candidates,
+            c => c.EarliestMilestone.BadgeCount == 0 && c.MinimumLevel > 20);
+    }
+
     [Theory]
     [MemberData(nameof(Versions))]
     public void ThePkHexTableWasActuallyRead(string version)
