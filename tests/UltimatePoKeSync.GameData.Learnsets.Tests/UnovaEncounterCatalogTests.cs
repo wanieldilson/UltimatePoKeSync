@@ -5,12 +5,15 @@ using Xunit;
 
 namespace UltimatePoKeSync.GameData.Learnsets.Tests;
 
-public sealed class BlackEncounterCatalogTests
+public sealed class UnovaEncounterCatalogTests
 {
     private static readonly GameIdentity Black =
         new("IRBI", "POKEMON B", 0, PokemonGeneration.Gen5);
 
-    private readonly BlackEncounterCatalog _catalog = BlackEncounterCatalog.Instance;
+    private static readonly GameIdentity White =
+        new("IRAO", "POKEMON W", 0, PokemonGeneration.Gen5);
+
+    private readonly UnovaEncounterCatalog _catalog = UnovaEncounterCatalog.Black;
 
     [Fact]
     public void SupportsOriginalBlackButNotWhiteOrBlackTwo()
@@ -18,6 +21,7 @@ public sealed class BlackEncounterCatalogTests
         Assert.True(_catalog.Supports(Black));
         Assert.True(_catalog.Supports(Black with { GameCode = "IRBE" }));
         Assert.False(_catalog.Supports(Black with { GameCode = "IRAI" }));
+        Assert.True(UnovaEncounterCatalog.White.Supports(White));
         Assert.False(_catalog.Supports(Black with { GameCode = "IREI" }));
     }
 
@@ -44,7 +48,7 @@ public sealed class BlackEncounterCatalogTests
     [InlineData(7, "route-8")]
     [InlineData(8, "route-10")]
     public void BadgeOnlyDetectionUsesConservativeCheckpoints(int badges, string expectedId) =>
-        Assert.Equal(expectedId, _catalog.FindConservativeMilestone(badges).Id);
+        Assert.Equal(expectedId, _catalog.FindConservativeMilestone(Black, badges).Id);
 
     [Fact]
     public void ManualTimelineExposesRoutesBeforeTheFollowingGymWhileBadgeDetectionStaysSafe()

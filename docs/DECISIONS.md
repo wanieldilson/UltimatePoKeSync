@@ -2053,3 +2053,54 @@ inference D-035 punished, and it would be wrong invisibly), scan at run time for
 that parses (rejected for the fourth time, D-005, D-019, D-035 and D-040), and read the whole
 4 MB rather than a window (rejected: 273 seconds against 68, and the window was chosen from
 where Black keeps its heap, which is a guess that costs nothing when it is wrong).
+
+## D-055. One Unova, two versions, and the differences listed where they happen
+
+**Status:** Accepted · 2026-08-14
+
+Team hints knew Black. White shares the region, the route order, the gym order and the
+milestones, so a second catalog would have been a copy of the first with six lines changed
+and every reason to drift apart. `BlackEncounterCatalog` is therefore now
+`UnovaEncounterCatalog`, built once per version, with the differences written at the points
+where the two games actually diverge.
+
+The differences were taken from PKHeX rather than from memory, by comparing its two tables:
+232 wild species in Black, 265 in White, 216 shared. Six places needed a line:
+
+| Where | Black | White |
+| --- | --- | --- |
+| Pinwheel Forest interior | Cottonee | Petilil |
+| Nacrene City trade | give Cottonee, get Petilil | give Petilil, get Cottonee |
+| Route 5 | Gothita | Solosis |
+| Route 10 | Vullaby | Rufflet |
+| Unova roamer | Tornadus | Thundurus |
+| Pinwheel Forest entrance | Sawk in grass, Throh in shaking grass | the other way round |
+
+The last one is the reason the cross-check earns its place. The first five are absolute
+exclusives, absent from the other version's tables, and easy to find by comparing species
+lists. Throh and Sawk are in both games and only swap *roles*, so the species comparison said
+nothing and the catalog quietly kept Black's levels for White. The test caught it: "Sawk
+claims 12-15, really 15-50". A wrong level on a real species is exactly the plausible failure
+this project keeps meeting.
+
+`UnovaEncounterPkHexAgreementTests` now runs against both versions, each against its own slot
+table, and asserts they really do swap: Cottonee is in Black's table and not White's, Petilil
+the reverse.
+
+**White Forest is excluded**, and it is the one deliberate hole. 33 of White's extra species
+live only there, and which of them are present depends on which residents have migrated into
+the forest, which is save state the app cannot read. Suggesting a Bellsprout that may not be
+there is the promise D-025 exists to prevent, so White will simply never propose those 33.
+The catalog stays honest and slightly poorer.
+
+`IEncounterCatalog` gained `FindConservativeMilestone`, which the dashboard used to reach by
+casting to the concrete Black catalog. With two catalogs that cast would have been a bug, so
+the question moved onto the interface and a `CompositeEncounterCatalog` dispatches by game,
+the way learnsets and evolutions already do (D-043).
+
+**Alternatives considered:** a separate `WhiteEncounterCatalog` (rejected: 95% duplication of
+a hand-curated list, and the copy that drifts is the one nobody is checking), deriving White
+from Black by a lookup table of swaps (rejected: the Throh and Sawk case is not a swap of
+species but of levels and methods, so the table would have needed to express the whole entry
+anyway), and including White Forest with a warning (rejected: a warning on a suggestion the
+app cannot stand behind is still a suggestion).

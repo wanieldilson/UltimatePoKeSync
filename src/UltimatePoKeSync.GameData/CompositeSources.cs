@@ -107,3 +107,44 @@ public sealed class CompositeSpeciesBaseStatsSource : ISpeciesBaseStatsSource
         return _sources.FirstOrDefault(source => source.Supports(game));
     }
 }
+
+/// <summary>Several encounter catalogs, and the game picks which one answers. See D-043.</summary>
+public sealed class CompositeEncounterCatalog : IEncounterCatalog
+{
+    private readonly IReadOnlyList<IEncounterCatalog> _catalogs;
+
+    public CompositeEncounterCatalog(params IEncounterCatalog[] catalogs)
+    {
+        ArgumentNullException.ThrowIfNull(catalogs);
+        if (catalogs.Length == 0)
+        {
+            throw new ArgumentException("At least one encounter catalog is needed.", nameof(catalogs));
+        }
+
+        _catalogs = catalogs;
+    }
+
+    public string SourceName =>
+        string.Join(" + ", _catalogs.Select(catalog => catalog.SourceName).Distinct());
+
+    public bool Supports(GameIdentity game) => Find(game) is not null;
+
+    public IReadOnlyList<StoryMilestone> FindMilestones(GameIdentity game) =>
+        Resolve(game).FindMilestones(game);
+
+    public IReadOnlyList<EncounterCandidate> FindEncounters(GameIdentity game) =>
+        Resolve(game).FindEncounters(game);
+
+    public StoryMilestone FindConservativeMilestone(GameIdentity game, int badgeCount) =>
+        Resolve(game).FindConservativeMilestone(game, badgeCount);
+
+    private IEncounterCatalog Resolve(GameIdentity game) =>
+        Find(game) ?? throw new NotSupportedException(
+            $"No encounter timeline is available for {game}.");
+
+    private IEncounterCatalog? Find(GameIdentity game)
+    {
+        ArgumentNullException.ThrowIfNull(game);
+        return _catalogs.FirstOrDefault(catalog => catalog.Supports(game));
+    }
+}

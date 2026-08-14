@@ -153,7 +153,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         _live = live;
         _post = post;
-        _teamHintCatalog = BlackEncounterCatalog.Instance;
+        _teamHintCatalog = PKHeXSources.Encounters;
 
         SetupSteps = SetupGuide.Steps(live.Port);
         DsSetupSteps =
@@ -996,8 +996,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
-        StoryMilestone? milestone = _teamHintCatalog is BlackEncounterCatalog black
-            ? black.FindConservativeMilestone(detected.BadgeCount)
+        StoryMilestone? milestone = _teamHintCatalog.Supports(_party.Game)
+            ? _teamHintCatalog.FindConservativeMilestone(_party.Game, detected.BadgeCount)
             : ConservativeMilestone(detected.BadgeCount);
         if (milestone is null)
         {

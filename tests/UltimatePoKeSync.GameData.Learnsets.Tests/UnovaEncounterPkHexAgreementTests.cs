@@ -24,10 +24,21 @@ namespace UltimatePoKeSync.GameData.Learnsets.Tests;
 /// test loudly, which is the intent: the same reason D-014 pins its type indices.
 /// </para>
 /// </remarks>
-public sealed class BlackEncounterPkHexAgreementTests
+public sealed class UnovaEncounterPkHexAgreementTests
 {
     private static readonly GameIdentity Black =
         new("IRBI", "POKEMON B", 0, PokemonGeneration.Gen5);
+
+    private static readonly GameIdentity White =
+        new("IRAO", "POKEMON W", 0, PokemonGeneration.Gen5);
+
+    /// <summary>Each version against its own table. Crossing them is the mistake to catch.</summary>
+    public static TheoryData<string> Versions => ["Black", "White"];
+
+    private static (GameIdentity Game, IEncounterCatalog Catalog, string Field) Setup(string version) =>
+        version == "White"
+            ? (White, UnovaEncounterCatalog.White, "SlotsW")
+            : (Black, UnovaEncounterCatalog.Black, "SlotsB");
 
     /// <summary>The methods that mean "it is out there in the world", as opposed to a
     /// fossil, a trade, a roamer or a one-off static that PKHeX files elsewhere.</summary>
@@ -44,18 +55,32 @@ public sealed class BlackEncounterPkHexAgreementTests
         EncounterMethod.BridgeShadow,
     ];
 
-    private static readonly Lazy<IReadOnlyDictionary<int, HashSet<int>>> LazyBlackSlots =
-        new(LoadBlackSlots);
+    private static readonly Dictionary<string, IReadOnlyDictionary<int, HashSet<int>>> Cache = [];
 
-    private static IReadOnlyDictionary<int, HashSet<int>> BlackSlots => LazyBlackSlots.Value;
-
-    [Fact]
-    public void EveryWildSuggestionIsActuallyCatchableInBlack()
+    private static IReadOnlyDictionary<int, HashSet<int>> Slots(string field)
     {
+        lock (Cache)
+        {
+            if (!Cache.TryGetValue(field, out IReadOnlyDictionary<int, HashSet<int>>? loaded))
+            {
+                Cache[field] = loaded = LoadSlots(field);
+            }
+
+            return loaded;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Versions))]
+    public void EveryWildSuggestionIsActuallyCatchableInThatVersion(string version)
+    {
+        (GameIdentity game, IEncounterCatalog catalog, string field) = Setup(version);
+        IReadOnlyDictionary<int, HashSet<int>> slots = Slots(field);
+
         string[] unobtainable =
         [
-            .. WildCandidates()
-                .Where(candidate => !BlackSlots.ContainsKey(candidate.SpeciesId))
+            .. WildCandidates(game, catalog)
+                .Where(candidate => !slots.ContainsKey(candidate.SpeciesId))
                 .Select(candidate =>
                     $"{candidate.SpeciesName} ({candidate.SpeciesId}) at {candidate.Location}"),
         ];
@@ -68,19 +93,23 @@ public sealed class BlackEncounterPkHexAgreementTests
     /// catalog prints. Levels in between are not asserted, because a Black grass slot lists
     /// discrete levels and a species can appear at 8 and at 10 without ever being 9.
     /// </summary>
-    [Fact]
-    public void EveryPrintedLevelBoundIsALevelTheSpeciesReallyAppearsAt()
+    [Theory]
+    [MemberData(nameof(Versions))]
+    public void EveryPrintedLevelBoundIsALevelTheSpeciesReallyAppearsAt(string version)
     {
+        (GameIdentity game, IEncounterCatalog catalog, string field) = Setup(version);
+        IReadOnlyDictionary<int, HashSet<int>> slots = Slots(field);
+
         string[] wrong =
         [
-            .. WildCandidates()
-                .Where(candidate => BlackSlots.ContainsKey(candidate.SpeciesId))
+            .. WildCandidates(game, catalog)
+                .Where(candidate => slots.ContainsKey(candidate.SpeciesId))
                 .Select(candidate => new
                 {
                     candidate.SpeciesName,
                     candidate.MinimumLevel,
                     candidate.MaximumLevel,
-                    Levels = BlackSlots[candidate.SpeciesId],
+                    Levels = slots[candidate.SpeciesId],
                 })
                 .Where(entry => !entry.Levels.Contains(entry.MinimumLevel) ||
                     !entry.Levels.Contains(entry.MaximumLevel))
@@ -106,34 +135,58 @@ public sealed class BlackEncounterPkHexAgreementTests
         int speciesId,
         string name)
     {
-        Assert.False(BlackSlots.ContainsKey(speciesId), $"{name} is in Black's wild table");
+        Assert.False(Slots("SlotsB").ContainsKey(speciesId), $"{name} is in Black's wild table");
         Assert.DoesNotContain(
-            BlackEncounterCatalog.Instance.FindEncounters(Black),
+            UnovaEncounterCatalog.Black.FindEncounters(Black),
             candidate => candidate.SpeciesId == speciesId);
     }
 
     /// <summary>Guards the reflection itself: an empty table would pass every test above.</summary>
-    [Fact]
-    public void ThePkHexTableWasActuallyRead()
+    [Theory]
+    [MemberData(nameof(Versions))]
+    public void ThePkHexTableWasActuallyRead(string version)
     {
-        Assert.InRange(BlackSlots.Count, 150, 400);
-        Assert.NotEmpty(WildCandidates());
+        (GameIdentity game, IEncounterCatalog catalog, string field) = Setup(version);
+
+        Assert.InRange(Slots(field).Count, 150, 400);
+        Assert.NotEmpty(WildCandidates(game, catalog));
     }
 
-    private static IReadOnlyList<EncounterCandidate> WildCandidates() =>
+    /// <summary>
+    /// The versions really do differ, so a catalog that answered for both with one list would
+    /// be wrong for one of them. Cottonee is Black's and Petilil is White's, and each is
+    /// absent from the other's tables entirely.
+    /// </summary>
+    [Fact]
+    public void TheTwoVersionsSwapTheirExclusives()
+    {
+        Assert.True(Slots("SlotsB").ContainsKey(546));
+        Assert.False(Slots("SlotsW").ContainsKey(546));
+        Assert.True(Slots("SlotsW").ContainsKey(548));
+        Assert.False(Slots("SlotsB").ContainsKey(548));
+
+        Assert.Contains(
+            UnovaEncounterCatalog.Black.FindEncounters(Black),
+            candidate => candidate.SpeciesId == 546 && Wild.Contains(candidate.Method));
+        Assert.Contains(
+            UnovaEncounterCatalog.White.FindEncounters(White),
+            candidate => candidate.SpeciesId == 548 && Wild.Contains(candidate.Method));
+    }
+
+    private static IReadOnlyList<EncounterCandidate> WildCandidates(
+        GameIdentity game,
+        IEncounterCatalog catalog) =>
     [
-        .. BlackEncounterCatalog.Instance
-            .FindEncounters(Black)
-            .Where(candidate => Wild.Contains(candidate.Method)),
+        .. catalog.FindEncounters(game).Where(candidate => Wild.Contains(candidate.Method)),
     ];
 
-    private static IReadOnlyDictionary<int, HashSet<int>> LoadBlackSlots()
+    private static IReadOnlyDictionary<int, HashSet<int>> LoadSlots(string name)
     {
         FieldInfo field = typeof(Encounters5BW).GetField(
-            "SlotsB",
+            name,
             BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)
             ?? throw new InvalidOperationException(
-                "PKHeX no longer exposes Encounters5BW.SlotsB; this check needs updating.");
+                $"PKHeX no longer exposes Encounters5BW.{name}; this check needs updating.");
 
         var areas = (EncounterArea5[])field.GetValue(null)!;
         var levels = new Dictionary<int, HashSet<int>>();

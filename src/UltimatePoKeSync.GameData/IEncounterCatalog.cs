@@ -83,4 +83,11 @@ public interface IEncounterCatalog
     /// which milestones are already reached and whether to show the next one separately.
     /// </summary>
     IReadOnlyList<EncounterCandidate> FindEncounters(GameIdentity game);
+
+    /// <summary>
+    /// The latest milestone a badge count *proves* has been passed. Deliberately behind the
+    /// player rather than level with them: a badge says where they have been, and unlocking a
+    /// route they have not reached is the one failure this feature must not have.
+    /// </summary>
+    StoryMilestone FindConservativeMilestone(GameIdentity game, int badgeCount);
 }

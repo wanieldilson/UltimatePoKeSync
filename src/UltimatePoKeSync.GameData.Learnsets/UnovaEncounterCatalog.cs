@@ -5,28 +5,40 @@ using UltimatePoKeSync.GameData;
 namespace UltimatePoKeSync.GameData.Learnsets;
 
 /// <summary>
-/// The main-story acquisition timeline for the original Pokémon Black. Wild species and
-/// levels are a pinned snapshot of PKHeX's Black encounter tables; story order and
-/// prerequisites are kept explicitly here because a legality table says where a Pokémon
+/// The main-story acquisition timeline for the original Pokémon Black and White. Wild species
+/// and levels are a pinned snapshot of PKHeX's encounter tables for that version; story order
+/// and prerequisites are kept explicitly here, because a legality table says where a Pokémon
 /// exists, not when the player can reach it.
 /// </summary>
 /// <remarks>
-/// One earliest actionable encounter is exposed per species. Gifts and event-only catches
-/// are deliberately absent. The catalog ends at Victory Road: post-game routes must never
-/// leak into advice for a player still collecting badges.
+/// <para>
+/// One earliest actionable encounter is exposed per species. Gifts and event-only catches are
+/// deliberately absent. The catalog ends at Victory Road: post-game routes must never leak
+/// into advice for a player still collecting badges.
+/// </para>
+/// <para>
+/// The two versions share the region, so they share this timeline and almost all of these
+/// encounters; what differs is a handful of exclusives, listed once at the points where they
+/// diverge rather than copied into a second catalog that would drift. See D-055.
+/// </para>
 /// </remarks>
-public sealed class BlackEncounterCatalog : IEncounterCatalog
+public sealed class UnovaEncounterCatalog : IEncounterCatalog
 {
     private const string FossilChoice = "relic-castle-fossil";
 
-    private static readonly Lazy<BlackEncounterCatalog> LazyInstance =
-        new(() => new BlackEncounterCatalog());
+    private static readonly Lazy<UnovaEncounterCatalog> LazyBlack =
+        new(() => new UnovaEncounterCatalog(isWhite: false));
 
+    private static readonly Lazy<UnovaEncounterCatalog> LazyWhite =
+        new(() => new UnovaEncounterCatalog(isWhite: true));
+
+    private readonly bool _isWhite;
     private readonly IReadOnlyList<StoryMilestone> _milestones;
     private readonly IReadOnlyList<EncounterCandidate> _encounters;
 
-    private BlackEncounterCatalog()
+    private UnovaEncounterCatalog(bool isWhite)
     {
+        _isWhite = isWhite;
         StoryMilestone route1 = Milestone("route-1", "Route 1", 10, 0,
             "After receiving Poké Balls on Route 1.");
         StoryMilestone route2 = Milestone("route-2", "Route 2", 20, 0,
@@ -103,20 +115,34 @@ public sealed class BlackEncounterCatalog : IEncounterCatalog
             W(524, "Roggenrola", 10, 13), W(527, "Woobat", 10, 13));
         AddWild(result, wellspring, "Wellspring Cave dust cloud", EncounterMethod.DustCloud,
             W(529, "Drilbur", 10, 13));
+        // Throh and Sawk both exist in both versions, which is why this is not in the list of
+        // exclusives above and why the PKHeX check is what found it. Their roles are what
+        // swap: one is the common grass encounter from Lv.12 and the other only turns up in
+        // shaking grass at Lv.15.
         AddWild(result, pinwheelOuter, "Pinwheel Forest entrance", EncounterMethod.Grass,
-            W(532, "Timburr", 13, 14), W(535, "Tympole", 12, 15), W(539, "Sawk", 12, 15));
+            W(532, "Timburr", 13, 14), W(535, "Tympole", 12, 15),
+            _isWhite ? W(538, "Throh", 12, 15) : W(539, "Sawk", 12, 15));
         AddWild(result, pinwheelOuter, "Pinwheel Forest entrance shaking grass",
-            EncounterMethod.ShakingGrass, W(538, "Throh", 15, 15));
+            EncounterMethod.ShakingGrass,
+            _isWhite ? W(539, "Sawk", 15, 15) : W(538, "Throh", 15, 15));
 
+        // The grass friend: Cottonee in Black, Petilil in White. Each is absent from the other
+        // version's tables entirely, which is what makes this a swap rather than a preference.
         AddWild(result, pinwheelInner, "Pinwheel Forest interior", EncounterMethod.Grass,
-            W(546, "Cottonee", 14, 17), W(540, "Sewaddle", 14, 17),
+            _isWhite ? W(548, "Petilil", 14, 17) : W(546, "Cottonee", 14, 17),
+            W(540, "Sewaddle", 14, 17),
             W(543, "Venipede", 15, 16));
         AddWild(result, pinwheelInner, "Pinwheel Forest shaking grass", EncounterMethod.ShakingGrass,
             W(511, "Pansage", 15, 15), W(513, "Pansear", 15, 15),
             W(515, "Panpour", 15, 15));
-        result.Add(new EncounterCandidate(
-            548, "Petilil", pinwheelInner, "Nacrene City", EncounterMethod.InGameTrade,
-            15, 15, "Catch a Cottonee in Pinwheel Forest, then trade it in Nacrene City."));
+        // The trade is the mirror of the catch: you hand over the one your version has.
+        result.Add(_isWhite
+            ? new EncounterCandidate(
+                546, "Cottonee", pinwheelInner, "Nacrene City", EncounterMethod.InGameTrade,
+                15, 15, "Catch a Petilil in Pinwheel Forest, then trade it in Nacrene City.")
+            : new EncounterCandidate(
+                548, "Petilil", pinwheelInner, "Nacrene City", EncounterMethod.InGameTrade,
+                15, 15, "Catch a Cottonee in Pinwheel Forest, then trade it in Nacrene City."));
 
         AddWild(result, route4, "Route 4", EncounterMethod.Grass,
             W(551, "Sandile", 15, 18), W(554, "Darumaka", 15, 18),
@@ -141,7 +167,7 @@ public sealed class BlackEncounterCatalog : IEncounterCatalog
 
         AddWild(result, route5, "Route 5", EncounterMethod.Grass,
             W(568, "Trubbish", 19, 21), W(572, "Minccino", 19, 22),
-            W(574, "Gothita", 19, 22));
+            _isWhite ? W(577, "Solosis", 19, 22) : W(574, "Gothita", 19, 22));
         AddWild(result, route5, "Route 5 shaking grass", EncounterMethod.ShakingGrass,
             W(587, "Emolga", 20, 20));
         AddWild(result, driftveil, "Driftveil Drawbridge shadows", EncounterMethod.BridgeShadow,
@@ -190,9 +216,11 @@ public sealed class BlackEncounterCatalog : IEncounterCatalog
         AddWild(result, route9, "Route 9", EncounterMethod.Grass,
             W(624, "Pawniard", 31, 39));
         AddWild(result, route10, "Route 10", EncounterMethod.Grass,
-            W(629, "Vullaby", 34, 36), W(626, "Bouffalant", 34, 35));
+            _isWhite ? W(627, "Rufflet", 34, 36) : W(629, "Vullaby", 34, 36),
+            W(626, "Bouffalant", 34, 35));
         result.Add(new EncounterCandidate(
-            641, "Tornadus", route10, "Unova roaming encounter", EncounterMethod.Roaming,
+            _isWhite ? 642 : 641, _isWhite ? "Thundurus" : "Tornadus",
+            route10, "Unova roaming encounter", EncounterMethod.Roaming,
             40, 40, "Trigger the Route 7 storm event after earning the Legend Badge, then track the roaming Pokémon."));
         AddWild(result, victoryRoad, "Victory Road exterior", EncounterMethod.Grass,
             W(631, "Heatmor", 37, 40));
@@ -215,14 +243,18 @@ public sealed class BlackEncounterCatalog : IEncounterCatalog
         ]);
     }
 
-    public static BlackEncounterCatalog Instance => LazyInstance.Value;
+    public static UnovaEncounterCatalog Black => LazyBlack.Value;
 
-    public string SourceName => "PKHeX.Core 26.7.7 encounter snapshot + curated Pokémon Black story timeline";
+    public static UnovaEncounterCatalog White => LazyWhite.Value;
+
+    public string SourceName =>
+        $"PKHeX.Core 26.7.7 encounter snapshot + curated Pokémon {(_isWhite ? "White" : "Black")} story timeline";
 
     public bool Supports(GameIdentity game)
     {
         ArgumentNullException.ThrowIfNull(game);
-        return game.Generation == PokemonGeneration.Gen5 && IsOriginalBlack(game.GameCode);
+        return game.Generation == PokemonGeneration.Gen5 &&
+            (_isWhite ? IsOriginalWhite(game.GameCode) : IsOriginalBlack(game.GameCode));
     }
 
     public IReadOnlyList<StoryMilestone> FindMilestones(GameIdentity game)
@@ -242,8 +274,9 @@ public sealed class BlackEncounterCatalog : IEncounterCatalog
     /// With no badges, Route 1 is the only conservative useful default; manual selection
     /// can refine that to Route 2 before the first Gym.
     /// </summary>
-    public StoryMilestone FindConservativeMilestone(int badgeCount)
+    public StoryMilestone FindConservativeMilestone(GameIdentity game, int badgeCount)
     {
+        EnsureSupported(game);
         if (badgeCount is < 0 or > 8)
         {
             throw new ArgumentOutOfRangeException(nameof(badgeCount));
@@ -310,12 +343,16 @@ public sealed class BlackEncounterCatalog : IEncounterCatalog
     private static bool IsOriginalBlack(string gameCode) => gameCode is
         "IRBO" or "IRBE" or "IRBJ" or "IRBI" or "IRBS" or "IRBF" or "IRBD" or "IRBK";
 
+    private static bool IsOriginalWhite(string gameCode) => gameCode is
+        "IRAO" or "IRAE" or "IRAJ" or "IRAI" or "IRAS" or "IRAF" or "IRAD" or "IRAK";
+
     private void EnsureSupported(GameIdentity game)
     {
         ArgumentNullException.ThrowIfNull(game);
         if (!Supports(game))
         {
-            throw new NotSupportedException($"No Pokémon Black encounter timeline is available for {game}.");
+            throw new NotSupportedException(
+                $"No Pokémon {(_isWhite ? "White" : "Black")} encounter timeline is available for {game}.");
         }
     }
 
