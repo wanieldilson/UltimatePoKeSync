@@ -47,10 +47,11 @@ public sealed class MelonDsProviderTests
             Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRAI")).PartyPointer,
             Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRAO")).PartyPointer,
             Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IREO")).PartyPointer,
+            Assert.IsType<Gen5MemoryMap>(Gen5MemoryMap.For("IRDO")).PartyPointer,
         ];
 
         Assert.Equal(
-            [0x0224F88Cu, 0x0224F98Cu, 0x0224F8ACu, 0x0224F9ACu, 0x0223B4C4u],
+            [0x0224F88Cu, 0x0224F98Cu, 0x0224F8ACu, 0x0224F9ACu, 0x0223B4C4u, 0x0223B504u],
             pointers);
         Assert.Equal(pointers.Length, pointers.Distinct().Count());
 
@@ -63,8 +64,9 @@ public sealed class MelonDsProviderTests
         Assert.Null(Gen5MemoryMap.For("IRBJ"));
         Assert.True(Gen5MemoryMap.IsGen5("IRBJ"));
 
-        // White 2 is a different game again, and equally unmapped.
-        Assert.Null(Gen5MemoryMap.For("IRDO"));
+        // Italian Black 2 is a different cartridge again, and unmapped.
+        Assert.Null(Gen5MemoryMap.For("IREI"));
+        Assert.True(Gen5MemoryMap.IsGen5("IREI"));
 
         // And something that is not a Gen 5 game at all.
         Assert.False(Gen5MemoryMap.IsGen5("ADAE"));

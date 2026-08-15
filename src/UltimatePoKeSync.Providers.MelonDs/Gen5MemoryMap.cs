@@ -73,6 +73,11 @@ public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPoint
         // differently enough that the directory is not where the originals keep it, and this
         // one had to be scanned for rather than looked up. See D-061.
         ["IREO"] = new("IREO", "Black 2 (English)", 0x0223B4C4),
+
+        // Verified live on 2026-08-15, an Oshawott at Lv.5. Sits 0x40 past its own version's
+        // pointer, which is a smaller gap than any pair among the originals and still not a
+        // rule: it is one more measurement. See D-064.
+        ["IRDO"] = new("IRDO", "White 2 (English)", 0x0223B504),
     };
 
     public static Gen5MemoryMap? For(string gameCode) =>

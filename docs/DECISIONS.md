@@ -2503,3 +2503,42 @@ needs the player to confirm the team it found, which is a feature rather than a 
 nothing and let unmapped games explain themselves when loaded (rejected: the explanation
 arrives after somebody has gone and found a ROM), and drop the Italian entries for a cleaner
 matrix (rejected above).
+
+## D-064. White 2, and the sixth measurement
+
+**Status:** Accepted · 2026-08-15
+
+English White 2 (`IRDO`) keeps its party pointer at `0x0223B504`, leading to `0x0221E424`.
+Verified live, an Oshawott at Lv.5, confirmed by the player.
+
+The shortcut worked this time. Black 2's pointer had been found by scanning a megabyte; White 2
+sits `0x40` past it, and reading the kilobyte around Black 2's address found it in seconds. Six
+cartridges now:
+
+| Cartridge | Pointer | Party head |
+| --- | --- | --- |
+| Black, Italian | `0x0224F88C` | `0x022348AC` |
+| Black, English | `0x0224F98C` | `0x022349AC` |
+| White, Italian | `0x0224F8AC` | `0x022348CC` |
+| White, English | `0x0224F9AC` | `0x022349CC` |
+| Black 2, English | `0x0223B4C4` | `0x0221E3E4` |
+| White 2, English | `0x0223B504` | `0x0221E424` |
+
+Within each pair of games the versions sit a fixed distance apart, and the two pairs are 82 KB
+from each other. It is the same shape D-061 refused to extrapolate from, now with a second
+example of the local regularity and the same reason not to trust it: the regularity holds
+inside a pair and says nothing across one, and there is no way to know from four cartridges
+which kind of gap the next one will be.
+
+What this does buy is a cheaper search. The window to read first is now "beside the pointer of
+the other version of the same game", which found White 2 in seconds rather than 68. That is a
+heuristic for where to *look*, which costs nothing when it is wrong, rather than an answer.
+
+Both sequels are now complete: their catalog was written first (D-060) and had been waiting.
+Every Gen 5 game the app knows how to suggest for can now be read, in English, plus Black and
+White in Italian.
+
+**Note on the stubs.** Port 3334 refused every connection during this measurement and 3333
+answered, which is the fallback D-039's correction added, working. It is also the state that
+sent the app into silence earlier today, so the app's own fallback still deserves the look it
+has not had.

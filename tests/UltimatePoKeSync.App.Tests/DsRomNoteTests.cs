@@ -26,8 +26,9 @@ public sealed class DsRomNoteTests
     [Fact]
     public void NothingUnmeasuredIsPromised()
     {
-        Assert.Null(Gen5MemoryMap.For("IRDO"));
-        Assert.DoesNotContain("White 2", SetupGuide.DsRomNote, StringComparison.Ordinal);
+        Assert.Null(Gen5MemoryMap.For("IREI"));
+        Assert.DoesNotContain("(Italy)", SetupGuide.DsRomNote.Replace("Black (Italy)", "")
+            .Replace("White (Italy)", ""), StringComparison.Ordinal);
     }
 
     /// <summary>The screen says which languages are the supported path, because it is asked.</summary>
