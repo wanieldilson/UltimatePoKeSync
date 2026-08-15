@@ -79,6 +79,16 @@ public sealed record Gen5MemoryMap(string GameCode, string Name, uint PartyPoint
         Known.TryGetValue(gameCode, out Gen5MemoryMap? map) ? map : null;
 
     /// <summary>
+    /// Every cartridge that has been measured, named the way a player would name it. The
+    /// setup screen builds its sentence from this rather than repeating it, so the list on
+    /// screen cannot fall behind the list in the code. See D-063.
+    /// </summary>
+    public static IReadOnlyList<string> Mapped { get; } =
+    [
+        .. Known.Values.Select(map => map.Name).Order(StringComparer.Ordinal),
+    ];
+
+    /// <summary>
     /// Whether a code belongs to Gen 5 at all. Used to tell "a DS Pokémon game we have not
     /// mapped" apart from "some other DS game entirely", which are different things to say
     /// to someone waiting for their team to appear.

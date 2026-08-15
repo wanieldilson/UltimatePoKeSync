@@ -2469,3 +2469,37 @@ early game where this happened), scale the limit with the party's level rather t
 eight (rejected: eight levels is roughly the point where a wild Pokémon stops being catchable
 regardless of where you are in the game), and keep swarms with a corrected milestone (rejected:
 their real milestone is "after the credits", which this timeline has no way to express).
+
+## D-063. English is the supported language for DS games, and the screen says which
+
+**Status:** Accepted · 2026-08-15
+
+Every DS cartridge has to be measured against a running game before the app can read it, and
+D-061 killed the idea of deriving the rest by arithmetic. Thirteen Gen 5 codes exist per game
+and eight languages apiece; measuring them all means owning them all. The supported set is
+therefore English, and the setup screen now says so instead of leaving people to discover it
+by loading a game and getting silence.
+
+This applies to DS games only. A Game Boy Advance game is found through addresses cross-checked
+against three independent sources (D-013) and confirmed by counting literals in the ROM
+(D-034), so all thirteen Gen 3 codes work in every language and the note would be false there.
+
+**The two Italian cartridges stay.** Italian Black and Italian White are measured, verified and
+working, and deleting a verified address to make a policy tidier would break a player's game to
+buy nothing. The policy is about what gets measured next, not about discarding what has been.
+
+**The note is derived, not written.** `Gen5MemoryMap.Mapped` is the list, and the setup screen
+composes its sentence from it, because a hand-written list of supported cartridges beside a
+code list of supported cartridges is two lists that will disagree. This project has now watched
+a test outlive three of its own examples for exactly that reason (D-058); a screen can rot the
+same way, and quieter. A test asserts every mapped cartridge is named and that nothing
+unmeasured is.
+
+**Alternatives considered:** search for the address at run time and stop needing cartridges
+(rejected by the author after being offered: the method works, five for five, and its filter
+chain of shape, entropy and a unique pointer has never yet produced a false positive, but it is
+five samples of one generation with one Pokémon in the party, and the honest version of it
+needs the player to confirm the team it found, which is a feature rather than a fix), say
+nothing and let unmapped games explain themselves when loaded (rejected: the explanation
+arrives after somebody has gone and found a ROM), and drop the Italian entries for a cleaner
+matrix (rejected above).

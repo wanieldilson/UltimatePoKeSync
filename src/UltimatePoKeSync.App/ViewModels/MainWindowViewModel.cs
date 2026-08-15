@@ -167,6 +167,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         [
             .. SetupGuide.DsSteps().Select((step, index) => new NumberedStep(index + 1, step)),
         ];
+        DsRomNote = SetupGuide.DsRomNote;
         ScriptPath = SetupGuide.ScriptPath;
         PlatformName = SetupGuide.PlatformName;
         PortHelp = SetupGuide.PortHelp(live.Port);
@@ -187,6 +188,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     }
 
     public bool HasUpdate => UpdateText.Length > 0;
+
+    /// <summary>Which DS cartridges are readable, shown beside the melonDS steps.</summary>
+    public string DsRomNote { get; }
 
     public ObservableCollection<PokemonSlotViewModel> Slots { get; } = [];
 

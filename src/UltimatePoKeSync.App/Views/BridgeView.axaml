@@ -213,6 +213,12 @@
 
             <TextBlock FontSize="13" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
                        Text="No file to load: melonDS answers a debugger rather than running a script, so there is nothing to find on disk." />
+
+            <Border BorderBrush="{StaticResource Ink}" BorderThickness="2" CornerRadius="10"
+                    Background="{StaticResource PanelSunkenDeep}" Padding="12,9" Margin="0,12,0,0">
+              <TextBlock Text="{Binding DsRomNote}" FontSize="12.5" TextWrapping="Wrap"
+                         Foreground="{StaticResource BridgeMuted}" />
+            </Border>
           </StackPanel>
         </Grid>
       </StackPanel>

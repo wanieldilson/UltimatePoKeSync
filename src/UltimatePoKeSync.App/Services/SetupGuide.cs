@@ -1,5 +1,7 @@
 using System.Diagnostics;
 
+using UltimatePoKeSync.Providers.MelonDs;
+
 namespace UltimatePoKeSync.App.Services;
 
 /// <summary>
@@ -149,6 +151,22 @@ public static class SetupGuide
         "Restart the game so the setting takes effect, then keep playing. Nothing else to "
             + "load: this window connects on port 3334 by itself.",
     ];
+
+    /// <summary>
+    /// Which DS cartridges the app can actually read, and why it is a short list.
+    /// </summary>
+    /// <remarks>
+    /// A Game Boy Advance game is found through addresses cross-checked against three
+    /// independent sources (D-013), so language costs nothing there. A DS game is not: every
+    /// cartridge keeps its party somewhere its own, and D-061 proved the addresses follow no
+    /// pattern worth extrapolating from. Each one has to be measured against a running game,
+    /// so the supported set is the set somebody has run. See D-063.
+    /// </remarks>
+    public static string DsRomNote =>
+        "English ROMs are the supported ones for DS games. Every cartridge keeps its party at "
+        + "its own address, so each has to be measured against a running game. Measured so far: "
+        + string.Join(", ", Gen5MemoryMap.Mapped)
+        + ". Any other language is recognised and refused rather than read at a guessed address.";
 
     /// <summary>Shown when the port is busy, which is nearly always a second mGBA.</summary>
     public static string PortHelp(int port) =>
