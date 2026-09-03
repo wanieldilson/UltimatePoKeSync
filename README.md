@@ -239,6 +239,10 @@ dotnet run --project src/UltimatePoKeSync.Cli -- \
 More detail and troubleshooting:
 [`emulator-scripts/mgba/README.md`](emulator-scripts/mgba/README.md).
 
+An experimental standalone reader for opponent Pokémon in USA/Australia SoulSilver is also
+available. It does not add Gen 4 to the dashboard; see the
+[`SoulSilver opponent beta guide`](docs/SOULSILVER-OPPONENT-BETA.md).
+
 ## Layout
 
 | Path                        | Contents |
@@ -262,6 +266,8 @@ More detail and troubleshooting:
 - [`docs/DECISIONS.md`](docs/DECISIONS.md): every design choice, with the alternatives
   considered and the reasoning. The authority on why anything is the way it is.
 - [`docs/protocol.md`](docs/protocol.md): the emulator-to-app protocol.
+- [`docs/SOULSILVER-OPPONENT-BETA.md`](docs/SOULSILVER-OPPONENT-BETA.md): setup,
+  test cases, diagnostics and known limitations for the standalone SoulSilver reader.
 
 ## Licence
 

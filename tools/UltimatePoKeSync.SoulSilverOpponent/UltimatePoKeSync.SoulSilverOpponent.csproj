@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>upks-soulsilver-opponents</AssemblyName>
+    <RootNamespace>UltimatePoKeSync.SoulSilverOpponent</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="UltimatePoKeSync.SoulSilverOpponent.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PKHeX.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UltimatePoKeSync.Contracts\UltimatePoKeSync.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\UltimatePoKeSync.Providers.MelonDs\UltimatePoKeSync.Providers.MelonDs.csproj" />
+  </ItemGroup>
+
+</Project>

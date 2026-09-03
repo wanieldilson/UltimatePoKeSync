@@ -2542,3 +2542,38 @@ White in Italian.
 answered, which is the fallback D-039's correction added, working. It is also the state that
 sent the app into silence earlier today, so the app's own fallback still deserves the look it
 has not had.
+
+## D-065. Prove SoulSilver's opponents in a separate reader before adding Gen 4
+
+**Status:** Accepted · 2026-09-03
+
+The requested target is the USA/Australia SoulSilver release (`IPGE`), and the immediate need
+is readable opponent data rather than the dashboard's full team-building experience. Gen 4 is
+not otherwise supported: adding it to the application would also require its party provider,
+parser, battle rules, move data, learnsets, recommendations and Johto progression. None of that
+is necessary to answer whether the opponent bytes can be read correctly.
+
+`tools/UltimatePoKeSync.SoulSilverOpponent` is therefore a standalone console reader. It reuses
+the melonDS GDB transport, because that code already handles the stub's handshake, continue,
+256-byte reply limit, dual-port fallback and clean detach. It uses PKHeX's `PK4` directly for
+the same reason the main parsers use `PK3` and `PK5`: decryption, block permutation and checksum
+validation should not be copied into an untested script.
+
+Published tools agree on the `IPGE` root pointer at `0x0211186C`, the 236-byte record size and
+the wild record, but disagree about which downstream manager offset belongs to HGSS. The beta
+tries the two published routes in a fixed order and accepts only contiguous, checksum-valid
+Gen 4 records with plausible species and levels. Diagnostics name both candidates and their
+results. This is a bounded compatibility probe, not a general scan across RAM, and a real-ROM
+fixture is still required before either route becomes an application memory map.
+
+The reader prints every valid opponent record, including party members the battle has not yet
+revealed. That is explicit in the beta guide rather than disguised as ordinary game knowledge.
+Temporary effects remain out: stat stages, confusion, Substitute and Transform belong to the
+battle-only structure, not the encrypted party record.
+
+**Alternatives considered:** add Gen 4 to the dashboard first (rejected: much larger than the
+requested experiment and would make unverified addresses look supported), write a single Python
+or Lua script (rejected: melonDS has no usable cross-platform Lua path here, while Python would
+duplicate both the GDB edge cases and PK4 cryptography), and trust one published offset
+(rejected: the sources conflict, and this project's repeated lesson is that plausible memory
+must be measured before it is named).
