@@ -19,7 +19,40 @@ ROM or save file. No ROM, save or Nintendo artwork is included.
 ROM hacks, randomisers, translations, HeartGold and non-English releases are not supported by
 this beta. The tool checks the internal game code and refuses anything except `IPGE`.
 
-## Start it
+## Windows setup
+
+1. Install the [.NET 10 SDK for Windows](https://dotnet.microsoft.com/download/dotnet/10.0).
+   Choose the SDK, not just the Desktop Runtime, and use the x64 download unless the Windows
+   machine is ARM-based.
+2. Open a new PowerShell window and confirm the installation:
+
+   ```powershell
+   dotnet --version
+   ```
+
+   The version should begin with `10.`. If PowerShell still says `dotnet` is not recognised,
+   sign out of Windows and back in, then try again.
+3. [Download the `soul-silver-opponents` branch as a ZIP](https://github.com/wanieldilson/UltimatePoKeSync/archive/refs/heads/soul-silver-opponents.zip),
+   extract it, and open PowerShell in the extracted repository folder. The folder should
+   contain `UltimatePoKeSync.slnx`.
+4. Open melonDS and load SoulSilver.
+5. Open **Config → Emu settings**, enable **GDB stub**, and leave the JIT recompiler off.
+6. Restart the game after changing those settings.
+7. In PowerShell, from the repository folder, run:
+
+   ```powershell
+   dotnet run --project .\tools\UltimatePoKeSync.SoulSilverOpponent -- --diagnostics
+   ```
+
+   The first run downloads the required NuGet packages and may take a minute. Later runs use
+   the local package cache.
+8. Enter a wild or trainer battle. The terminal redraws when validated opponent data changes.
+   Press **Ctrl+C** to stop the reader cleanly.
+
+If Windows Defender Firewall asks about melonDS, allow it on **Private networks**. The reader
+only connects to melonDS on the same computer through `127.0.0.1`, using GDB port 3334 or 3333.
+
+## macOS and Linux setup
 
 1. Open melonDS and load SoulSilver.
 2. Open **Config → Emu settings**.
@@ -41,18 +74,19 @@ command:
 brew install dotnet
 ```
 
-### Useful beta options
+## Useful beta options
 
-```bash
+These examples work in Windows PowerShell:
+
+```powershell
 # Include candidate addresses and validation results in the display.
-dotnet run --project tools/UltimatePoKeSync.SoulSilverOpponent -- --diagnostics
+dotnet run --project .\tools\UltimatePoKeSync.SoulSilverOpponent -- --diagnostics
 
 # Produce one append-only sample that can be pasted into a bug report.
-dotnet run --project tools/UltimatePoKeSync.SoulSilverOpponent -- \
-  --once --diagnostics --no-clear
+dotnet run --project .\tools\UltimatePoKeSync.SoulSilverOpponent -- --once --diagnostics --no-clear
 
 # Select one GDB stub explicitly if the automatic 3334/3333 fallback is not wanted.
-dotnet run --project tools/UltimatePoKeSync.SoulSilverOpponent -- --port 3333
+dotnet run --project .\tools\UltimatePoKeSync.SoulSilverOpponent -- --port 3333
 ```
 
 Run `--help` for the complete option list. The default one-second interval is intentional:
@@ -101,7 +135,8 @@ name is personally identifying, redact it before posting.
 ## Troubleshooting
 
 **The reader says it is waiting for melonDS.** Confirm the GDB stub is enabled, JIT is off and
-melonDS was restarted after the setting changed. Another debugger may already own the stub.
+melonDS was restarted after the setting changed. Another debugger may already own the stub. On
+Windows, also check that melonDS is allowed through Defender Firewall on Private networks.
 
 **The game freezes after the terminal is killed.** Ctrl+C performs a clean detach. Force-killing
 the process can leave a melonDS GDB stub wedged; reload the ROM to clear it, then start the
