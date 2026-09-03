@@ -93,6 +93,54 @@ Run `--help` for the complete option list. The default one-second interval is in
 melonDS limits each GDB memory reply, and polling far faster makes the game less pleasant
 without making opponent changes meaningfully clearer.
 
+## What the output should look like
+
+During a successful trainer battle, the PowerShell window should resemble this. The Pokémon,
+levels, HP, moves and addresses below are illustrative; the tester's battle determines the
+actual values.
+
+```text
+UltimatePoKeSync · SoulSilver opponent reader (beta)
+======================================================
+POKEMON SS [IPGE] rev0
+
+OPPONENT · 2 Pokémon
+  1. Gastly  Lv.21  HP 49/49  Healthy
+     Timid · Levitate · Item: None
+     Moves: Lick (30/30), Spite (10/10), Mean Look (5/5), Curse (10/10)
+  2. Haunter  Lv.23  HP 55/55  Healthy
+     Modest · Levitate · Item: None
+     Moves: Hypnosis (20/20), Dream Eater (15/15), Curse (10/10), Night Shade (15/15)
+
+Diagnostics:
+  IPGE rev0; root 0x02123456.
+  The documented HGSS layout party at 0x02201C70: 2 valid record(s).
+  Second-opponent candidate 0x022030A8: no checksum-valid PK4 records.
+
+Last scan: 20:14:03 · Ctrl+C to stop cleanly
+```
+
+`IPGE` confirms that the expected USA/Australia SoulSilver release was detected. `OPPONENT`
+is used for a trainer; a wild encounter is labelled `WILD OPPONENT`. A two-trainer battle may
+also display a separate `OPPONENT 2` block. The diagnostic addresses can differ from this
+example and are useful to include in a report—they are not themselves an error.
+
+When SoulSilver is connected but no battle record is available, this is the expected result:
+
+```text
+POKEMON SS [IPGE] rev0
+No checksum-valid opponent is currently visible in the known battle locations.
+```
+
+Before melonDS is reachable, the expected message is:
+
+```text
+Waiting for melonDS. Enable its GDB stub and leave JIT off.
+```
+
+Normal mode replaces the previous display when something changes. Add `--no-clear` when a
+scrolling history or copy-and-pasteable report is preferred.
+
 ## What to test
 
 Please try these separately and note which ones work:
